@@ -9,6 +9,7 @@ import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.item.ElectricSwordItem;
 import ru.rfvv.metatechreborn.item.EnergyFoodItem;
+import ru.rfvv.metatechreborn.item.GreenhouseModuleItem;
 import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
 import ru.rfvv.metatechreborn.item.MetaVajraItem;
 import ru.rfvv.metatechreborn.item.NeutroniumCombinerUpgradeItem;
@@ -34,6 +35,8 @@ public final class ModItems {
             "mana_drill_core", ModBlocks.MANA_DRILL_CORE);
     public static final RegistryObject<Item> MANA_DRILL_NOZZLE = blockItem(
             "mana_drill_nozzle", ModBlocks.MANA_DRILL_NOZZLE);
+    public static final RegistryObject<Item> GREENHOUSE = blockItem(
+            "greenhouse", ModBlocks.GREENHOUSE);
 
     public static final RegistryObject<Item> NEUTRON_COMBINER_SPEED_UPGRADE = ITEMS.register(
             "neutron_combiner_speed_upgrade",
@@ -87,6 +90,31 @@ public final class ModItems {
     public static final RegistryObject<Item> MANA_DRILL_GENERATION_UPGRADE_3 = upgrade(
             "mana_drill_generation_upgrade_3", ManaDrillUpgradeItem.Type.GENERATION, 3);
 
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_1 = greenhouseModule(
+            "greenhouse_economy_module_1", GreenhouseModuleItem.Type.ECONOMY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_2 = greenhouseModule(
+            "greenhouse_economy_module_2", GreenhouseModuleItem.Type.ECONOMY, 2);
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_3 = greenhouseModule(
+            "greenhouse_economy_module_3", GreenhouseModuleItem.Type.ECONOMY, 3);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_1 = greenhouseModule(
+            "greenhouse_efficiency_module_1", GreenhouseModuleItem.Type.EFFICIENCY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_2 = greenhouseModule(
+            "greenhouse_efficiency_module_2", GreenhouseModuleItem.Type.EFFICIENCY, 2);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_3 = greenhouseModule(
+            "greenhouse_efficiency_module_3", GreenhouseModuleItem.Type.EFFICIENCY, 3);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_1 = greenhouseModule(
+            "greenhouse_speed_module_1", GreenhouseModuleItem.Type.SPEED, 1);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_2 = greenhouseModule(
+            "greenhouse_speed_module_2", GreenhouseModuleItem.Type.SPEED, 2);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_3 = greenhouseModule(
+            "greenhouse_speed_module_3", GreenhouseModuleItem.Type.SPEED, 3);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_DAY_MODULE = greenhouseModule(
+            "greenhouse_infinite_day_module", GreenhouseModuleItem.Type.INFINITE_DAY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_NIGHT_MODULE = greenhouseModule(
+            "greenhouse_infinite_night_module", GreenhouseModuleItem.Type.INFINITE_NIGHT, 1);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_LAVA_MODULE = greenhouseModule(
+            "greenhouse_infinite_lava_module", GreenhouseModuleItem.Type.INFINITE_LAVA, 1);
+
     // Restored item batches from MetaAdvanced and MetaThaumcraft.
     public static final RegistryObject<Item> META_VAJRA = ITEMS.register("meta_vajra", MetaVajraItem::new);
     public static final RegistryObject<Item> SNOW_GUN = ITEMS.register("snow_gun", SnowGunItem::new);
@@ -137,6 +165,10 @@ public final class ModItems {
         return ITEMS.register(name, () -> new ManaDrillUpgradeItem(type, level));
     }
 
+    private static RegistryObject<Item> greenhouseModule(String name, GreenhouseModuleItem.Type type, int level) {
+        return ITEMS.register(name, () -> new GreenhouseModuleItem(type, level));
+    }
+
     private static RegistryObject<Item> energyFood(String name, int nutrition, float saturation, int useDuration,
                                                    int energyCost, int capacity, int transferLimit, int tier) {
         return ITEMS.register(name, () -> new EnergyFoodItem(
@@ -164,6 +196,16 @@ public final class ModItems {
                 MANA_DRILL_LOOTING_UPGRADE_7, MANA_DRILL_LOOTING_UPGRADE_8, MANA_DRILL_LOOTING_UPGRADE_9,
                 MANA_DRILL_GENERATION_UPGRADE, MANA_DRILL_GENERATION_UPGRADE_2,
                 MANA_DRILL_GENERATION_UPGRADE_3
+        );
+    }
+
+    public static List<RegistryObject<Item>> greenhouseModuleItems() {
+        return List.of(
+                GREENHOUSE_ECONOMY_MODULE_1, GREENHOUSE_ECONOMY_MODULE_2, GREENHOUSE_ECONOMY_MODULE_3,
+                GREENHOUSE_EFFICIENCY_MODULE_1, GREENHOUSE_EFFICIENCY_MODULE_2, GREENHOUSE_EFFICIENCY_MODULE_3,
+                GREENHOUSE_SPEED_MODULE_1, GREENHOUSE_SPEED_MODULE_2, GREENHOUSE_SPEED_MODULE_3,
+                GREENHOUSE_INFINITE_DAY_MODULE, GREENHOUSE_INFINITE_NIGHT_MODULE,
+                GREENHOUSE_INFINITE_LAVA_MODULE
         );
     }
 
