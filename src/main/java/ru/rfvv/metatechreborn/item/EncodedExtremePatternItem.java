@@ -46,10 +46,12 @@ public final class EncodedExtremePatternItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
-        return read(stack)
-                .map(pattern -> Component.translatable("item.metatech_reborn.encoded_extreme_pattern.named",
-                        pattern.output().getHoverName()))
-                .orElseGet(() -> super.getName(stack));
+        Optional<ExtremePatternData> decoded = read(stack);
+        if (decoded.isPresent()) {
+            return Component.translatable("item.metatech_reborn.encoded_extreme_pattern.named",
+                    decoded.get().output().getHoverName());
+        }
+        return super.getName(stack);
     }
 
     @Override
