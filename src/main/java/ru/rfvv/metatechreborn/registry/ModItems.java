@@ -7,8 +7,12 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.item.ElectricSwordItem;
 import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
+import ru.rfvv.metatechreborn.item.MetaVajraItem;
 import ru.rfvv.metatechreborn.item.NeutroniumCombinerUpgradeItem;
+import ru.rfvv.metatechreborn.item.SkullAxeItem;
+import ru.rfvv.metatechreborn.item.SnowGunItem;
 
 import java.util.List;
 
@@ -81,12 +85,44 @@ public final class ModItems {
     public static final RegistryObject<Item> MANA_DRILL_GENERATION_UPGRADE_3 = upgrade(
             "mana_drill_generation_upgrade_3", ManaDrillUpgradeItem.Type.GENERATION, 3);
 
+    // First restored item batch from MetaAdvanced and MetaThaumcraft.
+    public static final RegistryObject<Item> META_VAJRA = ITEMS.register("meta_vajra", MetaVajraItem::new);
+    public static final RegistryObject<Item> SNOW_GUN = ITEMS.register("snow_gun", SnowGunItem::new);
+    public static final RegistryObject<Item> SKULL_AXE = ITEMS.register("skull_axe", SkullAxeItem::new);
+
+    public static final RegistryObject<Item> ELECTRIC_SWORD_REALMITE = electricSword(
+            "electric_sword_realmite", 180_000, 550, 22.0F, 400, 70);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_ARLEMITE = electricSword(
+            "electric_sword_arlemite", 200_000, 600, 24.0F, 400, 76);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_RUPIUM = electricSword(
+            "electric_sword_rupium", 220_000, 650, 26.0F, 400, 82);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_EDEM = electricSword(
+            "electric_sword_edem", 160_000, 700, 28.0F, 400, 64);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_WILDFOREST = electricSword(
+            "electric_sword_wildforest", 200_000, 750, 30.0F, 400, 80);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_APALACHI = electricSword(
+            "electric_sword_apalachi", 240_000, 800, 33.0F, 400, 96);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_SKYUNDER = electricSword(
+            "electric_sword_skyunder", 280_000, 850, 35.0F, 400, 112);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_MORTUM = electricSword(
+            "electric_sword_mortum", 320_000, 900, 37.0F, 400, 128);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_CHALITE = electricSword(
+            "electric_sword_chalite", 360_000, 950, 40.0F, 400, 144);
+    public static final RegistryObject<Item> ELECTRIC_SWORD_ADMIN = electricSword(
+            "electric_sword_admin", Integer.MAX_VALUE, Integer.MAX_VALUE, 2_048.0F, 1, 1);
+
     private static RegistryObject<Item> blockItem(String name, RegistryObject<net.minecraft.world.level.block.Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
     private static RegistryObject<Item> upgrade(String name, ManaDrillUpgradeItem.Type type, int level) {
         return ITEMS.register(name, () -> new ManaDrillUpgradeItem(type, level));
+    }
+
+    private static RegistryObject<Item> electricSword(String name, int capacity, int transferLimit,
+                                                       float activeDamage, int hitCost, int passiveCost) {
+        return ITEMS.register(name,
+                () -> new ElectricSwordItem(capacity, transferLimit, activeDamage, hitCost, passiveCost));
     }
 
     public static List<RegistryObject<Item>> manaDrillUpgradeItems() {
@@ -105,6 +141,19 @@ public final class ModItems {
         return List.of(NEUTRON_COMBINER_SPEED_UPGRADE,
                 NEUTRON_COMBINER_EFFICIENCY_UPGRADE,
                 NEUTRON_COMBINER_OUTPUT_UPGRADE);
+    }
+
+    public static List<RegistryObject<Item>> electricSwordItems() {
+        return List.of(
+                ELECTRIC_SWORD_REALMITE, ELECTRIC_SWORD_ARLEMITE, ELECTRIC_SWORD_RUPIUM,
+                ELECTRIC_SWORD_EDEM, ELECTRIC_SWORD_WILDFOREST, ELECTRIC_SWORD_APALACHI,
+                ELECTRIC_SWORD_SKYUNDER, ELECTRIC_SWORD_MORTUM, ELECTRIC_SWORD_CHALITE,
+                ELECTRIC_SWORD_ADMIN
+        );
+    }
+
+    public static List<RegistryObject<Item>> portedToolItems() {
+        return List.of(META_VAJRA, SNOW_GUN, SKULL_AXE);
     }
 
     public static void register(IEventBus bus) { ITEMS.register(bus); }
