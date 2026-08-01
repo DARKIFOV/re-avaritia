@@ -33,7 +33,6 @@ repositories {
         url = 'https://www.cursemaven.com'
         content { includeGroup 'curse.maven' }
     }
-    flatDir { dirs 'libs' }
 }
 
 dependencies {
@@ -49,23 +48,23 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
-def encodedItemAssetsDir = file('tools/generated_assets_items2')
-def generatedItemAssetsZip = layout.buildDirectory.file('generated/metatech_items2_assets.zip')
+def encodedBaseAssetsDir = file('tools/generated_assets_clean_v057')
+def generatedBaseAssetsZip = layout.buildDirectory.file('generated/metatech_base_assets.zip')
 def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
-def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_v055_assets.zip')
+def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_assets.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
-tasks.register('decodeItemAssets') {
-    inputs.dir encodedItemAssetsDir
-    outputs.file generatedItemAssetsZip
+tasks.register('decodeBaseAssets') {
+    inputs.dir encodedBaseAssetsDir
+    outputs.file generatedBaseAssetsZip
     doLast {
-        def chunks = fileTree(encodedItemAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+        def chunks = fileTree(encodedBaseAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
         if (chunks.isEmpty()) {
-            throw new GradleException("No generated item asset chunks found in ${encodedItemAssetsDir}")
+            throw new GradleException("No clean base asset chunks found in ${encodedBaseAssetsDir}")
         }
         def encoded = new StringBuilder()
         chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedItemAssetsZip.get().asFile
+        def target = generatedBaseAssetsZip.get().asFile
         target.parentFile.mkdirs()
         target.bytes = encoded.toString().decodeBase64()
     }
@@ -88,22 +87,16 @@ tasks.register('decodeDrillAssets') {
 }
 
 tasks.register('extractBaseAssets', Copy) {
-    inputs.file file('tools/generated_assets.zip')
+    dependsOn tasks.named('decodeBaseAssets')
+    inputs.file generatedBaseAssetsZip
     outputs.dir generatedAssetsDir
     doFirst { delete generatedAssetsDir.get().asFile }
-    from zipTree(file('tools/generated_assets.zip'))
+    from { zipTree(generatedBaseAssetsZip.get().asFile) }
     into generatedAssetsDir
-}
-
-tasks.register('extractGeneratedAssets', Copy) {
-    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeItemAssets')
-    from { zipTree(generatedItemAssetsZip.get().asFile) }
-    into generatedAssetsDir
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.register('extractDrillReworkAssets', Copy) {
-    dependsOn tasks.named('extractGeneratedAssets'), tasks.named('decodeDrillAssets')
+    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeDrillAssets')
     from { zipTree(generatedDrillAssetsZip.get().asFile) }
     into generatedAssetsDir
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
