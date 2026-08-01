@@ -10,11 +10,6 @@ group = mod_group_id
 base { archivesName = mod_id }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-// Bundle the 1.20.1 Extreme Molecular Assembler and 9x9 Pattern Terminal as a
-// Forge Jar-in-Jar dependency. It remains a separate nested mod (ccapplied),
-// so its own MIT license, metadata and AE2 registrations are preserved.
-jarJar.enable()
-
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
     copyIdeResources = true
@@ -41,6 +36,10 @@ repositories {
     flatDir { dirs 'libs' }
 }
 
+configurations {
+    extremeAssemblerAddon
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
@@ -53,14 +52,11 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:15.20.0.112")
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 
-    // AE2 Molecular Assembler Plus 1.0.0 for Minecraft 1.20.1 Forge.
-    // CurseMaven exposes the exact file ID without Maven version metadata, so
-    // resolve that exact artifact and put the supported range into JarJar metadata.
+    // Temporary companion integration while the 9x9 terminal is being ported
+    // directly into MetaTech Reborn. The exact 1.20.1 Forge artifact provides
+    // the Extreme Molecular Assembler, 9x9 Pattern Encoding Terminal and JEI transfer.
     runtimeOnly fg.deobf('curse.maven:ae2-molecular-assembler-plus-1493468:8093809')
-    jarJar(group: 'curse.maven', name: 'ae2-molecular-assembler-plus-1493468',
-            version: '8093809') {
-        jarJar.pin(it, '[8093809,8093810)')
-    }
+    extremeAssemblerAddon 'curse.maven:ae2-molecular-assembler-plus-1493468:8093809'
 }
 
 // Keep the last known-good 0.4 machine textures during code and dependency
@@ -71,6 +67,12 @@ tasks.register('extractGeneratedAssets', Copy) {
     into generatedAssetsDir
 }
 sourceSets.main.resources.srcDir generatedAssetsDir
+
+tasks.register('copyExtremeAssemblerAddon', Copy) {
+    from configurations.extremeAssemblerAddon
+    into layout.buildDirectory.dir('addons')
+    rename { 'AE2-Molecular-Assembler-Plus-1.20.1-1.0.0.jar' }
+}
 
 tasks.named('processResources', ProcessResources).configure {
     dependsOn tasks.named('extractGeneratedAssets')
@@ -84,6 +86,10 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
+}
+
+tasks.named('build').configure {
+    dependsOn tasks.named('copyExtremeAssemblerAddon')
 }
 
 tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
