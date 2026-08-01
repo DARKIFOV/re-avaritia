@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -17,18 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply 0.4.0 fixes and generated textures
+      - name: Restore canonical 0.4.0 source
         shell: bash
         run: |
-          cat port-fixes/0.4.0/patch.*.b64 \
-            | base64 --decode \
-            | gzip -dc > /tmp/metatech-0.4.0.patch
-          patch -p1 < /tmp/metatech-0.4.0.patch
-
-          mkdir -p tools
-          cat port-fixes/0.4.0/assets.*.b64 \
-            | base64 --decode > tools/generated_assets.zip
-          unzip -t tools/generated_assets.zip
+          cat port-fixes/0.4.0/source.*.b64 \
+            | base64 --decode > /tmp/metatech-source.tar.xz
+          mkdir -p /tmp/metatech-source
+          tar -xJf /tmp/metatech-source.tar.xz -C /tmp/metatech-source
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name .git ! -name port-fixes \
+            -exec rm -rf {} +
+          cp -a /tmp/metatech-source/MetaTech-Reborn-1.20.1/. .
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -50,3 +49,16 @@ jobs:
           name: MetaTech-Reborn-0.4.0-fixes-${{ github.sha }}
           path: build/libs/*.jar
           if-no-files-found: error
+
+      - name: Publish canonical source to branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/agent/0.4.0-fixes'
+        shell: bash
+        run: |
+          rm -rf port-fixes
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish MetaTech Reborn 0.4.0 fixes"
+            git push origin HEAD:agent/0.4.0-fixes
+          fi
