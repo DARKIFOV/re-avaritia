@@ -7,6 +7,12 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Several generated-resource commits can arrive close together. Keep only the
+# newest build for each branch/PR so old queued runs do not delay verification.
+concurrency:
+  group: metatech-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
