@@ -59,12 +59,42 @@ dependencies {
     extremeAssemblerAddon 'curse.maven:ae2-molecular-assembler-plus-1493468:8093809'
 }
 
-// Keep the last known-good 0.4 machine textures during code and dependency
-// verification. The new item texture overlay will be restored after CI is green.
-def generatedAssetsDir = layout.buildDirectory.dir("generated/metatech_assets")
-tasks.register('extractGeneratedAssets', Copy) {
+// The large binary resource overlay is stored as small base64 chunks because
+// GitHub's text contents API is used during the port. Decode it during Gradle
+// configuration, then layer it over the last known-good 0.4 resource bundle.
+def encodedItemAssetsDir = file('tools/generated_assets_items2')
+def generatedItemAssetsZip = layout.buildDirectory.file('generated/metatech_items2_assets.zip')
+def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
+
+tasks.register('decodeItemAssets') {
+    inputs.dir encodedItemAssetsDir
+    outputs.file generatedItemAssetsZip
+    doLast {
+        def chunks = fileTree(encodedItemAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+        if (chunks.isEmpty()) {
+            throw new GradleException("No generated item asset chunks found in ${encodedItemAssetsDir}")
+        }
+        def encoded = new StringBuilder()
+        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
+        def target = generatedItemAssetsZip.get().asFile
+        target.parentFile.mkdirs()
+        target.bytes = encoded.toString().decodeBase64()
+    }
+}
+
+tasks.register('extractBaseAssets', Copy) {
+    inputs.file file('tools/generated_assets.zip')
+    outputs.dir generatedAssetsDir
+    doFirst { delete generatedAssetsDir.get().asFile }
     from zipTree(file('tools/generated_assets.zip'))
     into generatedAssetsDir
+}
+
+tasks.register('extractGeneratedAssets', Copy) {
+    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeItemAssets')
+    from { zipTree(generatedItemAssetsZip.get().asFile) }
+    into generatedAssetsDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 sourceSets.main.resources.srcDir generatedAssetsDir
 
