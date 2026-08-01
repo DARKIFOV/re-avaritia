@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,11 +65,22 @@ public final class GreenhouseBlock extends BaseEntityBlock {
     public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level,
                                           @NotNull BlockPos pos, @NotNull Player player,
                                           @NotNull InteractionHand hand, @NotNull BlockHitResult hit) {
-        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity instanceof GreenhouseBlockEntity greenhouse) {
-                NetworkHooks.openScreen(serverPlayer, greenhouse, pos);
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!(blockEntity instanceof GreenhouseBlockEntity greenhouse)) {
+            return InteractionResult.PASS;
+        }
+
+        // Buckets and other Forge fluid containers are handled before opening the GUI.
+        // This makes water/lava recipes usable without requiring an external fluid pipe.
+        if (FluidUtil.getFluidHandler(player.getItemInHand(hand)).isPresent()) {
+            if (!level.isClientSide && FluidUtil.interactWithFluidHandler(player, hand, greenhouse.getTank())) {
+                greenhouse.setChanged();
             }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            NetworkHooks.openScreen(serverPlayer, greenhouse, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
