@@ -18,16 +18,19 @@ public final class NeutroniumCombinerRecipeSerializer
                                                        @NotNull JsonObject json) {
         Ingredient collector = Ingredient.fromJson(GsonHelper.getNonNull(json, "collector"));
         ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-        return new NeutroniumCombinerRecipe(id, collector, result,
-                GsonHelper.getAsInt(json, "time", 3600),
-                GsonHelper.getAsInt(json, "energy_per_tick", 250));
+        int time = GsonHelper.getAsInt(json, "time", 3600);
+        int energyPerTick = GsonHelper.getAsInt(json, "energy_per_tick", 250);
+        return new NeutroniumCombinerRecipe(id, collector, result, time, energyPerTick);
     }
 
     @Override
     public @Nullable NeutroniumCombinerRecipe fromNetwork(@NotNull ResourceLocation id,
                                                            @NotNull FriendlyByteBuf buffer) {
-        return new NeutroniumCombinerRecipe(id, Ingredient.fromNetwork(buffer), buffer.readItem(),
-                buffer.readVarInt(), buffer.readVarInt());
+        Ingredient collector = Ingredient.fromNetwork(buffer);
+        ItemStack result = buffer.readItem();
+        int time = buffer.readVarInt();
+        int energyPerTick = buffer.readVarInt();
+        return new NeutroniumCombinerRecipe(id, collector, result, time, energyPerTick);
     }
 
     @Override

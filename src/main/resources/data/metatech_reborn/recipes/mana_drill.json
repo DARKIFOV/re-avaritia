@@ -1,12 +1,28 @@
 {
   "type": "minecraft:crafting_shaped",
-  "pattern": ["NPN", "RMR", "NBN"],
+  "pattern": [
+    "CPC",
+    "RMR",
+    "CNC"
+  ],
   "key": {
-    "N": { "item": "avaritia:neutron_ingot" },
-    "P": { "item": "botania:mana_pool" },
-    "R": { "item": "minecraft:redstone_block" },
-    "M": { "item": "metatech_reborn:molecular_assembler_9x9" },
-    "B": { "item": "botania:terrasteel_block" }
+    "C": {
+      "item": "metatech_reborn:mana_drill_casing"
+    },
+    "P": {
+      "item": "botania:mana_pool"
+    },
+    "R": {
+      "item": "minecraft:redstone_block"
+    },
+    "M": {
+      "item": "metatech_reborn:molecular_assembler_9x9"
+    },
+    "N": {
+      "item": "metatech_reborn:mana_drill_nozzle"
+    }
   },
-  "result": { "item": "metatech_reborn:mana_drill" }
+  "result": {
+    "item": "metatech_reborn:mana_drill"
+  }
 }

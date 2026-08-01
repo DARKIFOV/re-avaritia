@@ -40,6 +40,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     runtimeOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
+    compileOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
     compileOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     runtimeOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:15.20.0.112")
@@ -47,7 +48,18 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
+
+// Generated pixel-art block and GUI assets are kept in one archive so GitHub
+// and local Gradle builds reproduce exactly the same resources.
+def generatedAssetsDir = layout.buildDirectory.dir("generated/metatech_assets")
+tasks.register('extractGeneratedAssets', Copy) {
+    from zipTree(file('tools/generated_assets.zip'))
+    into generatedAssetsDir
+}
+sourceSets.main.resources.srcDir generatedAssetsDir
+
 tasks.named('processResources', ProcessResources).configure {
+    dependsOn tasks.named('extractGeneratedAssets')
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
         forge_version: forge_version, forge_version_range: forge_version_range,

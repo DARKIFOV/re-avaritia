@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "DHD",
+    "HNH",
+    "DHD"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "H": {
+      "item": "minecraft:hopper"
+    },
+    "N": {
+      "item": "avaritia:neutron_nugget"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:neutron_combiner_output_upgrade"
+  }
+}

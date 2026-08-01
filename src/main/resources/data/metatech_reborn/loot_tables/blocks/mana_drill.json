@@ -4,7 +4,10 @@
     {
       "rolls": 1,
       "entries": [
-        { "type": "minecraft:item", "name": "metatech_reborn:mana_drill" }
+        {
+          "type": "minecraft:item",
+          "name": "metatech_reborn:mana_drill"
+        }
       ],
       "conditions": [
         { "condition": "minecraft:survives_explosion" }

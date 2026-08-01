@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond_block"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_looting_upgrade"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_looting_upgrade_2"
+  }
+}

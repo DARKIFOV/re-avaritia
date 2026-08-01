@@ -1,0 +1,25 @@
+{
+  "type": "metatech_reborn:molecular_assembling",
+  "pattern": [
+    "DDDDDDDDD",
+    "D       D",
+    "D NNNNN D",
+    "D N   N D",
+    "D N S N D",
+    "D N   N D",
+    "D NNNNN D",
+    "D       D",
+    "DDDDDDDDD"
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond_block" },
+    "N": { "item": "minecraft:netherite_block" },
+    "S": { "item": "minecraft:nether_star" }
+  },
+  "result": {
+    "item": "minecraft:dragon_egg",
+    "count": 1
+  },
+  "time": 1200,
+  "energy_per_tick": 2000
+}

@@ -1,5 +1,19 @@
 {
   "variants": {
-    "": { "model": "metatech_reborn:block/mana_drill" }
+    "facing=north": {
+      "model": "metatech_reborn:block/mana_drill"
+    },
+    "facing=east": {
+      "model": "metatech_reborn:block/mana_drill",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "metatech_reborn:block/mana_drill",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "metatech_reborn:block/mana_drill",
+      "y": 270
+    }
   }
 }

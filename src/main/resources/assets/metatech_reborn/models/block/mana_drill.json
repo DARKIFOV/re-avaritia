@@ -1,8 +1,9 @@
 {
-  "parent": "minecraft:block/cube_bottom_top",
+  "parent": "minecraft:block/orientable_with_bottom",
   "textures": {
-    "top": "botania:block/mana_pool_top",
-    "side": "botania:block/mana_pool_side",
-    "bottom": "botania:block/mana_pool_bottom"
+    "top": "metatech_reborn:block/mana_drill_controller_top",
+    "front": "metatech_reborn:block/mana_drill_controller_front",
+    "side": "metatech_reborn:block/mana_drill_controller_side",
+    "bottom": "metatech_reborn:block/mana_drill_casing"
   }
 }

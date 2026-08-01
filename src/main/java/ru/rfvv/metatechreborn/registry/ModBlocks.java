@@ -31,6 +31,21 @@ public final class ModBlocks {
             () -> new ManaDrillBlock(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
                     .strength(7.0F, 18.0F).requiresCorrectToolForDrops()));
 
+    public static final RegistryObject<Block> MANA_DRILL_CASING = BLOCKS.register(
+            "mana_drill_casing",
+            () -> new Block(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
+                    .strength(6.0F, 15.0F).requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> MANA_DRILL_CORE = BLOCKS.register(
+            "mana_drill_core",
+            () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEACON)
+                    .strength(6.0F, 15.0F).lightLevel(state -> 10).requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> MANA_DRILL_NOZZLE = BLOCKS.register(
+            "mana_drill_nozzle",
+            () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+                    .strength(6.0F, 15.0F).lightLevel(state -> 7).requiresCorrectToolForDrops()));
+
     public static void register(IEventBus bus) { BLOCKS.register(bus); }
     private ModBlocks() {}
 }

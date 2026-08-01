@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "avaritia:crystal_matrix_ingot"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_looting_upgrade_5"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_looting_upgrade_6"
+  }
+}
