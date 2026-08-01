@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" S ", "RCR", " N "],
+  "key": {
+    "S": { "item": "minecraft:sunflower" },
+    "R": { "item": "minecraft:redstone_block" },
+    "C": { "item": "minecraft:clock" },
+    "N": { "item": "minecraft:nether_star" }
+  },
+  "result": { "item": "metatech_reborn:greenhouse_infinite_day_module" }
+}

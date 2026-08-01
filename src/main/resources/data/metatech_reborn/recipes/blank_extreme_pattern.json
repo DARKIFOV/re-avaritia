@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GQG",
+    "RPR",
+    "GQG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:glass" },
+    "Q": { "item": "minecraft:quartz" },
+    "R": { "item": "minecraft:redstone" },
+    "P": { "item": "minecraft:paper" }
+  },
+  "result": {
+    "item": "metatech_reborn:blank_extreme_pattern",
+    "count": 2
+  }
+}

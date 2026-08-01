@@ -6,6 +6,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -14,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
@@ -28,16 +30,18 @@ import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
 import ru.rfvv.metatechreborn.multiblock.ManaDrillStructure;
 import ru.rfvv.metatechreborn.recipe.ManaDrillRecipe;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
-import ru.rfvv.metatechreborn.registry.ModItems;
 import ru.rfvv.metatechreborn.registry.ModRecipes;
 import vazkii.botania.api.mana.ManaPool;
 import vazkii.botania.api.mana.ManaReceiver;
+import vazkii.botania.api.mana.spark.ManaSpark;
+import vazkii.botania.api.mana.spark.SparkAttachable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvider, ManaReceiver {
+public final class ManaDrillBlockEntity extends BlockEntity
+        implements MenuProvider, ManaReceiver, SparkAttachable {
     public static final int MODULE_SLOT = 0;
     public static final int SPEED_SLOT = 1;
     public static final int LOOTING_SLOT = 2;
@@ -132,6 +136,8 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
             nextStructureCheck = level.getGameTime() + 20L;
         }
 
+        // Mana may be filled before the structure is complete. Work and mana consumption
+        // remain blocked until validation succeeds.
         if (!structureFormed) {
             resetProgress();
             autoEjectIfNeeded(level);
@@ -196,10 +202,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
         if (level != null && !level.isClientSide) updateStructureState(level);
     }
 
-    public boolean isStructureFormed() {
-        return structureFormed;
-    }
-
+    public boolean isStructureFormed() { return structureFormed; }
 
     private static boolean isUpgrade(ItemStack stack, ManaDrillUpgradeItem.Type expectedType) {
         return stack.getItem() instanceof ManaDrillUpgradeItem upgrade && upgrade.type() == expectedType;
@@ -207,9 +210,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
 
     private int getUpgradeLevel(int slot, ManaDrillUpgradeItem.Type expectedType, int configuredMaximum) {
         ItemStack stack = items.getStackInSlot(slot);
-        if (!(stack.getItem() instanceof ManaDrillUpgradeItem upgrade) || upgrade.type() != expectedType) {
-            return 0;
-        }
+        if (!(stack.getItem() instanceof ManaDrillUpgradeItem upgrade) || upgrade.type() != expectedType) return 0;
         return Math.min(Math.max(0, configuredMaximum), upgrade.level());
     }
 
@@ -251,14 +252,12 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     }
 
     private boolean canInsertAll(List<ItemStack> stacks) {
-        List<ItemStack> simulated = new ArrayList<>(stacks.size());
-        for (ItemStack stack : stacks) simulated.add(stack.copy());
         ItemStackHandler copy = new ItemStackHandler(OUTPUT_SLOTS);
         for (int index = 0; index < OUTPUT_SLOTS; index++) {
             copy.setStackInSlot(index, items.getStackInSlot(FIRST_OUTPUT_SLOT + index).copy());
         }
-        for (ItemStack stack : simulated) {
-            ItemStack remainder = ItemHandlerHelper.insertItemStacked(copy, stack, false);
+        for (ItemStack source : stacks) {
+            ItemStack remainder = ItemHandlerHelper.insertItemStacked(copy, source.copy(), false);
             if (!remainder.isEmpty()) return false;
         }
         return true;
@@ -347,14 +346,33 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     @Override public BlockPos getManaReceiverPos() { return worldPosition; }
     @Override public int getCurrentMana() { return mana; }
     @Override public boolean isFull() { return mana >= getManaCapacity(); }
-    @Override public void receiveMana(int amount) {
+
+    @Override
+    public void receiveMana(int amount) {
         int updated = Math.max(0, Math.min(getManaCapacity(), mana + amount));
         if (updated != mana) {
             mana = updated;
             setChanged();
         }
     }
-    @Override public boolean canReceiveManaFromBursts() { return structureFormed; }
+
+    @Override public boolean canReceiveManaFromBursts() { return !isFull(); }
+    @Override public boolean canAttachSpark(ItemStack stack) { return true; }
+    @Override public int getAvailableSpaceForMana() { return Math.max(0, getManaCapacity() - mana); }
+    @Override public boolean areIncomingTranfersDone() { return isFull(); }
+
+    @Override
+    public ManaSpark getAttachedSpark() {
+        if (level == null) return null;
+        AABB area = new AABB(worldPosition.getX(), worldPosition.getY() + 1.0D, worldPosition.getZ(),
+                worldPosition.getX() + 1.0D, worldPosition.getY() + 2.0D, worldPosition.getZ() + 1.0D);
+        List<Entity> entities = level.getEntitiesOfClass(Entity.class, area,
+                entity -> entity instanceof ManaSpark);
+        for (Entity entity : entities) {
+            if (entity instanceof ManaSpark spark) return spark;
+        }
+        return null;
+    }
 
     private int getManaCapacity() {
         return CommonConfig.MANA_DRILL_MANA_CAPACITY.get();

@@ -30,7 +30,10 @@ import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.config.CommonConfig;
 import ru.rfvv.metatechreborn.integration.avaritia.AvaritiaIntegration;
 import ru.rfvv.metatechreborn.integration.ae2.MolecularAssemblerCraftingMachine;
+import ru.rfvv.metatechreborn.item.EncodedExtremePatternItem;
+import ru.rfvv.metatechreborn.item.PatternCapacityUpgradeItem;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
+import ru.rfvv.metatechreborn.pattern.ExtremePatternData;
 import ru.rfvv.metatechreborn.recipe.MachineRecipeMatch;
 import ru.rfvv.metatechreborn.recipe.MolecularAssemblerRecipe;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
@@ -47,6 +50,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int OUTPUT_SLOT = GRID_SLOTS;
     public static final int TOTAL_SLOTS = GRID_SLOTS + 1;
 
+    public static final int BASE_PATTERN_SLOTS = 9;
+    public static final int MAX_PATTERN_SLOTS = 36;
+    public static final int EXTRA_PATTERN_SLOTS = MAX_PATTERN_SLOTS - BASE_PATTERN_SLOTS;
+
     private boolean suppressInventoryCallbacks;
     private int progress;
     private int maxProgress;
@@ -59,9 +66,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
         @Override
         protected void onContentsChanged(int slot) {
-            if (!suppressInventoryCallbacks && slot < GRID_SLOTS) {
-                progress = 0;
-            }
+            if (!suppressInventoryCallbacks && slot < GRID_SLOTS) progress = 0;
             setChanged();
         }
 
@@ -77,67 +82,69 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     };
 
-    private final IItemHandler recipeGrid = new IItemHandler() {
+    private final ItemStackHandler patternItems = new ItemStackHandler(MAX_PATTERN_SLOTS) {
         @Override
-        public int getSlots() {
-            return GRID_SLOTS;
-        }
-
-        @Override
-        public @NotNull ItemStack getStackInSlot(int slot) {
-            return items.getStackInSlot(slot);
-        }
-
-        @Override
-        public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-            return items.insertItem(slot, stack, simulate);
-        }
-
-        @Override
-        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-            return items.extractItem(slot, amount, simulate);
+        protected void onContentsChanged(int slot) {
+            setChanged();
         }
 
         @Override
         public int getSlotLimit(int slot) {
-            return items.getSlotLimit(slot);
+            return 1;
         }
 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return slot < getActivePatternSlots()
+                    && stack.getItem() instanceof EncodedExtremePatternItem
+                    && EncodedExtremePatternItem.read(stack).isPresent();
+        }
+    };
+
+    private final ItemStackHandler patternUpgradeItems = new ItemStackHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
+        }
+
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return stack.getItem() instanceof PatternCapacityUpgradeItem;
+        }
+    };
+
+    private final IItemHandler recipeGrid = new IItemHandler() {
+        @Override public int getSlots() { return GRID_SLOTS; }
+        @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
+        @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+            return items.insertItem(slot, stack, simulate);
+        }
+        @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            return items.extractItem(slot, amount, simulate);
+        }
+        @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
+        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return items.isItemValid(slot, stack);
         }
     };
 
     private final IItemHandler externalItems = new IItemHandler() {
-        @Override
-        public int getSlots() {
-            return TOTAL_SLOTS;
-        }
-
-        @Override
-        public @NotNull ItemStack getStackInSlot(int slot) {
-            return items.getStackInSlot(slot);
-        }
-
-        @Override
-        public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+        @Override public int getSlots() { return TOTAL_SLOTS; }
+        @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
+        @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
             if (slot == OUTPUT_SLOT) return stack;
             return items.insertItem(slot, stack, simulate);
         }
-
-        @Override
-        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+        @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
             return items.extractItem(slot, amount, simulate);
         }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return items.getSlotLimit(slot);
-        }
-
-        @Override
-        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
+        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return items.isItemValid(slot, stack);
         }
     };
@@ -160,6 +167,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 case 2 -> energy.getEnergyStored();
                 case 3 -> energy.getMaxEnergyStored();
                 case 4 -> lockedRecipeId == null ? 0 : 1;
+                case 5 -> getActivePatternSlots();
+                case 6 -> getInstalledPatternCount();
                 default -> 0;
             };
         }
@@ -170,10 +179,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (index == 1) maxProgress = value;
         }
 
-        @Override
-        public int getCount() {
-            return 5;
-        }
+        @Override public int getCount() { return 7; }
     };
 
     public MolecularAssemblerBlockEntity(BlockPos pos, BlockState state) {
@@ -204,9 +210,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
 
         MachineRecipeMatch active = match.get();
-        if (lockedRecipeId == null) {
-            lockRecipe(active);
-        }
+        if (lockedRecipeId == null) lockRecipe(active);
 
         maxProgress = Math.max(1, active.craftTime());
         if (!canOutput(active.result())) return;
@@ -305,28 +309,100 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         lockedResult = ItemStack.EMPTY;
         progress = 0;
         maxProgress = 0;
-        for (int slot = 0; slot < GRID_SLOTS; slot++) {
-            lockedTemplate.set(slot, ItemStack.EMPTY);
-        }
+        for (int slot = 0; slot < GRID_SLOTS; slot++) lockedTemplate.set(slot, ItemStack.EMPTY);
         setChanged();
     }
 
+    public int getActivePatternSlots() {
+        return patternUpgradeItems.getStackInSlot(0).getItem() instanceof PatternCapacityUpgradeItem
+                ? MAX_PATTERN_SLOTS : BASE_PATTERN_SLOTS;
+    }
+
+    public int getInstalledPatternCount() {
+        int count = 0;
+        for (int slot = 0; slot < getActivePatternSlots(); slot++) {
+            if (EncodedExtremePatternItem.read(patternItems.getStackInSlot(slot)).isPresent()) count++;
+        }
+        return count;
+    }
+
     public boolean canAcceptAe2Plan() {
-        if (lockedRecipeId == null || lockedResult.isEmpty() || progress != 0) return false;
+        if (progress != 0) return false;
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
             if (!items.getStackInSlot(slot).isEmpty()) return false;
         }
-        return canOutput(lockedResult);
+        return true;
     }
 
     public ItemStack getLockedResultForAutomation() {
         return lockedResult.copy();
     }
 
-    /** Atomically places one complete locked-recipe batch supplied by an AE2 pattern provider. */
-    public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks) {
-        if (!canAcceptAe2Plan()) return false;
+    /**
+     * Selects one of the installed 9x9 patterns by requested output and atomically
+     * places the exact ingredient batch supplied by an AE2 Pattern Provider.
+     */
+    public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks,
+                                              ItemStack requestedOutput,
+                                              long requestedAmount) {
+        if (!canAcceptAe2Plan() || requestedOutput.isEmpty()) return false;
 
+        for (int slot = 0; slot < getActivePatternSlots(); slot++) {
+            Optional<ExtremePatternData> decoded = EncodedExtremePatternItem.read(patternItems.getStackInSlot(slot));
+            if (decoded.isEmpty()) continue;
+            ExtremePatternData pattern = decoded.get();
+            if (!ItemStack.isSameItemSameTags(pattern.output(), requestedOutput)
+                    || requestedAmount < pattern.output().getCount()
+                    || !canOutput(pattern.output())) continue;
+
+            Optional<NonNullList<ItemStack>> placement = createPatternPlacement(pattern, suppliedStacks);
+            if (placement.isEmpty()) continue;
+
+            clearRecipeLock();
+            applyPlacement(placement.get());
+            lockedResult = pattern.output().copy();
+            for (int gridSlot = 0; gridSlot < GRID_SLOTS; gridSlot++) {
+                lockedTemplate.set(gridSlot, pattern.inputs().get(gridSlot).copy());
+            }
+            setChanged();
+            return true;
+        }
+
+        if (lockedRecipeId != null && !lockedResult.isEmpty()
+                && ItemStack.isSameItemSameTags(lockedResult, requestedOutput)
+                && requestedAmount >= lockedResult.getCount()
+                && canOutput(lockedResult)) {
+            Optional<NonNullList<ItemStack>> placement = createLockedPlacement(suppliedStacks);
+            if (placement.isPresent()) {
+                applyPlacement(placement.get());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Backward-compatible manual-lock path used by older integrations. */
+    public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks) {
+        if (!canAcceptAe2Plan() || lockedRecipeId == null || lockedResult.isEmpty() || !canOutput(lockedResult)) {
+            return false;
+        }
+        Optional<NonNullList<ItemStack>> placement = createLockedPlacement(suppliedStacks);
+        if (placement.isEmpty()) return false;
+        applyPlacement(placement.get());
+        return true;
+    }
+
+    private Optional<NonNullList<ItemStack>> createPatternPlacement(ExtremePatternData pattern,
+                                                                    List<ItemStack> suppliedStacks) {
+        return createPlacement(pattern.inputs(), suppliedStacks);
+    }
+
+    private Optional<NonNullList<ItemStack>> createLockedPlacement(List<ItemStack> suppliedStacks) {
+        return createPlacement(lockedTemplate, suppliedStacks);
+    }
+
+    private Optional<NonNullList<ItemStack>> createPlacement(List<ItemStack> template,
+                                                              List<ItemStack> suppliedStacks) {
         List<ItemStack> supplied = new ArrayList<>(suppliedStacks.size());
         for (ItemStack stack : suppliedStacks) {
             if (!stack.isEmpty()) supplied.add(stack.copy());
@@ -334,18 +410,18 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         NonNullList<ItemStack> placement = NonNullList.withSize(GRID_SLOTS, ItemStack.EMPTY);
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
-            ItemStack template = lockedTemplate.get(slot);
-            if (template.isEmpty()) continue;
+            ItemStack expected = template.get(slot);
+            if (expected.isEmpty()) continue;
 
             int matchIndex = -1;
-            for (int i = 0; i < supplied.size(); i++) {
-                ItemStack candidate = supplied.get(i);
-                if (!candidate.isEmpty() && ItemStack.isSameItemSameTags(template, candidate)) {
-                    matchIndex = i;
+            for (int index = 0; index < supplied.size(); index++) {
+                ItemStack candidate = supplied.get(index);
+                if (!candidate.isEmpty() && ItemStack.isSameItemSameTags(expected, candidate)) {
+                    matchIndex = index;
                     break;
                 }
             }
-            if (matchIndex < 0) return false;
+            if (matchIndex < 0) return Optional.empty();
 
             ItemStack candidate = supplied.get(matchIndex);
             ItemStack placed = candidate.copy();
@@ -355,20 +431,20 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
 
         for (ItemStack remaining : supplied) {
-            if (!remaining.isEmpty()) return false;
+            if (!remaining.isEmpty()) return Optional.empty();
         }
+        return Optional.of(placement);
+    }
 
+    private void applyPlacement(NonNullList<ItemStack> placement) {
         suppressInventoryCallbacks = true;
         try {
-            for (int slot = 0; slot < GRID_SLOTS; slot++) {
-                items.setStackInSlot(slot, placement.get(slot));
-            }
+            for (int slot = 0; slot < GRID_SLOTS; slot++) items.setStackInSlot(slot, placement.get(slot));
         } finally {
             suppressInventoryCallbacks = false;
         }
         progress = 0;
         setChanged();
-        return true;
     }
 
     private boolean canInsertIntoGridSlot(int slot, ItemStack stack) {
@@ -388,9 +464,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         suppressInventoryCallbacks = true;
         try {
             for (int slot = 0; slot < GRID_SLOTS; slot++) {
-                if (!items.getStackInSlot(slot).isEmpty()) {
-                    items.extractItem(slot, 1, false);
-                }
+                if (!items.getStackInSlot(slot).isEmpty()) items.extractItem(slot, 1, false);
             }
 
             NonNullList<ItemStack> remaining = match.remainingItems();
@@ -403,16 +477,12 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                     items.setStackInSlot(slot, remainder);
                 } else {
                     ItemStack notInserted = insertIntoOutput(remainder);
-                    if (!notInserted.isEmpty()) {
-                        popItem(level, worldPosition, notInserted);
-                    }
+                    if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
                 }
             }
 
             ItemStack notInserted = insertIntoOutput(match.result().copy());
-            if (!notInserted.isEmpty()) {
-                popItem(level, worldPosition, notInserted);
-            }
+            if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
         } finally {
             suppressInventoryCallbacks = false;
         }
@@ -448,8 +518,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (neighbour == null) continue;
 
             Optional<IItemHandler> target = neighbour
-                    .getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite())
-                    .resolve();
+                    .getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite()).resolve();
             if (target.isEmpty()) continue;
 
             ItemStack remainder = ItemHandlerHelper.insertItemStacked(target.get(), output.copy(), false);
@@ -470,16 +539,19 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             ItemStack stack = items.getStackInSlot(slot);
             if (!stack.isEmpty()) drops.add(stack.copy());
         }
+        for (int slot = 0; slot < MAX_PATTERN_SLOTS; slot++) {
+            ItemStack stack = patternItems.getStackInSlot(slot);
+            if (!stack.isEmpty()) drops.add(stack.copy());
+        }
+        ItemStack upgrade = patternUpgradeItems.getStackInSlot(0);
+        if (!upgrade.isEmpty()) drops.add(upgrade.copy());
         return drops;
     }
 
-    public ItemStackHandler getItems() {
-        return items;
-    }
-
-    public ContainerData getData() {
-        return data;
-    }
+    public ItemStackHandler getItems() { return items; }
+    public ItemStackHandler getPatternItems() { return patternItems; }
+    public ItemStackHandler getPatternUpgradeItems() { return patternUpgradeItems; }
+    public ContainerData getData() { return data; }
 
     @Override
     public @NotNull Component getDisplayName() {
@@ -496,6 +568,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put("Inventory", items.serializeNBT());
+        tag.put("Patterns", patternItems.serializeNBT());
+        tag.put("PatternUpgrade", patternUpgradeItems.serializeNBT());
         tag.putInt("Energy", energy.getEnergyStored());
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
@@ -522,6 +596,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         items.deserializeNBT(tag.getCompound("Inventory"));
+        if (tag.contains("Patterns", Tag.TAG_COMPOUND)) patternItems.deserializeNBT(tag.getCompound("Patterns"));
+        if (tag.contains("PatternUpgrade", Tag.TAG_COMPOUND)) {
+            patternUpgradeItems.deserializeNBT(tag.getCompound("PatternUpgrade"));
+        }
         energy.setEnergyStored(tag.getInt("Energy"));
         progress = tag.getInt("Progress");
         maxProgress = tag.getInt("MaxProgress");
@@ -544,16 +622,16 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         for (int slot = 0; slot < GRID_SLOTS; slot++) lockedTemplate.set(slot, ItemStack.EMPTY);
         ListTag templateTag = tag.getList("LockedTemplate", Tag.TAG_COMPOUND);
-        for (int i = 0; i < templateTag.size(); i++) {
-            CompoundTag entry = templateTag.getCompound(i);
+        for (int index = 0; index < templateTag.size(); index++) {
+            CompoundTag entry = templateTag.getCompound(index);
             int slot = entry.getByte("Slot") & 255;
             if (slot < GRID_SLOTS) lockedTemplate.set(slot, ItemStack.of(entry));
         }
     }
 
     @Override
-    public <T> @NotNull LazyOptional<T> getCapability(@NotNull net.minecraftforge.common.capabilities.Capability<T> cap,
-                                                       @Nullable Direction side) {
+    public <T> @NotNull LazyOptional<T> getCapability(
+            @NotNull net.minecraftforge.common.capabilities.Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         if (cap == ForgeCapabilities.ENERGY) return energyCapability.cast();
         if (ModList.get().isLoaded("ae2")) {
