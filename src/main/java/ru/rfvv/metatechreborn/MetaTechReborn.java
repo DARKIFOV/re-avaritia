@@ -51,6 +51,10 @@ public final class MetaTechReborn {
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.META_VAJRA.get());
+            ModItems.windRotorItems().forEach(item -> event.accept(item.get()));
+        }
+        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
+            ModItems.energyFoodItems().forEach(item -> event.accept(item.get()));
         }
     }
 }
