@@ -14,6 +14,7 @@ import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 import ru.rfvv.metatechreborn.registry.ModBlocks;
 import ru.rfvv.metatechreborn.registry.ModItems;
 import ru.rfvv.metatechreborn.registry.ModMenus;
+import ru.rfvv.metatechreborn.registry.ModPatternItems;
 import ru.rfvv.metatechreborn.registry.ModRecipes;
 
 @Mod(MetaTechReborn.MOD_ID)
@@ -25,6 +26,7 @@ public final class MetaTechReborn {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModBlocks.register(modBus);
         ModItems.register(modBus);
+        ModPatternItems.register(modBus);
         ModBlockEntities.register(modBus);
         ModMenus.register(modBus);
         ModRecipes.register(modBus);
@@ -35,6 +37,7 @@ public final class MetaTechReborn {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
+            event.accept(ModPatternItems.EXTREME_PATTERN_ENCODER.get());
             ModItems.nativePatternItems().forEach(item -> event.accept(item.get()));
             event.accept(ModItems.NEUTRONIUM_COMBINER.get());
             event.accept(ModItems.MANA_DRILL.get());
