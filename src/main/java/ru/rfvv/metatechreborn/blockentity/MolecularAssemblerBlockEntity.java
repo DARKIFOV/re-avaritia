@@ -48,15 +48,24 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int GRID_SIZE = 9;
     public static final int GRID_SLOTS = GRID_SIZE * GRID_SIZE;
     public static final int OUTPUT_SLOT = GRID_SLOTS;
-    public static final int TOTAL_SLOTS = GRID_SLOTS + 1;
+    public static final int ENERGY_SLOT = OUTPUT_SLOT + 1;
+    public static final int TOTAL_SLOTS = ENERGY_SLOT + 1;
 
     public static final int BASE_PATTERN_SLOTS = 9;
     public static final int MAX_PATTERN_SLOTS = 36;
     public static final int EXTRA_PATTERN_SLOTS = MAX_PATTERN_SLOTS - BASE_PATTERN_SLOTS;
 
+    public static final int STATUS_IDLE = 0;
+    public static final int STATUS_NO_RECIPE = 1;
+    public static final int STATUS_NO_ENERGY = 2;
+    public static final int STATUS_OUTPUT_FULL = 3;
+    public static final int STATUS_RUNNING = 4;
+    public static final int STATUS_AE2_READY = 5;
+
     private boolean suppressInventoryCallbacks;
     private int progress;
     private int maxProgress;
+    private int status = STATUS_IDLE;
     private ResourceLocation lockedRecipeId;
     private MachineRecipeMatch.Source lockedRecipeSource;
     private ItemStack lockedResult = ItemStack.EMPTY;
@@ -72,27 +81,21 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         @Override
         public int getSlotLimit(int slot) {
-            return slot < GRID_SLOTS ? 1 : 64;
+            if (slot < GRID_SLOTS || slot == ENERGY_SLOT) return 1;
+            return 64;
         }
 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             if (slot == OUTPUT_SLOT) return false;
+            if (slot == ENERGY_SLOT) return stack.getCapability(ForgeCapabilities.ENERGY).isPresent();
             return canInsertIntoGridSlot(slot, stack);
         }
     };
 
     private final ItemStackHandler patternItems = new ItemStackHandler(MAX_PATTERN_SLOTS) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-        }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return 1;
-        }
-
+        @Override protected void onContentsChanged(int slot) { setChanged(); }
+        @Override public int getSlotLimit(int slot) { return 1; }
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return slot < getActivePatternSlots()
@@ -102,16 +105,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     };
 
     private final ItemStackHandler patternUpgradeItems = new ItemStackHandler(1) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-        }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return 1;
-        }
-
+        @Override protected void onContentsChanged(int slot) { setChanged(); }
+        @Override public int getSlotLimit(int slot) { return 1; }
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return stack.getItem() instanceof PatternCapacityUpgradeItem;
@@ -136,12 +131,15 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private final IItemHandler externalItems = new IItemHandler() {
         @Override public int getSlots() { return TOTAL_SLOTS; }
         @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
-        @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+        @Override
+        public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
             if (slot == OUTPUT_SLOT) return stack;
             return items.insertItem(slot, stack, simulate);
         }
-        @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-            return items.extractItem(slot, amount, simulate);
+        @Override
+        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (slot == OUTPUT_SLOT || slot == ENERGY_SLOT) return items.extractItem(slot, amount, simulate);
+            return ItemStack.EMPTY;
         }
         @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
         @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
@@ -169,6 +167,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 case 4 -> lockedRecipeId == null ? 0 : 1;
                 case 5 -> getActivePatternSlots();
                 case 6 -> getInstalledPatternCount();
+                case 7 -> status;
                 default -> 0;
             };
         }
@@ -176,10 +175,11 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         @Override
         public void set(int index, int value) {
             if (index == 0) progress = value;
-            if (index == 1) maxProgress = value;
+            else if (index == 1) maxProgress = value;
+            else if (index == 7) status = value;
         }
 
-        @Override public int getCount() { return 7; }
+        @Override public int getCount() { return 8; }
     };
 
     public MolecularAssemblerBlockEntity(BlockPos pos, BlockState state) {
@@ -192,6 +192,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     private void tickServer(Level level) {
+        chargeFromEnergyItem();
         if (CommonConfig.AUTO_EJECT_OUTPUT.get() && level.getGameTime() % 5L == 0L) {
             autoEjectOutput(level);
         }
@@ -201,11 +202,9 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 : findLockedMatch(level);
 
         if (match.isEmpty() || match.get().result().isEmpty()) {
-            if (progress != 0 || maxProgress != 0) {
-                progress = 0;
-                maxProgress = 0;
-                setChanged();
-            }
+            resetProgressOnly();
+            setStatus(isGridEmpty() && getInstalledPatternCount() > 0 ? STATUS_AE2_READY
+                    : isGridEmpty() ? STATUS_IDLE : STATUS_NO_RECIPE);
             return;
         }
 
@@ -213,11 +212,18 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (lockedRecipeId == null) lockRecipe(active);
 
         maxProgress = Math.max(1, active.craftTime());
-        if (!canOutput(active.result())) return;
+        if (!canOutput(active.result())) {
+            setStatus(STATUS_OUTPUT_FULL);
+            return;
+        }
 
         int energyPerTick = Math.max(0, active.energyPerTick());
-        if (energy.getEnergyStored() < energyPerTick) return;
+        if (energy.getEnergyStored() < energyPerTick) {
+            setStatus(STATUS_NO_ENERGY);
+            return;
+        }
 
+        setStatus(STATUS_RUNNING);
         if (energyPerTick > 0) energy.extractEnergy(energyPerTick, false);
         progress++;
         setChanged();
@@ -228,9 +234,22 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 completeCraft(level, validated.get());
             } else {
                 progress = 0;
+                setStatus(STATUS_NO_RECIPE);
                 setChanged();
             }
         }
+    }
+
+    private void chargeFromEnergyItem() {
+        ItemStack stack = items.getStackInSlot(ENERGY_SLOT);
+        if (stack.isEmpty() || energy.getEnergyStored() >= energy.getMaxEnergyStored()) return;
+        stack.getCapability(ForgeCapabilities.ENERGY).ifPresent(source -> {
+            int request = Math.min(CommonConfig.ASSEMBLER_MAX_RECEIVE.get(),
+                    energy.getMaxEnergyStored() - energy.getEnergyStored());
+            int available = source.extractEnergy(request, true);
+            int accepted = energy.receiveEnergy(available, false);
+            if (accepted > 0) source.extractEnergy(accepted, false);
+        });
     }
 
     private Optional<MachineRecipeMatch> findAnyMatch(Level level) {
@@ -310,6 +329,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         progress = 0;
         maxProgress = 0;
         for (int slot = 0; slot < GRID_SLOTS; slot++) lockedTemplate.set(slot, ItemStack.EMPTY);
+        setStatus(STATUS_IDLE);
         setChanged();
     }
 
@@ -327,7 +347,12 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     public boolean canAcceptAe2Plan() {
-        if (progress != 0) return false;
+        if (progress != 0 || !isGridEmpty()) return false;
+        ItemStack output = items.getStackInSlot(OUTPUT_SLOT);
+        return output.isEmpty() || output.getCount() < output.getMaxStackSize();
+    }
+
+    private boolean isGridEmpty() {
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
             if (!items.getStackInSlot(slot).isEmpty()) return false;
         }
@@ -338,10 +363,6 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return lockedResult.copy();
     }
 
-    /**
-     * Selects one of the installed 9x9 patterns by requested output and atomically
-     * places the exact ingredient batch supplied by an AE2 Pattern Provider.
-     */
     public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks,
                                               ItemStack requestedOutput,
                                               long requestedAmount) {
@@ -364,6 +385,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             for (int gridSlot = 0; gridSlot < GRID_SLOTS; gridSlot++) {
                 lockedTemplate.set(gridSlot, pattern.inputs().get(gridSlot).copy());
             }
+            setStatus(STATUS_RUNNING);
             setChanged();
             return true;
         }
@@ -381,7 +403,6 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return false;
     }
 
-    /** Backward-compatible manual-lock path used by older integrations. */
     public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks) {
         if (!canAcceptAe2Plan() || lockedRecipeId == null || lockedResult.isEmpty() || !canOutput(lockedResult)) {
             return false;
@@ -448,6 +469,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     private boolean canInsertIntoGridSlot(int slot, ItemStack stack) {
+        if (slot < 0 || slot >= GRID_SLOTS) return false;
         if (lockedRecipeId == null) return true;
         ItemStack template = lockedTemplate.get(slot);
         return !template.isEmpty() && ItemStack.isSameItemSameTags(template, stack);
@@ -489,6 +511,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         progress = 0;
         maxProgress = match.craftTime();
+        setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
         setChanged();
     }
 
@@ -533,6 +556,21 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     }
 
+    private void setStatus(int newStatus) {
+        if (status != newStatus) {
+            status = newStatus;
+            setChanged();
+        }
+    }
+
+    private void resetProgressOnly() {
+        if (progress != 0 || maxProgress != 0) {
+            progress = 0;
+            maxProgress = 0;
+            setChanged();
+        }
+    }
+
     public NonNullList<ItemStack> getDrops() {
         NonNullList<ItemStack> drops = NonNullList.create();
         for (int slot = 0; slot < TOTAL_SLOTS; slot++) {
@@ -553,8 +591,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public ItemStackHandler getPatternUpgradeItems() { return patternUpgradeItems; }
     public ContainerData getData() { return data; }
 
-    @Override
-    public @NotNull Component getDisplayName() {
+    @Override public @NotNull Component getDisplayName() {
         return Component.translatable("container.metatech_reborn.molecular_assembler_9x9");
     }
 
@@ -573,6 +610,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         tag.putInt("Energy", energy.getEnergyStored());
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
+        tag.putInt("Status", status);
 
         if (lockedRecipeId != null && lockedRecipeSource != null) {
             tag.putString("LockedRecipe", lockedRecipeId.toString());
@@ -603,6 +641,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         energy.setEnergyStored(tag.getInt("Energy"));
         progress = tag.getInt("Progress");
         maxProgress = tag.getInt("MaxProgress");
+        status = tag.getInt("Status");
 
         lockedRecipeId = null;
         lockedRecipeSource = null;
