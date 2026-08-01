@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" G ", "GNG", " G "],
+  "key": {
+    "G": { "item": "minecraft:gold_block" },
+    "N": { "item": "avaritia:neutron_nugget" }
+  },
+  "result": { "item": "metatech_reborn:mana_drill_generation_upgrade" }
+}

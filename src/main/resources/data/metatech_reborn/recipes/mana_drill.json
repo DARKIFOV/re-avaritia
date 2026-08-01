@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["NPN", "RMR", "NBN"],
+  "key": {
+    "N": { "item": "avaritia:neutron_ingot" },
+    "P": { "item": "botania:mana_pool" },
+    "R": { "item": "minecraft:redstone_block" },
+    "M": { "item": "metatech_reborn:molecular_assembler_9x9" },
+    "B": { "item": "botania:terrasteel_block" }
+  },
+  "result": { "item": "metatech_reborn:mana_drill" }
+}

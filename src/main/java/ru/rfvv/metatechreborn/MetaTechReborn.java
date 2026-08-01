@@ -36,6 +36,11 @@ public final class MetaTechReborn {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
             event.accept(ModItems.NEUTRONIUM_COMBINER.get());
+            event.accept(ModItems.MANA_DRILL.get());
+            event.accept(ModItems.MANA_DRILL_MODULE.get());
+            event.accept(ModItems.MANA_DRILL_SPEED_UPGRADE.get());
+            event.accept(ModItems.MANA_DRILL_LOOTING_UPGRADE.get());
+            event.accept(ModItems.MANA_DRILL_GENERATION_UPGRADE.get());
         }
     }
 }
