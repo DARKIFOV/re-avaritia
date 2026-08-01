@@ -10,7 +10,6 @@ import ru.rfvv.metatechreborn.blockentity.ExtremePatternEncoderBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.GreenhouseBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
-import ru.rfvv.metatechreborn.blockentity.NeutroniumCombinerBlockEntity;
 
 public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
@@ -22,9 +21,6 @@ public final class ModBlockEntities {
     public static final RegistryObject<BlockEntityType<ExtremePatternEncoderBlockEntity>> EXTREME_PATTERN_ENCODER =
             BLOCK_ENTITIES.register("extreme_pattern_encoder", () -> BlockEntityType.Builder.of(
                     ExtremePatternEncoderBlockEntity::new, ModBlocks.EXTREME_PATTERN_ENCODER.get()).build(null));
-    public static final RegistryObject<BlockEntityType<NeutroniumCombinerBlockEntity>> NEUTRONIUM_COMBINER =
-            BLOCK_ENTITIES.register("neutronium_combiner", () -> BlockEntityType.Builder.of(
-                    NeutroniumCombinerBlockEntity::new, ModBlocks.NEUTRONIUM_COMBINER.get()).build(null));
     public static final RegistryObject<BlockEntityType<ManaDrillBlockEntity>> MANA_DRILL =
             BLOCK_ENTITIES.register("mana_drill", () -> BlockEntityType.Builder.of(
                     ManaDrillBlockEntity::new, ModBlocks.MANA_DRILL.get()).build(null));
