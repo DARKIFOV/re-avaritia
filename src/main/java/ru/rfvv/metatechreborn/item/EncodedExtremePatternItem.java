@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +19,7 @@ public final class EncodedExtremePatternItem extends Item {
     private static final String TAG_PATTERN = "ExtremePattern";
 
     public EncodedExtremePatternItem() {
-        super(new Item.Properties().stacksTo(1));
+        super(new Item.Properties().stacksTo(1).rarity(Rarity.RARE));
     }
 
     public static void write(ItemStack stack, ExtremePatternData pattern) {
@@ -44,6 +45,14 @@ public final class EncodedExtremePatternItem extends Item {
     }
 
     @Override
+    public Component getName(ItemStack stack) {
+        return read(stack)
+                .map(pattern -> Component.translatable("item.metatech_reborn.encoded_extreme_pattern.named",
+                        pattern.output().getHoverName()))
+                .orElseGet(() -> super.getName(stack));
+    }
+
+    @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip,
                                 TooltipFlag flag) {
         Optional<ExtremePatternData> decoded = read(stack);
@@ -59,5 +68,7 @@ public final class EncodedExtremePatternItem extends Item {
         tooltip.add(Component.translatable("tooltip.metatech_reborn.extreme_pattern.ingredients",
                         pattern.ingredientCount())
                 .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.metatech_reborn.extreme_pattern.full_grid")
+                .withStyle(ChatFormatting.DARK_AQUA));
     }
 }
