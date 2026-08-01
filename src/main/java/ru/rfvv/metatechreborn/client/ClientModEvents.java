@@ -8,6 +8,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.client.screen.GreenhouseScreen;
 import ru.rfvv.metatechreborn.client.screen.ManaDrillScreen;
 import ru.rfvv.metatechreborn.client.screen.MolecularAssemblerScreen;
 import ru.rfvv.metatechreborn.client.screen.NeutroniumCombinerScreen;
@@ -26,6 +27,7 @@ public final class ClientModEvents {
             MenuScreens.register(ModMenus.MOLECULAR_ASSEMBLER_9X9.get(), MolecularAssemblerScreen::new);
             MenuScreens.register(ModMenus.NEUTRONIUM_COMBINER.get(), NeutroniumCombinerScreen::new);
             MenuScreens.register(ModMenus.MANA_DRILL.get(), ManaDrillScreen::new);
+            MenuScreens.register(ModMenus.GREENHOUSE.get(), GreenhouseScreen::new);
             ModItems.electricSwordItems().forEach(item -> ItemProperties.register(
                     item.get(), ACTIVE_PROPERTY,
                     (stack, level, entity, seed) -> ElectricSwordItem.isActive(stack) ? 1.0F : 0.0F));
