@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "metatech_reborn:greenhouse_efficiency_module_1" },
+    { "item": "minecraft:diamond" },
+    { "item": "botania:mana_diamond" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_efficiency_module_2" }
+}

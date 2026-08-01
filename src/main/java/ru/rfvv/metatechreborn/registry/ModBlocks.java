@@ -8,6 +8,8 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.block.ExtremePatternEncoderBlock;
+import ru.rfvv.metatechreborn.block.GreenhouseBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
 import ru.rfvv.metatechreborn.block.NeutroniumCombinerBlock;
@@ -19,6 +21,11 @@ public final class ModBlocks {
     public static final RegistryObject<Block> MOLECULAR_ASSEMBLER_9X9 = BLOCKS.register(
             "molecular_assembler_9x9",
             () -> new MolecularAssemblerBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+                    .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> EXTREME_PATTERN_ENCODER = BLOCKS.register(
+            "extreme_pattern_encoder",
+            () -> new ExtremePatternEncoderBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
 
     public static final RegistryObject<Block> NEUTRONIUM_COMBINER = BLOCKS.register(
@@ -45,6 +52,11 @@ public final class ModBlocks {
             "mana_drill_nozzle",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(6.0F, 15.0F).lightLevel(state -> 7).requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> GREENHOUSE = BLOCKS.register(
+            "greenhouse",
+            () -> new GreenhouseBlock(BlockBehaviour.Properties.copy(Blocks.COPPER_BLOCK)
+                    .strength(4.5F, 10.0F).requiresCorrectToolForDrops()));
 
     public static void register(IEventBus bus) { BLOCKS.register(bus); }
     private ModBlocks() {}
