@@ -35,20 +35,27 @@ public final class MetaTechReborn {
     }
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() != CreativeModeTabs.FUNCTIONAL_BLOCKS) return;
-
-        event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
-        event.accept(ModPatternItems.EXTREME_PATTERN_ENCODER.get());
-        ModItems.nativePatternItems().forEach(item -> event.accept(item.get()));
-
-        event.accept(ModItems.MANA_DRILL.get());
-        event.accept(ModItems.MANA_DRILL_CASING.get());
-        event.accept(ModItems.MANA_DRILL_CORE.get());
-        event.accept(ModItems.MANA_DRILL_NOZZLE.get());
-        event.accept(ModItems.MANA_DRILL_MODULE.get());
-        ModItems.manaDrillUpgradeItems().forEach(item -> event.accept(item.get()));
-
-        event.accept(ModItems.GREENHOUSE.get());
-        ModItems.greenhouseModuleItems().forEach(item -> event.accept(item.get()));
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
+            event.accept(ModPatternItems.EXTREME_PATTERN_ENCODER.get());
+            ModItems.nativePatternItems().forEach(item -> event.accept(item.get()));
+            event.accept(ModItems.NEUTRONIUM_COMBINER.get());
+            ModItems.neutronItems().forEach(item -> event.accept(item.get()));
+            event.accept(ModItems.LUCK_CONVERTER.get());
+            event.accept(ModItems.ADVANCED_LUCK_CONVERTER.get());
+            ModItems.luckModuleItems().forEach(item -> event.accept(item.get()));
+            ModItems.luckUpgradeItems().forEach(item -> event.accept(item.get()));
+            event.accept(ModItems.MANA_DRILL.get());
+            event.accept(ModItems.MANA_DRILL_CASING.get());
+            event.accept(ModItems.MANA_DRILL_CORE.get());
+            event.accept(ModItems.MANA_DRILL_NOZZLE.get());
+            event.accept(ModItems.MANA_DRILL_MODULE.get());
+            ModItems.manaDrillUpgradeItems().forEach(item -> event.accept(item.get()));
+            event.accept(ModItems.GREENHOUSE.get());
+            ModItems.greenhouseModuleItems().forEach(item -> event.accept(item.get()));
+        }
+        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
+            ModItems.energyFoodItems().forEach(item -> event.accept(item.get()));
+        }
     }
 }
