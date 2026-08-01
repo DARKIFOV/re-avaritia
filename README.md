@@ -67,7 +67,7 @@ textures/item/mana_drill_looting_upgrade.png
 textures/item/mana_drill_generation_upgrade.png
 ```
 
-Полный перечень текстур: [`docs/TEXTURES-0.5.5-RU.md`](docs/TEXTURES-0.5.5-RU.md).
+Полный перечень текстур: [`docs/TEXTURES-0.5.5-RU.md`](https://github.com/DARKIFOV/re-avaritia/blob/agent/0.5.5-unified-ae2/docs/TEXTURES-0.5.5-RU.md).
 
 ## Один JAR
 
@@ -159,6 +159,6 @@ gradle build
 
 ## Проверка
 
-Инструкция: [`docs/TESTING-0.5.5-RU.md`](docs/TESTING-0.5.5-RU.md).
+Инструкция: [`docs/TESTING-0.5.5-RU.md`](https://github.com/DARKIFOV/re-avaritia/blob/agent/0.5.5-unified-ae2/docs/TESTING-0.5.5-RU.md).
 
 Изменения сливаются в `main` только после успешной GitHub Actions сборки и проверки непосредственно в игре.
