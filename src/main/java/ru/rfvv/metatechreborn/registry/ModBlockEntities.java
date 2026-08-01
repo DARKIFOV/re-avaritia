@@ -6,6 +6,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.blockentity.ExtremePatternEncoderBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.GreenhouseBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
@@ -18,6 +19,9 @@ public final class ModBlockEntities {
     public static final RegistryObject<BlockEntityType<MolecularAssemblerBlockEntity>> MOLECULAR_ASSEMBLER_9X9 =
             BLOCK_ENTITIES.register("molecular_assembler_9x9", () -> BlockEntityType.Builder.of(
                     MolecularAssemblerBlockEntity::new, ModBlocks.MOLECULAR_ASSEMBLER_9X9.get()).build(null));
+    public static final RegistryObject<BlockEntityType<ExtremePatternEncoderBlockEntity>> EXTREME_PATTERN_ENCODER =
+            BLOCK_ENTITIES.register("extreme_pattern_encoder", () -> BlockEntityType.Builder.of(
+                    ExtremePatternEncoderBlockEntity::new, ModBlocks.EXTREME_PATTERN_ENCODER.get()).build(null));
     public static final RegistryObject<BlockEntityType<NeutroniumCombinerBlockEntity>> NEUTRONIUM_COMBINER =
             BLOCK_ENTITIES.register("neutronium_combiner", () -> BlockEntityType.Builder.of(
                     NeutroniumCombinerBlockEntity::new, ModBlocks.NEUTRONIUM_COMBINER.get()).build(null));
