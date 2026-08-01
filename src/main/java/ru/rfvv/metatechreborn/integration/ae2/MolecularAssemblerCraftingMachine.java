@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** Direct AE2 Pattern Provider integration for the 9x9 assembler. */
+/** Direct AE2 Pattern Provider integration for the native MetaTech 9x9 pattern bank. */
 public final class MolecularAssemblerCraftingMachine implements ICraftingMachine {
     private static final Map<MolecularAssemblerBlockEntity, MolecularAssemblerCraftingMachine> INSTANCES =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -54,13 +54,13 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         return new PatternContainerGroup(
                 AEItemKey.of(ModItems.MOLECULAR_ASSEMBLER_9X9.get()),
                 Component.translatable("container.metatech_reborn.molecular_assembler_9x9"),
-                List.of(Component.translatable("gui.metatech_reborn.ae2_direct"))
+                List.of(Component.translatable("gui.metatech_reborn.ae2_native_patterns"))
         );
     }
 
     @Override
     public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputHolder, Direction direction) {
-        if (!acceptsPlans() || !outputMatches(pattern)) return false;
+        if (!acceptsPlans()) return false;
 
         List<ItemStack> supplied = new ArrayList<>();
         for (KeyCounter counter : inputHolder) {
@@ -74,17 +74,11 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
                 }
             }
         }
-        return host.acceptExternalPatternBatch(supplied);
-    }
 
-    private boolean outputMatches(IPatternDetails pattern) {
-        ItemStack expected = host.getLockedResultForAutomation();
-        if (expected.isEmpty()) return false;
         for (GenericStack output : pattern.getOutputs()) {
-            if (output != null && output.what() instanceof AEItemKey itemKey && itemKey.matches(expected)
-                    && output.amount() >= expected.getCount()) {
-                return true;
-            }
+            if (output == null || !(output.what() instanceof AEItemKey itemKey)) continue;
+            ItemStack requested = itemKey.toStack(1);
+            if (host.acceptExternalPatternBatch(supplied, requested, output.amount())) return true;
         }
         return false;
     }
