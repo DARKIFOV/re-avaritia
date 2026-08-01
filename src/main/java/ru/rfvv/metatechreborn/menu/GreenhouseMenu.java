@@ -20,7 +20,7 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
 
     public GreenhouseMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory, (GreenhouseBlockEntity) inventory.player.level()
-                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(10));
+                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(11));
     }
 
     public GreenhouseMenu(int id, Inventory inventory, GreenhouseBlockEntity blockEntity, ContainerData data) {
@@ -28,28 +28,29 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
         this.blockEntity = blockEntity;
         this.data = data;
 
-        addSlot(new SlotItemHandler(blockEntity.getItems(), GreenhouseBlockEntity.FLOWER_SLOT, 20, 27));
+        addSlot(new SlotItemHandler(blockEntity.getItems(), GreenhouseBlockEntity.FLOWER_SLOT, 18, 32));
         for (int column = 0; column < GreenhouseBlockEntity.MODULE_SLOTS; column++) {
             addSlot(new SlotItemHandler(blockEntity.getItems(),
-                    GreenhouseBlockEntity.FIRST_MODULE_SLOT + column, 20 + column * 24, 57));
+                    GreenhouseBlockEntity.FIRST_MODULE_SLOT + column, 18 + column * 24, 64));
         }
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 3; column++) {
                 int index = GreenhouseBlockEntity.FIRST_FUEL_SLOT + column + row * 3;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), index,
-                        118 + column * 18, 26 + row * 18));
+                        122 + column * 18, 32 + row * 18));
             }
         }
 
-        int playerY = 133;
+        int playerX = 70;
+        int playerY = 146;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9,
-                        62 + column * 18, playerY + row * 18));
+                        playerX + column * 18, playerY + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 62 + column * 18, playerY + 58));
+            addSlot(new Slot(inventory, column, playerX + column * 18, playerY + 58));
         }
         addDataSlots(data);
     }
@@ -87,6 +88,7 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
     public int getEfficiencyLevel() { return data.get(7); }
     public int getEconomyLevel() { return data.get(8); }
     public int getModeId() { return data.get(9); }
+    public int getStatus() { return data.get(10); }
 
     public int getProgressPixels(int width) {
         return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress());
