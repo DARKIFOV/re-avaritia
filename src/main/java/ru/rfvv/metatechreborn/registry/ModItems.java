@@ -7,12 +7,15 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.item.BlankExtremePatternItem;
 import ru.rfvv.metatechreborn.item.ElectricSwordItem;
+import ru.rfvv.metatechreborn.item.EncodedExtremePatternItem;
 import ru.rfvv.metatechreborn.item.EnergyFoodItem;
 import ru.rfvv.metatechreborn.item.GreenhouseModuleItem;
 import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
 import ru.rfvv.metatechreborn.item.MetaVajraItem;
 import ru.rfvv.metatechreborn.item.NeutroniumCombinerUpgradeItem;
+import ru.rfvv.metatechreborn.item.PatternCapacityUpgradeItem;
 import ru.rfvv.metatechreborn.item.SkullAxeItem;
 import ru.rfvv.metatechreborn.item.SnowGunItem;
 import ru.rfvv.metatechreborn.item.WindRotorItem;
@@ -38,6 +41,13 @@ public final class ModItems {
     public static final RegistryObject<Item> GREENHOUSE = blockItem(
             "greenhouse", ModBlocks.GREENHOUSE);
 
+    public static final RegistryObject<Item> BLANK_EXTREME_PATTERN = ITEMS.register(
+            "blank_extreme_pattern", BlankExtremePatternItem::new);
+    public static final RegistryObject<Item> ENCODED_EXTREME_PATTERN = ITEMS.register(
+            "encoded_extreme_pattern", EncodedExtremePatternItem::new);
+    public static final RegistryObject<Item> PATTERN_CAPACITY_UPGRADE = ITEMS.register(
+            "pattern_capacity_upgrade", PatternCapacityUpgradeItem::new);
+
     public static final RegistryObject<Item> NEUTRON_COMBINER_SPEED_UPGRADE = ITEMS.register(
             "neutron_combiner_speed_upgrade",
             () -> new NeutroniumCombinerUpgradeItem(NeutroniumCombinerUpgradeItem.Type.SPEED));
@@ -51,8 +61,6 @@ public final class ModItems {
     public static final RegistryObject<Item> MANA_DRILL_MODULE = ITEMS.register(
             "mana_drill_module", () -> new Item(new Item.Properties().stacksTo(1)));
 
-    // The original pack configuration contains 5 speed, 9 looting and 3 generation tiers.
-    // Tier-one IDs are retained from MVP3 so existing worlds migrate without missing items.
     public static final RegistryObject<Item> MANA_DRILL_SPEED_UPGRADE = upgrade(
             "mana_drill_speed_upgrade", ManaDrillUpgradeItem.Type.SPEED, 1);
     public static final RegistryObject<Item> MANA_DRILL_SPEED_UPGRADE_2 = upgrade(
@@ -115,7 +123,6 @@ public final class ModItems {
     public static final RegistryObject<Item> GREENHOUSE_INFINITE_LAVA_MODULE = greenhouseModule(
             "greenhouse_infinite_lava_module", GreenhouseModuleItem.Type.INFINITE_LAVA, 1);
 
-    // Restored item batches from MetaAdvanced and MetaThaumcraft.
     public static final RegistryObject<Item> META_VAJRA = ITEMS.register("meta_vajra", MetaVajraItem::new);
     public static final RegistryObject<Item> SNOW_GUN = ITEMS.register("snow_gun", SnowGunItem::new);
     public static final RegistryObject<Item> SKULL_AXE = ITEMS.register("skull_axe", SkullAxeItem::new);
@@ -213,6 +220,10 @@ public final class ModItems {
         return List.of(NEUTRON_COMBINER_SPEED_UPGRADE,
                 NEUTRON_COMBINER_EFFICIENCY_UPGRADE,
                 NEUTRON_COMBINER_OUTPUT_UPGRADE);
+    }
+
+    public static List<RegistryObject<Item>> nativePatternItems() {
+        return List.of(BLANK_EXTREME_PATTERN, ENCODED_EXTREME_PATTERN, PATTERN_CAPACITY_UPGRADE);
     }
 
     public static List<RegistryObject<Item>> electricSwordItems() {
