@@ -1,8 +1,6 @@
 package ru.rfvv.metatechreborn.client;
 
 import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -12,27 +10,17 @@ import ru.rfvv.metatechreborn.client.screen.ExtremePatternEncoderScreen;
 import ru.rfvv.metatechreborn.client.screen.GreenhouseScreen;
 import ru.rfvv.metatechreborn.client.screen.ManaDrillScreen;
 import ru.rfvv.metatechreborn.client.screen.MolecularAssemblerScreen;
-import ru.rfvv.metatechreborn.client.screen.NeutroniumCombinerScreen;
-import ru.rfvv.metatechreborn.item.ElectricSwordItem;
-import ru.rfvv.metatechreborn.registry.ModItems;
 import ru.rfvv.metatechreborn.registry.ModMenus;
 
 @Mod.EventBusSubscriber(modid = MetaTechReborn.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientModEvents {
-    private static final ResourceLocation ACTIVE_PROPERTY =
-            new ResourceLocation(MetaTechReborn.MOD_ID, "active");
-
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             MenuScreens.register(ModMenus.MOLECULAR_ASSEMBLER_9X9.get(), MolecularAssemblerScreen::new);
             MenuScreens.register(ModMenus.EXTREME_PATTERN_ENCODER.get(), ExtremePatternEncoderScreen::new);
-            MenuScreens.register(ModMenus.NEUTRONIUM_COMBINER.get(), NeutroniumCombinerScreen::new);
             MenuScreens.register(ModMenus.MANA_DRILL.get(), ManaDrillScreen::new);
             MenuScreens.register(ModMenus.GREENHOUSE.get(), GreenhouseScreen::new);
-            ModItems.electricSwordItems().forEach(item -> ItemProperties.register(
-                    item.get(), ACTIVE_PROPERTY,
-                    (stack, level, entity, seed) -> ElectricSwordItem.isActive(stack) ? 1.0F : 0.0F));
         });
     }
 
