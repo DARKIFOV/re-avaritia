@@ -54,12 +54,12 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 
     // AE2 Molecular Assembler Plus 1.0.0 for Minecraft 1.20.1 Forge.
-    // Provides the Extreme Pattern Encoding Terminal, encoded 9x9 patterns,
-    // JEI transfer and the Extreme Molecular Assembler for Re:Avaritia.
+    // CurseMaven exposes the exact file ID without Maven version metadata, so
+    // resolve that exact artifact and put the supported range into JarJar metadata.
     runtimeOnly fg.deobf('curse.maven:ae2-molecular-assembler-plus-1493468:8093809')
     jarJar(group: 'curse.maven', name: 'ae2-molecular-assembler-plus-1493468',
-            version: '[8093809,8093810)') {
-        jarJar.pin(it, '8093809')
+            version: '8093809') {
+        jarJar.pin(it, '[8093809,8093810)')
     }
 }
 
