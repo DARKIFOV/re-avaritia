@@ -32,14 +32,12 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Build
+      - name: Build unified mod
         run: gradle build --no-daemon --stacktrace
 
-      - name: Upload mod and 9x9 companion JARs
+      - name: Upload unified MetaTech JAR
         uses: actions/upload-artifact@v4
         with:
-          name: MetaTech-Reborn-${{ github.sha }}
-          path: |
-            build/libs/*.jar
-            build/addons/*.jar
+          name: MetaTech-Reborn-unified-${{ github.sha }}
+          path: build/libs/*.jar
           if-no-files-found: error
