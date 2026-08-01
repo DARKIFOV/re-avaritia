@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:block",
+  "pools": [{
+    "rolls": 1,
+    "entries": [{
+      "type": "minecraft:item",
+      "name": "metatech_reborn:neutronium_combiner"
+    }],
+    "conditions": [{ "condition": "minecraft:survives_explosion" }]
+  }]
+}
