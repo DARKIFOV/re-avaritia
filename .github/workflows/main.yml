@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: metatech-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -28,12 +32,12 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Build
+      - name: Build unified mod
         run: gradle build --no-daemon --stacktrace
 
-      - name: Upload mod JAR
+      - name: Upload unified MetaTech JAR
         uses: actions/upload-artifact@v4
         with:
-          name: MetaTech-Reborn-${{ github.sha }}
+          name: MetaTech-Reborn-unified-${{ github.sha }}
           path: build/libs/*.jar
           if-no-files-found: error

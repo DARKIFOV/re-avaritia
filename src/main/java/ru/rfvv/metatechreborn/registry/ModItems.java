@@ -7,8 +7,11 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.item.BlankExtremePatternItem;
+import ru.rfvv.metatechreborn.item.EncodedExtremePatternItem;
+import ru.rfvv.metatechreborn.item.GreenhouseModuleItem;
 import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
-import ru.rfvv.metatechreborn.item.NeutroniumCombinerUpgradeItem;
+import ru.rfvv.metatechreborn.item.PatternCapacityUpgradeItem;
 
 import java.util.List;
 
@@ -18,8 +21,6 @@ public final class ModItems {
 
     public static final RegistryObject<Item> MOLECULAR_ASSEMBLER_9X9 = blockItem(
             "molecular_assembler_9x9", ModBlocks.MOLECULAR_ASSEMBLER_9X9);
-    public static final RegistryObject<Item> NEUTRONIUM_COMBINER = blockItem(
-            "neutronium_combiner", ModBlocks.NEUTRONIUM_COMBINER);
     public static final RegistryObject<Item> MANA_DRILL = blockItem(
             "mana_drill", ModBlocks.MANA_DRILL);
     public static final RegistryObject<Item> MANA_DRILL_CASING = blockItem(
@@ -28,22 +29,19 @@ public final class ModItems {
             "mana_drill_core", ModBlocks.MANA_DRILL_CORE);
     public static final RegistryObject<Item> MANA_DRILL_NOZZLE = blockItem(
             "mana_drill_nozzle", ModBlocks.MANA_DRILL_NOZZLE);
+    public static final RegistryObject<Item> GREENHOUSE = blockItem(
+            "greenhouse", ModBlocks.GREENHOUSE);
 
-    public static final RegistryObject<Item> NEUTRON_COMBINER_SPEED_UPGRADE = ITEMS.register(
-            "neutron_combiner_speed_upgrade",
-            () -> new NeutroniumCombinerUpgradeItem(NeutroniumCombinerUpgradeItem.Type.SPEED));
-    public static final RegistryObject<Item> NEUTRON_COMBINER_EFFICIENCY_UPGRADE = ITEMS.register(
-            "neutron_combiner_efficiency_upgrade",
-            () -> new NeutroniumCombinerUpgradeItem(NeutroniumCombinerUpgradeItem.Type.EFFICIENCY));
-    public static final RegistryObject<Item> NEUTRON_COMBINER_OUTPUT_UPGRADE = ITEMS.register(
-            "neutron_combiner_output_upgrade",
-            () -> new NeutroniumCombinerUpgradeItem(NeutroniumCombinerUpgradeItem.Type.OUTPUT));
+    public static final RegistryObject<Item> BLANK_EXTREME_PATTERN = ITEMS.register(
+            "blank_extreme_pattern", BlankExtremePatternItem::new);
+    public static final RegistryObject<Item> ENCODED_EXTREME_PATTERN = ITEMS.register(
+            "encoded_extreme_pattern", EncodedExtremePatternItem::new);
+    public static final RegistryObject<Item> PATTERN_CAPACITY_UPGRADE = ITEMS.register(
+            "pattern_capacity_upgrade", PatternCapacityUpgradeItem::new);
 
     public static final RegistryObject<Item> MANA_DRILL_MODULE = ITEMS.register(
             "mana_drill_module", () -> new Item(new Item.Properties().stacksTo(1)));
 
-    // The original pack configuration contains 5 speed, 9 looting and 3 generation tiers.
-    // Tier-one IDs are retained from MVP3 so existing worlds migrate without missing items.
     public static final RegistryObject<Item> MANA_DRILL_SPEED_UPGRADE = upgrade(
             "mana_drill_speed_upgrade", ManaDrillUpgradeItem.Type.SPEED, 1);
     public static final RegistryObject<Item> MANA_DRILL_SPEED_UPGRADE_2 = upgrade(
@@ -81,12 +79,43 @@ public final class ModItems {
     public static final RegistryObject<Item> MANA_DRILL_GENERATION_UPGRADE_3 = upgrade(
             "mana_drill_generation_upgrade_3", ManaDrillUpgradeItem.Type.GENERATION, 3);
 
-    private static RegistryObject<Item> blockItem(String name, RegistryObject<net.minecraft.world.level.block.Block> block) {
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_1 = greenhouseModule(
+            "greenhouse_economy_module_1", GreenhouseModuleItem.Type.ECONOMY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_2 = greenhouseModule(
+            "greenhouse_economy_module_2", GreenhouseModuleItem.Type.ECONOMY, 2);
+    public static final RegistryObject<Item> GREENHOUSE_ECONOMY_MODULE_3 = greenhouseModule(
+            "greenhouse_economy_module_3", GreenhouseModuleItem.Type.ECONOMY, 3);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_1 = greenhouseModule(
+            "greenhouse_efficiency_module_1", GreenhouseModuleItem.Type.EFFICIENCY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_2 = greenhouseModule(
+            "greenhouse_efficiency_module_2", GreenhouseModuleItem.Type.EFFICIENCY, 2);
+    public static final RegistryObject<Item> GREENHOUSE_EFFICIENCY_MODULE_3 = greenhouseModule(
+            "greenhouse_efficiency_module_3", GreenhouseModuleItem.Type.EFFICIENCY, 3);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_1 = greenhouseModule(
+            "greenhouse_speed_module_1", GreenhouseModuleItem.Type.SPEED, 1);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_2 = greenhouseModule(
+            "greenhouse_speed_module_2", GreenhouseModuleItem.Type.SPEED, 2);
+    public static final RegistryObject<Item> GREENHOUSE_SPEED_MODULE_3 = greenhouseModule(
+            "greenhouse_speed_module_3", GreenhouseModuleItem.Type.SPEED, 3);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_DAY_MODULE = greenhouseModule(
+            "greenhouse_infinite_day_module", GreenhouseModuleItem.Type.INFINITE_DAY, 1);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_NIGHT_MODULE = greenhouseModule(
+            "greenhouse_infinite_night_module", GreenhouseModuleItem.Type.INFINITE_NIGHT, 1);
+    public static final RegistryObject<Item> GREENHOUSE_INFINITE_LAVA_MODULE = greenhouseModule(
+            "greenhouse_infinite_lava_module", GreenhouseModuleItem.Type.INFINITE_LAVA, 1);
+
+    private static RegistryObject<Item> blockItem(
+            String name, RegistryObject<net.minecraft.world.level.block.Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
     private static RegistryObject<Item> upgrade(String name, ManaDrillUpgradeItem.Type type, int level) {
         return ITEMS.register(name, () -> new ManaDrillUpgradeItem(type, level));
+    }
+
+    private static RegistryObject<Item> greenhouseModule(
+            String name, GreenhouseModuleItem.Type type, int level) {
+        return ITEMS.register(name, () -> new GreenhouseModuleItem(type, level));
     }
 
     public static List<RegistryObject<Item>> manaDrillUpgradeItems() {
@@ -101,10 +130,18 @@ public final class ModItems {
         );
     }
 
-    public static List<RegistryObject<Item>> neutronCombinerUpgradeItems() {
-        return List.of(NEUTRON_COMBINER_SPEED_UPGRADE,
-                NEUTRON_COMBINER_EFFICIENCY_UPGRADE,
-                NEUTRON_COMBINER_OUTPUT_UPGRADE);
+    public static List<RegistryObject<Item>> greenhouseModuleItems() {
+        return List.of(
+                GREENHOUSE_ECONOMY_MODULE_1, GREENHOUSE_ECONOMY_MODULE_2, GREENHOUSE_ECONOMY_MODULE_3,
+                GREENHOUSE_EFFICIENCY_MODULE_1, GREENHOUSE_EFFICIENCY_MODULE_2, GREENHOUSE_EFFICIENCY_MODULE_3,
+                GREENHOUSE_SPEED_MODULE_1, GREENHOUSE_SPEED_MODULE_2, GREENHOUSE_SPEED_MODULE_3,
+                GREENHOUSE_INFINITE_DAY_MODULE, GREENHOUSE_INFINITE_NIGHT_MODULE,
+                GREENHOUSE_INFINITE_LAVA_MODULE
+        );
+    }
+
+    public static List<RegistryObject<Item>> nativePatternItems() {
+        return List.of(BLANK_EXTREME_PATTERN, ENCODED_EXTREME_PATTERN, PATTERN_CAPACITY_UPGRADE);
     }
 
     public static void register(IEventBus bus) { ITEMS.register(bus); }

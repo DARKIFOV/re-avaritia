@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["LBL", "RNR", "LBL"],
+  "key": {
+    "L": { "item": "minecraft:lava_bucket" },
+    "B": { "item": "minecraft:blaze_rod" },
+    "R": { "item": "minecraft:redstone_block" },
+    "N": { "item": "minecraft:nether_star" }
+  },
+  "result": { "item": "metatech_reborn:greenhouse_infinite_lava_module" }
+}

@@ -1,9 +1,0 @@
-{
-  "parent": "minecraft:block/orientable_with_bottom",
-  "textures": {
-    "top": "metatech_reborn:block/neutronium_combiner_top",
-    "front": "metatech_reborn:block/neutronium_combiner_front",
-    "side": "metatech_reborn:block/neutronium_combiner_side",
-    "bottom": "metatech_reborn:block/machine_bottom"
-  }
-}

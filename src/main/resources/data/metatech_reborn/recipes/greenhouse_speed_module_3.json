@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "metatech_reborn:greenhouse_speed_module_2" },
+    { "item": "minecraft:nether_star" },
+    { "item": "botania:elementium_ingot" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_speed_module_3" }
+}
