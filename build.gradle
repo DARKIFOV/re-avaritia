@@ -38,12 +38,14 @@ repositories {
 
 configurations {
     extremeAssemblerAddon
+    reAvaritiaInspection
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     runtimeOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
+    reAvaritiaInspection 'curse.maven:re-avaritia-623969:8497793'
     compileOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
     runtimeOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
     compileOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
@@ -52,16 +54,10 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:15.20.0.112")
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 
-    // Temporary companion integration while the 9x9 terminal is being ported
-    // directly into MetaTech Reborn. The exact 1.20.1 Forge artifact provides
-    // the Extreme Molecular Assembler, 9x9 Pattern Encoding Terminal and JEI transfer.
     runtimeOnly fg.deobf('curse.maven:ae2-molecular-assembler-plus-1493468:8093809')
     extremeAssemblerAddon 'curse.maven:ae2-molecular-assembler-plus-1493468:8093809'
 }
 
-// The large binary resource overlay is stored as small base64 chunks because
-// GitHub's text contents API is used during the port. Decode it during Gradle
-// configuration, then layer it over the last known-good 0.4 resource bundle.
 def encodedItemAssetsDir = file('tools/generated_assets_items2')
 def generatedItemAssetsZip = layout.buildDirectory.file('generated/metatech_items2_assets.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
@@ -104,6 +100,12 @@ tasks.register('copyExtremeAssemblerAddon', Copy) {
     rename { 'AE2-Molecular-Assembler-Plus-1.20.1-1.0.0.jar' }
 }
 
+tasks.register('copyReAvaritiaInspection', Copy) {
+    from configurations.reAvaritiaInspection
+    into layout.buildDirectory.dir('inspection')
+    rename { 'Re-Avaritia-forge-1.20.1-1.4.1-release.jar' }
+}
+
 tasks.named('processResources', ProcessResources).configure {
     dependsOn tasks.named('extractGeneratedAssets')
     def replaceProperties = [minecraft_version: minecraft_version,
@@ -119,7 +121,7 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('build').configure {
-    dependsOn tasks.named('copyExtremeAssemblerAddon')
+    dependsOn tasks.named('copyExtremeAssemblerAddon'), tasks.named('copyReAvaritiaInspection')
 }
 
 tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
