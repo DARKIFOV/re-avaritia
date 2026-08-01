@@ -7,6 +7,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
 import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
 import ru.rfvv.metatechreborn.menu.NeutroniumCombinerMenu;
@@ -20,6 +21,8 @@ public final class ModMenus {
             MENUS.register("neutronium_combiner", () -> IForgeMenuType.create(NeutroniumCombinerMenu::new));
     public static final RegistryObject<MenuType<ManaDrillMenu>> MANA_DRILL =
             MENUS.register("mana_drill", () -> IForgeMenuType.create(ManaDrillMenu::new));
+    public static final RegistryObject<MenuType<GreenhouseMenu>> GREENHOUSE =
+            MENUS.register("greenhouse", () -> IForgeMenuType.create(GreenhouseMenu::new));
 
     public static void register(IEventBus bus) { MENUS.register(bus); }
     private ModMenus() {}
