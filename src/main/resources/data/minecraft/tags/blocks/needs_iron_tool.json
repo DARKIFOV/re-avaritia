@@ -3,6 +3,9 @@
   "values": [
     "metatech_reborn:molecular_assembler_9x9",
     "metatech_reborn:neutronium_combiner",
-    "metatech_reborn:mana_drill"
+    "metatech_reborn:mana_drill",
+    "metatech_reborn:mana_drill_casing",
+    "metatech_reborn:mana_drill_core",
+    "metatech_reborn:mana_drill_nozzle"
   ]
 }

@@ -1,5 +1,7 @@
 {
   "variants": {
-    "": { "model": "metatech_reborn:block/molecular_assembler_9x9" }
+    "": {
+      "model": "metatech_reborn:block/molecular_assembler_9x9"
+    }
   }
 }

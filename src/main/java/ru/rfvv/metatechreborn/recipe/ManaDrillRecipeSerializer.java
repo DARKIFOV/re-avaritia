@@ -29,7 +29,9 @@ public final class ManaDrillRecipeSerializer implements RecipeSerializer<ManaDri
             JsonObject dropJson = GsonHelper.convertToJsonObject(dropArray.get(index), "drops[" + index + "]");
             ResourceLocation itemId = new ResourceLocation(GsonHelper.getAsString(dropJson, "item"));
             Item item = BuiltInRegistries.ITEM.get(itemId);
-            if (item == Items.AIR) throw new IllegalArgumentException("Unknown mana drill drop item: " + itemId);
+            if (item == Items.AIR) {
+                throw new IllegalArgumentException("Unknown mana drill drop item: " + itemId);
+            }
             int minimum = GsonHelper.getAsInt(dropJson, "min", 1);
             int maximum = GsonHelper.getAsInt(dropJson, "max", minimum);
             int chance = GsonHelper.getAsInt(dropJson, "chance", 10_000);

@@ -20,28 +20,35 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
 
     public ManaDrillMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory, (ManaDrillBlockEntity) inventory.player.level()
-                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(4));
+                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(8));
     }
 
     public ManaDrillMenu(int id, Inventory inventory, ManaDrillBlockEntity blockEntity, ContainerData data) {
         super(ModMenus.MANA_DRILL.get(), id);
         this.blockEntity = blockEntity;
         this.data = data;
+
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.MODULE_SLOT, 18, 26));
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.SPEED_SLOT, 18, 50));
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.LOOTING_SLOT, 42, 50));
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.GENERATION_SLOT, 66, 50));
-        for (int row = 0; row < 3; row++) for (int column = 0; column < 9; column++) {
-            int slot = ManaDrillBlockEntity.FIRST_OUTPUT_SLOT + column + row * 9;
-            addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 92 + column * 18, 18 + row * 18) {
-                @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
-            });
+
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                int slot = ManaDrillBlockEntity.FIRST_OUTPUT_SLOT + column + row * 9;
+                addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 102 + column * 18, 20 + row * 18) {
+                    @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
+                });
+            }
         }
-        int playerY = 92;
+
+        int playerY = 137;
         for (int row = 0; row < 3; row++) for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column + row * 9 + 9, 50 + column * 18, playerY + row * 18));
+            addSlot(new Slot(inventory, column + row * 9 + 9, 62 + column * 18, playerY + row * 18));
         }
-        for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 50 + column * 18, playerY + 58));
+        for (int column = 0; column < 9; column++) {
+            addSlot(new Slot(inventory, column, 62 + column * 18, playerY + 58));
+        }
         addDataSlots(data);
     }
 
@@ -58,7 +65,9 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
         int machineSlots = ManaDrillBlockEntity.TOTAL_SLOTS;
         if (index < machineSlots) {
             if (!moveItemStackTo(original, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
-        } else if (!moveItemStackTo(original, 0, ManaDrillBlockEntity.FIRST_OUTPUT_SLOT, false)) return ItemStack.EMPTY;
+        } else if (!moveItemStackTo(original, 0, ManaDrillBlockEntity.FIRST_OUTPUT_SLOT, false)) {
+            return ItemStack.EMPTY;
+        }
         if (original.isEmpty()) slot.set(ItemStack.EMPTY); else slot.setChanged();
         slot.onTake(player, original);
         return copy;
@@ -68,6 +77,10 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
     public int getMaxProgress() { return data.get(1); }
     public int getMana() { return data.get(2); }
     public int getManaCapacity() { return data.get(3); }
+    public int getSpeedLevel() { return data.get(4); }
+    public int getLootingLevel() { return data.get(5); }
+    public int getGenerationLevel() { return data.get(6); }
+    public boolean isStructureFormed() { return data.get(7) != 0; }
     public int getProgressPixels(int width) {
         return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress());
     }

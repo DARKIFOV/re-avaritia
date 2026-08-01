@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "LQL",
+    "QEQ",
+    "LQL"
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:lapis_block"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "E": {
+      "item": "minecraft:emerald"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:neutron_combiner_efficiency_upgrade"
+  }
+}

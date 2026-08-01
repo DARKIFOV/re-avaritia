@@ -12,26 +12,44 @@ import ru.rfvv.metatechreborn.recipe.MachineRecipeMatch;
 
 import java.util.Optional;
 
+/**
+ * This class is loaded only after Forge confirms that mod id "avaritia" exists.
+ * Keeping all Re-Avaritia references here prevents optional-dependency classloading crashes.
+ */
 public final class AvaritiaIntegration {
     public static Optional<MachineRecipeMatch> findMatch(Level level, IItemHandler inventory) {
-        for (ITierCraftingRecipe recipe : level.getRecipeManager().getAllRecipesFor(
-                ModRecipeTypes.CRAFTING_TABLE_RECIPE.get())) {
-            if (recipe.getTier() <= 4 && recipe.matches(inventory)) return Optional.of(createMatch(recipe, inventory));
+        for (ITierCraftingRecipe recipe : level.getRecipeManager()
+                .getAllRecipesFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get())) {
+            if (recipe.getTier() <= 4 && recipe.matches(inventory)) {
+                return Optional.of(createMatch(recipe, inventory));
+            }
         }
         return Optional.empty();
     }
-    public static Optional<MachineRecipeMatch> findMatchById(Level level, ResourceLocation id, IItemHandler inventory) {
+
+    public static Optional<MachineRecipeMatch> findMatchById(Level level, ResourceLocation id,
+                                                              IItemHandler inventory) {
         return level.getRecipeManager().byKey(id)
                 .filter(ITierCraftingRecipe.class::isInstance)
                 .map(ITierCraftingRecipe.class::cast)
-                .filter(recipe -> recipe.getTier() <= 4 && recipe.matches(inventory))
+                .filter(recipe -> recipe.getTier() <= 4)
+                .filter(recipe -> recipe.matches(inventory))
                 .map(recipe -> createMatch(recipe, inventory));
     }
+
     private static MachineRecipeMatch createMatch(ITierCraftingRecipe recipe, IItemHandler inventory) {
         ItemStack result = recipe.assemble(inventory).copy();
         NonNullList<ItemStack> remaining = recipe.getRemainingItems(inventory);
-        return new MachineRecipeMatch(recipe.getId(), MachineRecipeMatch.Source.AVARITIA,
-                result, remaining, CommonConfig.DEFAULT_CRAFT_TIME.get(), CommonConfig.DEFAULT_ENERGY_PER_TICK.get());
+        return new MachineRecipeMatch(
+                recipe.getId(),
+                MachineRecipeMatch.Source.AVARITIA,
+                result,
+                remaining,
+                CommonConfig.DEFAULT_CRAFT_TIME.get(),
+                CommonConfig.DEFAULT_ENERGY_PER_TICK.get()
+        );
     }
-    private AvaritiaIntegration() {}
+
+    private AvaritiaIntegration() {
+    }
 }

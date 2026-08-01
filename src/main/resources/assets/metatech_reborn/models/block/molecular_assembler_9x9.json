@@ -1,6 +1,9 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/orientable_with_bottom",
   "textures": {
-    "all": "minecraft:block/iron_block"
+    "top": "metatech_reborn:block/molecular_assembler_top",
+    "front": "metatech_reborn:block/molecular_assembler_front",
+    "side": "metatech_reborn:block/molecular_assembler_side",
+    "bottom": "metatech_reborn:block/machine_bottom"
   }
 }

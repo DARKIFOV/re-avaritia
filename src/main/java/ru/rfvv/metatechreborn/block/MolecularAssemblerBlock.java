@@ -22,36 +22,62 @@ import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 
 public final class MolecularAssemblerBlock extends BaseEntityBlock {
-    public MolecularAssemblerBlock(Properties properties) { super(properties); }
-    @Override public @NotNull RenderShape getRenderShape(@NotNull BlockState state) { return RenderShape.MODEL; }
-    @Override public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level,
-            @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand,
-            @NotNull BlockHitResult hit) {
+    public MolecularAssemblerBlock(Properties properties) {
+        super(properties);
+    }
+
+    @Override
+    public @NotNull RenderShape getRenderShape(@NotNull BlockState state) {
+        return RenderShape.MODEL;
+    }
+
+    @Override
+    public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level,
+                                          @NotNull BlockPos pos, @NotNull Player player,
+                                          @NotNull InteractionHand hand, @NotNull BlockHitResult hit) {
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            BlockEntity entity = level.getBlockEntity(pos);
-            if (entity instanceof MolecularAssemblerBlockEntity assembler) NetworkHooks.openScreen(serverPlayer, assembler, pos);
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof MolecularAssemblerBlockEntity assembler) {
+                NetworkHooks.openScreen(serverPlayer, assembler, pos);
+            }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-    @Override public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
-            @NotNull BlockState newState, boolean isMoving) {
+
+    @Override
+    public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
+                         @NotNull BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
-            BlockEntity entity = level.getBlockEntity(pos);
-            if (entity instanceof MolecularAssemblerBlockEntity assembler) {
-                assembler.getDrops().forEach(stack -> Containers.dropItemStack(level,
-                        pos.getX() + .5D, pos.getY() + .5D, pos.getZ() + .5D, stack));
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof MolecularAssemblerBlockEntity assembler) {
+                for (var stack : assembler.getDrops()) {
+                    Containers.dropItemStack(level,
+                            pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, stack);
+                }
+                level.updateNeighbourForOutputSignal(pos, this);
             }
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }
-    @Override public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
+
+    @Override
+    public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
         return new MolecularAssemblerBlockEntity(pos, state);
     }
-    @Override public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(@NotNull Level level,
-            @NotNull BlockState state, @NotNull BlockEntityType<T> type) {
+
+    @Override
+    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(@NotNull Level level,
+                                                                            @NotNull BlockState state,
+                                                                            @NotNull BlockEntityType<T> type) {
         if (level.isClientSide) return null;
-        return createTickerHelper(type, ModBlockEntities.MOLECULAR_ASSEMBLER_9X9.get(), MolecularAssemblerBlockEntity::serverTick);
+        return createTickerHelper(type, ModBlockEntities.MOLECULAR_ASSEMBLER_9X9.get(),
+                MolecularAssemblerBlockEntity::serverTick);
     }
-    @Override public boolean isPathfindable(@NotNull BlockState state, @NotNull BlockGetter level,
-            @NotNull BlockPos pos, @NotNull net.minecraft.world.level.pathfinder.PathComputationType type) { return false; }
+
+    @Override
+    public boolean isPathfindable(@NotNull BlockState state, @NotNull BlockGetter level,
+                                  @NotNull BlockPos pos,
+                                  @NotNull net.minecraft.world.level.pathfinder.PathComputationType type) {
+        return false;
+    }
 }

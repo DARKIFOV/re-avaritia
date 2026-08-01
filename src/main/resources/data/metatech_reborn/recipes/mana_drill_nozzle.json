@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " N ",
+    "NIN",
+    " T "
+  ],
+  "key": {
+    "N": {
+      "item": "avaritia:neutron_nugget"
+    },
+    "I": {
+      "item": "minecraft:iron_block"
+    },
+    "T": {
+      "item": "botania:terrasteel_ingot"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_nozzle"
+  }
+}

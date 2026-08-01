@@ -21,8 +21,11 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.config.CommonConfig;
+import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
 import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
+import ru.rfvv.metatechreborn.multiblock.ManaDrillStructure;
 import ru.rfvv.metatechreborn.recipe.ManaDrillRecipe;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 import ru.rfvv.metatechreborn.registry.ModItems;
@@ -46,21 +49,30 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     private int mana;
     private int progress;
     private int maxProgress;
+    private boolean structureFormed;
+    private long nextStructureCheck;
 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
-        @Override protected void onContentsChanged(int slot) {
+        @Override
+        protected void onContentsChanged(int slot) {
             if (slot <= GENERATION_SLOT) {
                 progress = 0;
                 maxProgress = 0;
             }
             setChanged();
         }
-        @Override public int getSlotLimit(int slot) { return slot == MODULE_SLOT ? 1 : super.getSlotLimit(slot); }
-        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return slot <= GENERATION_SLOT ? 1 : super.getSlotLimit(slot);
+        }
+
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return switch (slot) {
-                case SPEED_SLOT -> stack.is(ModItems.MANA_DRILL_SPEED_UPGRADE.get());
-                case LOOTING_SLOT -> stack.is(ModItems.MANA_DRILL_LOOTING_UPGRADE.get());
-                case GENERATION_SLOT -> stack.is(ModItems.MANA_DRILL_GENERATION_UPGRADE.get());
+                case SPEED_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.SPEED);
+                case LOOTING_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.LOOTING);
+                case GENERATION_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.GENERATION);
                 default -> slot == MODULE_SLOT || slot >= FIRST_OUTPUT_SLOT;
             };
         }
@@ -88,6 +100,13 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
                 case 1 -> maxProgress;
                 case 2 -> mana;
                 case 3 -> getManaCapacity();
+                case 4 -> getUpgradeLevel(SPEED_SLOT, ManaDrillUpgradeItem.Type.SPEED,
+                        CommonConfig.MANA_DRILL_MAX_SPEED_UPGRADES.get());
+                case 5 -> getUpgradeLevel(LOOTING_SLOT, ManaDrillUpgradeItem.Type.LOOTING,
+                        CommonConfig.MANA_DRILL_MAX_LOOTING_UPGRADES.get());
+                case 6 -> getUpgradeLevel(GENERATION_SLOT, ManaDrillUpgradeItem.Type.GENERATION,
+                        CommonConfig.MANA_DRILL_MAX_GENERATION_UPGRADES.get());
+                case 7 -> structureFormed ? 1 : 0;
                 default -> 0;
             };
         }
@@ -96,7 +115,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
             else if (index == 1) maxProgress = value;
             else if (index == 2) mana = value;
         }
-        @Override public int getCount() { return 4; }
+        @Override public int getCount() { return 8; }
     };
 
     public ManaDrillBlockEntity(BlockPos pos, BlockState state) {
@@ -108,9 +127,21 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     }
 
     private void tickServer(Level level) {
+        if (level.getGameTime() >= nextStructureCheck) {
+            updateStructureState(level);
+            nextStructureCheck = level.getGameTime() + 20L;
+        }
+
+        if (!structureFormed) {
+            resetProgress();
+            autoEjectIfNeeded(level);
+            return;
+        }
+
         if (level.getGameTime() % CommonConfig.MANA_DRILL_POOL_SCAN_INTERVAL.get() == 0L) {
             pullManaFromNearbyPools(level);
         }
+
         Optional<ManaDrillRecipe> match = findRecipe(level);
         if (match.isEmpty()) {
             resetProgress();
@@ -119,12 +150,12 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
         }
 
         ManaDrillRecipe recipe = match.get();
-        int speedLevel = Math.min(CommonConfig.MANA_DRILL_MAX_SPEED_UPGRADES.get(),
-                items.getStackInSlot(SPEED_SLOT).getCount());
-        int lootingLevel = Math.min(CommonConfig.MANA_DRILL_MAX_LOOTING_UPGRADES.get(),
-                items.getStackInSlot(LOOTING_SLOT).getCount());
-        int generationLevel = Math.min(CommonConfig.MANA_DRILL_MAX_GENERATION_UPGRADES.get(),
-                items.getStackInSlot(GENERATION_SLOT).getCount());
+        int speedLevel = getUpgradeLevel(SPEED_SLOT, ManaDrillUpgradeItem.Type.SPEED,
+                CommonConfig.MANA_DRILL_MAX_SPEED_UPGRADES.get());
+        int lootingLevel = getUpgradeLevel(LOOTING_SLOT, ManaDrillUpgradeItem.Type.LOOTING,
+                CommonConfig.MANA_DRILL_MAX_LOOTING_UPGRADES.get());
+        int generationLevel = getUpgradeLevel(GENERATION_SLOT, ManaDrillUpgradeItem.Type.GENERATION,
+                CommonConfig.MANA_DRILL_MAX_GENERATION_UPGRADES.get());
 
         maxProgress = Math.max(1, recipe.time() / (1 + speedLevel));
         if (mana < recipe.manaCost()) {
@@ -146,6 +177,40 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
             }
         }
         autoEjectIfNeeded(level);
+    }
+
+    private void updateStructureState(Level level) {
+        BlockState state = getBlockState();
+        Direction facing = state.hasProperty(ManaDrillBlock.FACING)
+                ? state.getValue(ManaDrillBlock.FACING) : Direction.NORTH;
+        boolean formed = ManaDrillStructure.isFormed(level, worldPosition, facing);
+        if (formed != structureFormed) {
+            structureFormed = formed;
+            if (!formed) resetProgress();
+            setChanged();
+        }
+    }
+
+    public void forceStructureCheck() {
+        nextStructureCheck = 0L;
+        if (level != null && !level.isClientSide) updateStructureState(level);
+    }
+
+    public boolean isStructureFormed() {
+        return structureFormed;
+    }
+
+
+    private static boolean isUpgrade(ItemStack stack, ManaDrillUpgradeItem.Type expectedType) {
+        return stack.getItem() instanceof ManaDrillUpgradeItem upgrade && upgrade.type() == expectedType;
+    }
+
+    private int getUpgradeLevel(int slot, ManaDrillUpgradeItem.Type expectedType, int configuredMaximum) {
+        ItemStack stack = items.getStackInSlot(slot);
+        if (!(stack.getItem() instanceof ManaDrillUpgradeItem upgrade) || upgrade.type() != expectedType) {
+            return 0;
+        }
+        return Math.min(Math.max(0, configuredMaximum), upgrade.level());
     }
 
     private Optional<ManaDrillRecipe> findRecipe(Level level) {
@@ -173,7 +238,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
                 for (int z = -radius; z <= radius && remainingTransfer > 0 && !isFull(); z++) {
                     cursor.set(worldPosition.getX() + x, worldPosition.getY() + y, worldPosition.getZ() + z);
                     BlockEntity candidate = level.getBlockEntity(cursor);
-                    if (!(candidate instanceof ManaPool pool) || !pool.isOutputtingPower()) continue;
+                    if (!(candidate instanceof ManaPool pool) || candidate == this || !pool.isOutputtingPower()) continue;
                     int amount = Math.min(remainingTransfer,
                             Math.min(pool.getCurrentMana(), getManaCapacity() - mana));
                     if (amount <= 0) continue;
@@ -186,12 +251,15 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     }
 
     private boolean canInsertAll(List<ItemStack> stacks) {
+        List<ItemStack> simulated = new ArrayList<>(stacks.size());
+        for (ItemStack stack : stacks) simulated.add(stack.copy());
         ItemStackHandler copy = new ItemStackHandler(OUTPUT_SLOTS);
         for (int index = 0; index < OUTPUT_SLOTS; index++) {
             copy.setStackInSlot(index, items.getStackInSlot(FIRST_OUTPUT_SLOT + index).copy());
         }
-        for (ItemStack stack : new ArrayList<>(stacks)) {
-            if (!ItemHandlerHelper.insertItemStacked(copy, stack.copy(), false).isEmpty()) return false;
+        for (ItemStack stack : simulated) {
+            ItemStack remainder = ItemHandlerHelper.insertItemStacked(copy, stack, false);
+            if (!remainder.isEmpty()) return false;
         }
         return true;
     }
@@ -226,6 +294,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
 
     public ItemStackHandler getItems() { return items; }
     public ContainerData getData() { return data; }
+
     public NonNullList<ItemStack> getDrops() {
         NonNullList<ItemStack> drops = NonNullList.create();
         for (int slot = 0; slot < TOTAL_SLOTS; slot++) {
@@ -238,6 +307,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
     @Override public @NotNull Component getDisplayName() {
         return Component.translatable("container.metatech_reborn.mana_drill");
     }
+
     @Override public @Nullable AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory,
                                                                  @NotNull Player player) {
         return new ManaDrillMenu(id, inventory, this, data);
@@ -249,13 +319,17 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
         tag.putInt("Mana", mana);
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
+        tag.putBoolean("StructureFormed", structureFormed);
     }
+
     @Override public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         items.deserializeNBT(tag.getCompound("Inventory"));
         mana = Math.min(getManaCapacity(), Math.max(0, tag.getInt("Mana")));
         progress = Math.max(0, tag.getInt("Progress"));
         maxProgress = Math.max(0, tag.getInt("MaxProgress"));
+        structureFormed = tag.getBoolean("StructureFormed");
+        nextStructureCheck = 0L;
     }
 
     @Override public <T> @NotNull LazyOptional<T> getCapability(
@@ -263,6 +337,7 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         return super.getCapability(cap, side);
     }
+
     @Override public void invalidateCaps() {
         super.invalidateCaps();
         itemCapability.invalidate();
@@ -279,7 +354,9 @@ public final class ManaDrillBlockEntity extends BlockEntity implements MenuProvi
             setChanged();
         }
     }
-    @Override public boolean canReceiveManaFromBursts() { return true; }
+    @Override public boolean canReceiveManaFromBursts() { return structureFormed; }
 
-    private int getManaCapacity() { return CommonConfig.MANA_DRILL_MANA_CAPACITY.get(); }
+    private int getManaCapacity() {
+        return CommonConfig.MANA_DRILL_MANA_CAPACITY.get();
+    }
 }

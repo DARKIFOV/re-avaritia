@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "botania:elementium_ingot"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_speed_upgrade_2"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_speed_upgrade_3"
+  }
+}

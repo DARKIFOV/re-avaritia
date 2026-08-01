@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "avaritia:infinity_catalyst"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_looting_upgrade_8"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_looting_upgrade_9"
+  }
+}

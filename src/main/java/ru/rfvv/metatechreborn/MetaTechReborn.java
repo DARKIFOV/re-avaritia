@@ -37,10 +37,12 @@ public final class MetaTechReborn {
             event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
             event.accept(ModItems.NEUTRONIUM_COMBINER.get());
             event.accept(ModItems.MANA_DRILL.get());
+            event.accept(ModItems.MANA_DRILL_CASING.get());
+            event.accept(ModItems.MANA_DRILL_CORE.get());
+            event.accept(ModItems.MANA_DRILL_NOZZLE.get());
             event.accept(ModItems.MANA_DRILL_MODULE.get());
-            event.accept(ModItems.MANA_DRILL_SPEED_UPGRADE.get());
-            event.accept(ModItems.MANA_DRILL_LOOTING_UPGRADE.get());
-            event.accept(ModItems.MANA_DRILL_GENERATION_UPGRADE.get());
+            ModItems.manaDrillUpgradeItems().forEach(item -> event.accept(item.get()));
+            ModItems.neutronCombinerUpgradeItems().forEach(item -> event.accept(item.get()));
         }
     }
 }

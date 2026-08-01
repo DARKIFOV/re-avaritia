@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TPT",
+    "PNP",
+    "TPT"
+  ],
+  "key": {
+    "T": {
+      "item": "botania:terrasteel_ingot"
+    },
+    "P": {
+      "item": "botania:mana_pearl"
+    },
+    "N": {
+      "item": "avaritia:neutron_ingot"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_core"
+  }
+}

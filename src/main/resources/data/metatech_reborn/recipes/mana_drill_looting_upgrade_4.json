@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "botania:terrasteel_ingot"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_looting_upgrade_3"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_looting_upgrade_4"
+  }
+}

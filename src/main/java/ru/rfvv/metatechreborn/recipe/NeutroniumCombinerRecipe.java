@@ -28,19 +28,59 @@ public final class NeutroniumCombinerRecipe implements Recipe<SimpleContainer> {
         this.energyPerTick = Math.max(0, energyPerTick);
     }
 
-    public boolean matchesCollector(ItemStack stack) { return collector.test(stack); }
-    @Override public boolean matches(@NotNull SimpleContainer container, @NotNull Level level) {
+    public boolean matchesCollector(ItemStack stack) {
+        return collector.test(stack);
+    }
+
+    @Override
+    public boolean matches(@NotNull SimpleContainer container, @NotNull Level level) {
         return !container.isEmpty() && matchesCollector(container.getItem(0));
     }
-    @Override public @NotNull ItemStack assemble(@NotNull SimpleContainer container,
-                                                  @NotNull RegistryAccess registryAccess) { return result.copy(); }
-    @Override public boolean canCraftInDimensions(int width, int height) { return width * height >= 1; }
-    @Override public @NotNull ItemStack getResultItem(@NotNull RegistryAccess registryAccess) { return result.copy(); }
-    @Override public @NotNull ResourceLocation getId() { return id; }
-    @Override public @NotNull RecipeSerializer<?> getSerializer() { return ModRecipes.NEUTRONIUM_COMBINING_SERIALIZER.get(); }
-    @Override public @NotNull RecipeType<?> getType() { return ModRecipes.NEUTRONIUM_COMBINING_TYPE.get(); }
-    public Ingredient collector() { return collector; }
-    public ItemStack result() { return result.copy(); }
-    public int time() { return time; }
-    public int energyPerTick() { return energyPerTick; }
+
+    @Override
+    public @NotNull ItemStack assemble(@NotNull SimpleContainer container,
+                                       @NotNull RegistryAccess registryAccess) {
+        return result.copy();
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return width * height >= 1;
+    }
+
+    @Override
+    public @NotNull ItemStack getResultItem(@NotNull RegistryAccess registryAccess) {
+        return result.copy();
+    }
+
+    @Override
+    public @NotNull ResourceLocation getId() {
+        return id;
+    }
+
+    @Override
+    public @NotNull RecipeSerializer<?> getSerializer() {
+        return ModRecipes.NEUTRONIUM_COMBINING_SERIALIZER.get();
+    }
+
+    @Override
+    public @NotNull RecipeType<?> getType() {
+        return ModRecipes.NEUTRONIUM_COMBINING_TYPE.get();
+    }
+
+    public Ingredient collector() {
+        return collector;
+    }
+
+    public ItemStack result() {
+        return result.copy();
+    }
+
+    public int time() {
+        return time;
+    }
+
+    public int energyPerTick() {
+        return energyPerTick;
+    }
 }

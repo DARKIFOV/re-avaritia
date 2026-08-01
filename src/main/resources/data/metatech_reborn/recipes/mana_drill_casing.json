@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NON",
+    "OIO",
+    "NON"
+  ],
+  "key": {
+    "N": {
+      "item": "avaritia:neutron_nugget"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "I": {
+      "item": "minecraft:iron_block"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_casing",
+    "count": 4
+  }
+}

@@ -25,7 +25,8 @@ public final class MolecularAssemblerRecipe implements Recipe<SimpleContainer> {
     private final int energyPerTick;
 
     public MolecularAssemblerRecipe(ResourceLocation id, int width, int height,
-            NonNullList<Ingredient> ingredients, ItemStack result, int time, int energyPerTick) {
+                                    NonNullList<Ingredient> ingredients, ItemStack result,
+                                    int time, int energyPerTick) {
         this.id = id;
         this.width = width;
         this.height = height;
@@ -35,7 +36,18 @@ public final class MolecularAssemblerRecipe implements Recipe<SimpleContainer> {
         this.energyPerTick = energyPerTick;
     }
 
-    @Override public boolean matches(@NotNull SimpleContainer container, @NotNull Level level) { return false; }
+    @Override
+    public boolean matches(@NotNull SimpleContainer container, @NotNull Level level) {
+        return matches(new IItemHandler() {
+            @Override public int getSlots() { return container.getContainerSize(); }
+            @Override public @NotNull ItemStack getStackInSlot(int slot) { return container.getItem(slot); }
+            @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) { return stack; }
+            @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) { return ItemStack.EMPTY; }
+            @Override public int getSlotLimit(int slot) { return 64; }
+            @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) { return false; }
+        });
+    }
+
     public boolean matches(IItemHandler handler) {
         if (handler.getSlots() < MolecularAssemblerBlockEntity.GRID_SLOTS) return false;
         NonNullList<Ingredient> grid = getGridIngredients();
@@ -44,28 +56,63 @@ public final class MolecularAssemblerRecipe implements Recipe<SimpleContainer> {
         }
         return true;
     }
+
     public NonNullList<Ingredient> getGridIngredients() {
         NonNullList<Ingredient> grid = NonNullList.withSize(MolecularAssemblerBlockEntity.GRID_SLOTS, Ingredient.EMPTY);
-        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-            grid.set(x + y * 9, ingredients.get(x + y * width));
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                grid.set(x + y * 9, ingredients.get(x + y * width));
+            }
         }
         return grid;
     }
+
     public NonNullList<ItemStack> getRemainingItems(IItemHandler handler) {
         NonNullList<ItemStack> remaining = NonNullList.withSize(MolecularAssemblerBlockEntity.GRID_SLOTS, ItemStack.EMPTY);
-        for (int i = 0; i < remaining.size(); i++) {
+        for (int i = 0; i < MolecularAssemblerBlockEntity.GRID_SLOTS; i++) {
             ItemStack stack = handler.getStackInSlot(i);
-            if (stack.hasCraftingRemainingItem()) remaining.set(i, stack.getCraftingRemainingItem());
+            if (stack.hasCraftingRemainingItem()) {
+                remaining.set(i, stack.getCraftingRemainingItem());
+            }
         }
         return remaining;
     }
-    @Override public @NotNull ItemStack assemble(@NotNull SimpleContainer container, @NotNull RegistryAccess access) { return result.copy(); }
-    @Override public boolean canCraftInDimensions(int width, int height) { return width >= this.width && height >= this.height; }
-    @Override public @NotNull ItemStack getResultItem(@NotNull RegistryAccess access) { return result.copy(); }
-    @Override public @NotNull NonNullList<Ingredient> getIngredients() { return ingredients; }
-    @Override public @NotNull ResourceLocation getId() { return id; }
-    @Override public @NotNull RecipeSerializer<?> getSerializer() { return ModRecipes.MOLECULAR_ASSEMBLING_SERIALIZER.get(); }
-    @Override public @NotNull RecipeType<?> getType() { return ModRecipes.MOLECULAR_ASSEMBLING_TYPE.get(); }
+
+    @Override
+    public @NotNull ItemStack assemble(@NotNull SimpleContainer container, @NotNull RegistryAccess registryAccess) {
+        return result.copy();
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return width >= this.width && height >= this.height;
+    }
+
+    @Override
+    public @NotNull ItemStack getResultItem(@NotNull RegistryAccess registryAccess) {
+        return result.copy();
+    }
+
+    @Override
+    public @NotNull NonNullList<Ingredient> getIngredients() {
+        return ingredients;
+    }
+
+    @Override
+    public @NotNull ResourceLocation getId() {
+        return id;
+    }
+
+    @Override
+    public @NotNull RecipeSerializer<?> getSerializer() {
+        return ModRecipes.MOLECULAR_ASSEMBLING_SERIALIZER.get();
+    }
+
+    @Override
+    public @NotNull RecipeType<?> getType() {
+        return ModRecipes.MOLECULAR_ASSEMBLING_TYPE.get();
+    }
+
     public int width() { return width; }
     public int height() { return height; }
     public int time() { return time; }

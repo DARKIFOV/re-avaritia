@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "metatech_reborn:item/neutron_combiner_speed_upgrade"
+  }
+}

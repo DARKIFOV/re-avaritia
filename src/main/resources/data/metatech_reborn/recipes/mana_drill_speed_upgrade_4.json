@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " M ",
+    "MUM",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "avaritia:neutron_ingot"
+    },
+    "U": {
+      "item": "metatech_reborn:mana_drill_speed_upgrade_3"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:mana_drill_speed_upgrade_4"
+  }
+}
