@@ -3,9 +3,11 @@ package ru.rfvv.metatechreborn.blockentity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
@@ -14,6 +16,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -28,6 +32,7 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.item.GreenhouseModuleItem;
 import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
 import ru.rfvv.metatechreborn.recipe.GreenhouseRecipe;
@@ -43,10 +48,7 @@ import vazkii.botania.api.mana.spark.SparkAttachable;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Server-side greenhouse that emulates Botania generating flowers in a compact machine.
- * It stores generated mana as a real Botania ManaPool and can export to nearby pools or Sparks.
- */
+/** Compact Botania generating-flower greenhouse with a real mana pool interface. */
 public final class GreenhouseBlockEntity extends BlockEntity implements MenuProvider, ManaPool, SparkAttachable {
     public static final int FLOWER_SLOT = 0;
     public static final int FIRST_MODULE_SLOT = 1;
@@ -57,28 +59,40 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     public static final int MANA_CAPACITY = 2_000_000;
     public static final int FLUID_CAPACITY = 8_000;
 
+    public static final int STATUS_IDLE = 0;
+    public static final int STATUS_NO_FLOWER = 1;
+    public static final int STATUS_UNSUPPORTED_FLOWER = 2;
+    public static final int STATUS_NO_FUEL = 3;
+    public static final int STATUS_NO_FLUID = 4;
+    public static final int STATUS_WRONG_TIME = 5;
+    public static final int STATUS_MANA_FULL = 6;
+    public static final int STATUS_RUNNING = 7;
+
     private int mana;
     private int progress;
     private int maxProgress;
     private int economyCycle;
+    private int status = STATUS_IDLE;
     private ResourceLocation activeRecipeId;
     private boolean networkRegistered;
 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
         @Override
         protected void onContentsChanged(int slot) {
-            if (slot <= FIRST_FUEL_SLOT + FUEL_SLOTS - 1) resetProgress();
+            if (slot <= FIRST_FUEL_SLOT + FUEL_SLOTS - 1) resetProgress(false);
             setChanged();
         }
 
         @Override
         public int getSlotLimit(int slot) {
-            return slot >= FIRST_MODULE_SLOT && slot < FIRST_MODULE_SLOT + MODULE_SLOTS ? 1 : super.getSlotLimit(slot);
+            if (slot == FLOWER_SLOT) return 1;
+            if (slot >= FIRST_MODULE_SLOT && slot < FIRST_MODULE_SLOT + MODULE_SLOTS) return 1;
+            return super.getSlotLimit(slot);
         }
 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            if (slot == FLOWER_SLOT) return true;
+            if (slot == FLOWER_SLOT) return isSupportedFlowerItem(stack);
             if (slot >= FIRST_MODULE_SLOT && slot < FIRST_MODULE_SLOT + MODULE_SLOTS) {
                 return stack.getItem() instanceof GreenhouseModuleItem;
             }
@@ -90,7 +104,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
             stack -> stack.getFluid() == Fluids.WATER || stack.getFluid() == Fluids.LAVA) {
         @Override
         protected void onContentsChanged() {
-            resetProgress();
+            resetProgress(false);
             setChanged();
         }
     };
@@ -112,6 +126,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                 case 7 -> getModuleLevel(GreenhouseModuleItem.Type.EFFICIENCY);
                 case 8 -> getModuleLevel(GreenhouseModuleItem.Type.ECONOMY);
                 case 9 -> getModeId();
+                case 10 -> status;
                 default -> 0;
             };
         }
@@ -121,12 +136,10 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
             if (index == 0) progress = value;
             else if (index == 1) maxProgress = value;
             else if (index == 2) mana = value;
+            else if (index == 10) status = value;
         }
 
-        @Override
-        public int getCount() {
-            return 10;
-        }
+        @Override public int getCount() { return 11; }
     };
 
     public GreenhouseBlockEntity(BlockPos pos, BlockState state) {
@@ -141,29 +154,63 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         ensureManaNetworkRegistration();
         exportManaToNearbyPools(level);
 
-        Optional<GreenhouseRecipe> match = findRecipe(level);
-        if (match.isEmpty()) {
-            resetProgress();
+        ItemStack flower = items.getStackInSlot(FLOWER_SLOT);
+        if (flower.isEmpty()) {
+            activeRecipeId = null;
+            resetProgress(false);
+            setStatus(STATUS_NO_FLOWER);
             return;
         }
 
-        GreenhouseRecipe recipe = match.get();
+        Optional<GreenhouseRecipe> candidate = findRecipeByFlower(level, flower);
+        if (candidate.isEmpty()) {
+            activeRecipeId = null;
+            resetProgress(false);
+            setStatus(STATUS_UNSUPPORTED_FLOWER);
+            return;
+        }
+
+        GreenhouseRecipe recipe = candidate.get();
         if (!recipe.getId().equals(activeRecipeId)) {
             activeRecipeId = recipe.getId();
             progress = 0;
+            maxProgress = 0;
+            setChanged();
+        }
+
+        if (!timeRequirementMet(level, recipe)) {
+            resetProgress(false);
+            setStatus(STATUS_WRONG_TIME);
+            return;
+        }
+        if (recipe.requiresFuel() && findFuelSlot(recipe) < 0) {
+            resetProgress(false);
+            setStatus(STATUS_NO_FUEL);
+            return;
+        }
+        if (!hasRequiredFluid(recipe)) {
+            resetProgress(false);
+            setStatus(STATUS_NO_FLUID);
+            return;
         }
 
         int generatedMana = getGeneratedMana(recipe);
-        if (mana > MANA_CAPACITY - generatedMana) return;
+        if (mana > MANA_CAPACITY - generatedMana) {
+            resetProgress(false);
+            setStatus(STATUS_MANA_FULL);
+            return;
+        }
 
         int speed = getModuleLevel(GreenhouseModuleItem.Type.SPEED);
         maxProgress = Math.max(1, recipe.time() * Math.max(25, 100 - speed * 20) / 100);
+        setStatus(STATUS_RUNNING);
         progress++;
         setChanged();
 
         if (progress < maxProgress) return;
         if (!consumeInputs(recipe)) {
-            resetProgress();
+            resetProgress(false);
+            setStatus(recipe.requiresFluid() && !hasRequiredFluid(recipe) ? STATUS_NO_FLUID : STATUS_NO_FUEL);
             return;
         }
 
@@ -172,24 +219,47 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         setChanged();
     }
 
-    private Optional<GreenhouseRecipe> findRecipe(Level level) {
-        ItemStack flower = items.getStackInSlot(FLOWER_SLOT);
-        if (flower.isEmpty()) return Optional.empty();
-
-        boolean effectiveDay = hasModule(GreenhouseModuleItem.Type.INFINITE_DAY)
-                || (!hasModule(GreenhouseModuleItem.Type.INFINITE_NIGHT) && level.isDay());
-        boolean effectiveNight = hasModule(GreenhouseModuleItem.Type.INFINITE_NIGHT)
-                || (!hasModule(GreenhouseModuleItem.Type.INFINITE_DAY) && !level.isDay());
-
+    private Optional<GreenhouseRecipe> findRecipeByFlower(Level level, ItemStack flower) {
         for (GreenhouseRecipe recipe : level.getRecipeManager().getAllRecipesFor(ModRecipes.GREENHOUSE_TYPE.get())) {
-            if (!recipe.matchesFlower(flower)) continue;
-            if (recipe.dayOnly() && !effectiveDay) continue;
-            if (recipe.nightOnly() && !effectiveNight) continue;
-            if (recipe.requiresFuel() && findFuelSlot(recipe) < 0) continue;
-            if (!hasRequiredFluid(recipe)) continue;
-            return Optional.of(recipe);
+            if (recipe.matchesFlower(flower)) return Optional.of(recipe);
         }
-        return Optional.empty();
+        return createFallbackRecipe(flower);
+    }
+
+    private Optional<GreenhouseRecipe> createFallbackRecipe(ItemStack flower) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(flower.getItem());
+        if (!"botania".equals(id.getNamespace())) return Optional.empty();
+
+        Ingredient flowerIngredient = Ingredient.of(flower.getItem());
+        String path = id.getPath();
+        GreenhouseRecipe recipe = switch (path) {
+            case "endoflame" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.of(ItemTags.COALS), Fluids.EMPTY, 0, 1_200, 200, true, false, false);
+            case "hydroangeas" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.EMPTY, Fluids.WATER, 250, 400, 200, false, false, false);
+            case "gourmaryllis" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.of(Items.BREAD), Fluids.EMPTY, 0, 5_000, 200, true, false, false);
+            case "entropinnyum" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.of(Items.TNT), Fluids.EMPTY, 0, 6_500, 200, true, false, false);
+            case "thermalily" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.EMPTY, Fluids.LAVA, 1_000, 18_000, 400, false, false, false);
+            case "spectrolus" -> new GreenhouseRecipe(runtimeId(path), flowerIngredient,
+                    Ingredient.of(ItemTags.WOOL), Fluids.EMPTY, 0, 1_200, 100, true, false, false);
+            default -> null;
+        };
+        return Optional.ofNullable(recipe);
+    }
+
+    private static ResourceLocation runtimeId(String flowerPath) {
+        return new ResourceLocation(MetaTechReborn.MOD_ID, "runtime_greenhouse/" + flowerPath);
+    }
+
+    private boolean timeRequirementMet(Level level, GreenhouseRecipe recipe) {
+        boolean infiniteDay = hasModule(GreenhouseModuleItem.Type.INFINITE_DAY);
+        boolean infiniteNight = hasModule(GreenhouseModuleItem.Type.INFINITE_NIGHT);
+        boolean effectiveDay = infiniteDay || (!infiniteNight && level.isDay());
+        boolean effectiveNight = infiniteNight || (!infiniteDay && !level.isDay());
+        return (!recipe.dayOnly() || effectiveDay) && (!recipe.nightOnly() || effectiveNight);
     }
 
     private int findFuelSlot(GreenhouseRecipe recipe) {
@@ -211,8 +281,9 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     private boolean consumeInputs(GreenhouseRecipe recipe) {
         if (recipe.requiresFluid()
                 && !(recipe.fluid() == Fluids.LAVA && hasModule(GreenhouseModuleItem.Type.INFINITE_LAVA))) {
-            int drained = tank.drain(getAdjustedFluidCost(recipe), IFluidHandler.FluidAction.EXECUTE).getAmount();
-            if (drained < getAdjustedFluidCost(recipe)) return false;
+            int required = getAdjustedFluidCost(recipe);
+            int drained = tank.drain(required, IFluidHandler.FluidAction.EXECUTE).getAmount();
+            if (drained < required) return false;
         }
 
         if (recipe.requiresFuel() && recipe.consumeFuel()) {
@@ -221,7 +292,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
             int economy = getModuleLevel(GreenhouseModuleItem.Type.ECONOMY);
             economyCycle++;
             if (economyCycle >= 1 + economy) {
-                ItemStack fuel = items.getStackInSlot(fuelSlot);
+                ItemStack fuel = items.getStackInSlot(fuelSlot).copy();
                 fuel.shrink(1);
                 items.setStackInSlot(fuelSlot, fuel);
                 economyCycle = 0;
@@ -249,24 +320,33 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                 level += module.level();
             }
         }
-        return Math.min(3, level);
+        return Math.min(type.maximum(), level);
     }
 
     private boolean hasModule(GreenhouseModuleItem.Type type) {
         return getModuleLevel(type) > 0;
     }
 
+    private static boolean isSupportedFlowerItem(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (!"botania".equals(id.getNamespace())) return false;
+        return switch (id.getPath()) {
+            case "endoflame", "hydroangeas", "gourmaryllis", "entropinnyum", "thermalily", "spectrolus" -> true;
+            default -> false;
+        };
+    }
+
     private int getModeId() {
         if (activeRecipeId == null) return 0;
-        return switch (activeRecipeId.getPath()) {
-            case "endoflame" -> 1;
-            case "hydroangeas" -> 2;
-            case "gourmaryllis" -> 3;
-            case "entropinnyum" -> 4;
-            case "thermalily" -> 5;
-            case "spectrolus" -> 6;
-            default -> 7;
-        };
+        String path = activeRecipeId.getPath();
+        if (path.endsWith("endoflame")) return 1;
+        if (path.endsWith("hydroangeas")) return 2;
+        if (path.endsWith("gourmaryllis")) return 3;
+        if (path.endsWith("entropinnyum")) return 4;
+        if (path.endsWith("thermalily")) return 5;
+        if (path.endsWith("spectrolus")) return 6;
+        return 7;
     }
 
     private void exportManaToNearbyPools(Level level) {
@@ -298,13 +378,19 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         }
     }
 
-    private void resetProgress() {
-        if (progress != 0 || maxProgress != 0 || activeRecipeId != null) {
-            progress = 0;
-            maxProgress = 0;
-            activeRecipeId = null;
+    private void setStatus(int newStatus) {
+        if (status != newStatus) {
+            status = newStatus;
             setChanged();
         }
+    }
+
+    private void resetProgress(boolean clearRecipe) {
+        boolean changed = progress != 0 || maxProgress != 0 || (clearRecipe && activeRecipeId != null);
+        progress = 0;
+        maxProgress = 0;
+        if (clearRecipe) activeRecipeId = null;
+        if (changed) setChanged();
     }
 
     public ItemStackHandler getItems() { return items; }
@@ -320,13 +406,12 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         return drops;
     }
 
-    @Override
-    public @NotNull Component getDisplayName() {
+    @Override public @NotNull Component getDisplayName() {
         return Component.translatable("container.metatech_reborn.greenhouse");
     }
 
-    @Override
-    public @Nullable AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory, @NotNull Player player) {
+    @Override public @Nullable AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory,
+                                                                 @NotNull Player player) {
         return new GreenhouseMenu(id, inventory, this, data);
     }
 
@@ -339,6 +424,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
         tag.putInt("EconomyCycle", economyCycle);
+        tag.putInt("Status", status);
         if (activeRecipeId != null) tag.putString("ActiveRecipe", activeRecipeId.toString());
     }
 
@@ -351,7 +437,9 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         progress = Math.max(0, tag.getInt("Progress"));
         maxProgress = Math.max(0, tag.getInt("MaxProgress"));
         economyCycle = Math.max(0, tag.getInt("EconomyCycle"));
-        activeRecipeId = tag.contains("ActiveRecipe") ? new ResourceLocation(tag.getString("ActiveRecipe")) : null;
+        status = tag.getInt("Status");
+        activeRecipeId = tag.contains("ActiveRecipe")
+                ? ResourceLocation.tryParse(tag.getString("ActiveRecipe")) : null;
         networkRegistered = false;
     }
 
@@ -363,8 +451,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         return super.getCapability(cap, side);
     }
 
-    @Override
-    public void invalidateCaps() {
+    @Override public void invalidateCaps() {
         super.invalidateCaps();
         itemCapability.invalidate();
         fluidCapability.invalidate();
