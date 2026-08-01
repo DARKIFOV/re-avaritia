@@ -54,9 +54,6 @@ def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
 def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_assets.zip')
 def encodedV059AssetsDir = file('tools/generated_assets_v059')
 def generatedV059AssetsZip = layout.buildDirectory.file('generated/metatech_v059_assets.zip')
-def encodedV059SourcesDir = file('tools/generated_sources_v059')
-def generatedV059SourcesZip = layout.buildDirectory.file('generated/metatech_v059_sources.zip')
-def generatedSourcesDir = layout.buildDirectory.dir('generated/metatech_sources')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
 tasks.register('decodeBaseAssets') {
@@ -98,28 +95,6 @@ tasks.register('decodeV059Assets') {
     }
 }
 
-tasks.register('decodeV059Sources') {
-    inputs.dir encodedV059SourcesDir
-    outputs.file generatedV059SourcesZip
-    doLast {
-        def chunks = fileTree(encodedV059SourcesDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No 0.5.9 source chunks found in ${encodedV059SourcesDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedV059SourcesZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
-    }
-}
-
-tasks.register('extractV059Sources', Copy) {
-    dependsOn tasks.named('decodeV059Sources')
-    inputs.file generatedV059SourcesZip
-    outputs.dir generatedSourcesDir
-    doFirst { delete generatedSourcesDir.get().asFile }
-    from { zipTree(generatedV059SourcesZip.get().asFile) }
-    into generatedSourcesDir
-}
-
 tasks.register('extractBaseAssets', Copy) {
     dependsOn tasks.named('decodeBaseAssets')
     inputs.file generatedBaseAssetsZip
@@ -144,25 +119,6 @@ tasks.register('extractV059Assets', Copy) {
 }
 
 sourceSets.main.resources.srcDir generatedAssetsDir
-
-def v059ReplacedSources = [
-    'ru/rfvv/metatechreborn/MetaTechReborn.java',
-    'ru/rfvv/metatechreborn/config/CommonConfig.java',
-    'ru/rfvv/metatechreborn/client/ClientModEvents.java',
-    'ru/rfvv/metatechreborn/registry/ModItems.java',
-    'ru/rfvv/metatechreborn/registry/ModBlocks.java',
-    'ru/rfvv/metatechreborn/registry/ModBlockEntities.java',
-    'ru/rfvv/metatechreborn/registry/ModMenus.java',
-    'ru/rfvv/metatechreborn/registry/ModRecipes.java'
-]
-
-tasks.named('compileJava', JavaCompile).configure {
-    dependsOn tasks.named('extractV059Sources')
-    source = files(
-        fileTree('src/main/java') { v059ReplacedSources.each { exclude it } },
-        fileTree(generatedSourcesDir.get().asFile) { include 'src/main/java/**/*.java' }
-    )
-}
 
 tasks.named('processResources', ProcessResources).configure {
     dependsOn tasks.named('extractV059Assets')
