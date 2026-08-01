@@ -88,7 +88,8 @@
 - версия: `0.5.7-original-scope-WIP`;
 - один игровой JAR;
 - обязательные зависимости: Forge 47.4.22, AE2 15.4.x, Botania 1.20.1-454+, Re-Avaritia 1.4.1;
-- JEI 15.x — необязательно.
+- JEI 15.x — необязательно;
+- финальная проверка выполняется GitHub Actions для PR №9.
 
 ```bash
 gradle build
