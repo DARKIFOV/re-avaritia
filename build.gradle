@@ -41,6 +41,7 @@ dependencies {
     compileOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     runtimeOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     compileOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
+    runtimeOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
     compileOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     runtimeOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:15.20.0.112")
@@ -48,18 +49,70 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
+def encodedItemAssetsDir = file('tools/generated_assets_items2')
+def generatedItemAssetsZip = layout.buildDirectory.file('generated/metatech_items2_assets.zip')
+def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
+def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_v055_assets.zip')
+def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
-// Generated pixel-art block and GUI assets are kept in one archive so GitHub
-// and local Gradle builds reproduce exactly the same resources.
-def generatedAssetsDir = layout.buildDirectory.dir("generated/metatech_assets")
-tasks.register('extractGeneratedAssets', Copy) {
+tasks.register('decodeItemAssets') {
+    inputs.dir encodedItemAssetsDir
+    outputs.file generatedItemAssetsZip
+    doLast {
+        def chunks = fileTree(encodedItemAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+        if (chunks.isEmpty()) {
+            throw new GradleException("No generated item asset chunks found in ${encodedItemAssetsDir}")
+        }
+        def encoded = new StringBuilder()
+        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
+        def target = generatedItemAssetsZip.get().asFile
+        target.parentFile.mkdirs()
+        target.bytes = encoded.toString().decodeBase64()
+    }
+}
+
+tasks.register('decodeDrillAssets') {
+    inputs.dir encodedDrillAssetsDir
+    outputs.file generatedDrillAssetsZip
+    doLast {
+        def chunks = fileTree(encodedDrillAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+        if (chunks.isEmpty()) {
+            throw new GradleException("No mana drill texture chunks found in ${encodedDrillAssetsDir}")
+        }
+        def encoded = new StringBuilder()
+        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
+        def target = generatedDrillAssetsZip.get().asFile
+        target.parentFile.mkdirs()
+        target.bytes = encoded.toString().decodeBase64()
+    }
+}
+
+tasks.register('extractBaseAssets', Copy) {
+    inputs.file file('tools/generated_assets.zip')
+    outputs.dir generatedAssetsDir
+    doFirst { delete generatedAssetsDir.get().asFile }
     from zipTree(file('tools/generated_assets.zip'))
     into generatedAssetsDir
 }
+
+tasks.register('extractGeneratedAssets', Copy) {
+    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeItemAssets')
+    from { zipTree(generatedItemAssetsZip.get().asFile) }
+    into generatedAssetsDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.register('extractDrillReworkAssets', Copy) {
+    dependsOn tasks.named('extractGeneratedAssets'), tasks.named('decodeDrillAssets')
+    from { zipTree(generatedDrillAssetsZip.get().asFile) }
+    into generatedAssetsDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
-    dependsOn tasks.named('extractGeneratedAssets')
+    dependsOn tasks.named('extractDrillReworkAssets')
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
         forge_version: forge_version, forge_version_range: forge_version_range,

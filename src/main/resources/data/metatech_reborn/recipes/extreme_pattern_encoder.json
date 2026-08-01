@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PGP",
+    "CMC",
+    "PEP"
+  ],
+  "key": {
+    "P": { "item": "ae2:calculation_processor" },
+    "G": { "item": "minecraft:glass" },
+    "C": { "item": "minecraft:iron_block" },
+    "M": { "item": "metatech_reborn:molecular_assembler_9x9" },
+    "E": { "item": "ae2:engineering_processor" }
+  },
+  "result": {
+    "item": "metatech_reborn:extreme_pattern_encoder"
+  }
+}

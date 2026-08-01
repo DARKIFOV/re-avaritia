@@ -1,0 +1,9 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:thermalily" },
+  "fluid": "minecraft:lava",
+  "fluid_amount": 1000,
+  "mana": 18000,
+  "time": 400,
+  "consume_fuel": false
+}

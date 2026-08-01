@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "DPD",
+    "PCP",
+    "DPD"
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond" },
+    "P": { "item": "metatech_reborn:blank_extreme_pattern" },
+    "C": { "item": "ae2:calculation_processor" }
+  },
+  "result": {
+    "item": "metatech_reborn:pattern_capacity_upgrade"
+  }
+}
