@@ -117,6 +117,8 @@ public final class EnergyFoodItem extends Item {
 
     @Override
     public @Nullable ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundTag nbt) {
-        return new StackEnergyStorage(stack, capacity, transferLimit, 0);
+        // Extraction is needed for the item's own FE cost. The old IC2 item also
+        // allowed its stored charge to be used internally without consuming it.
+        return new StackEnergyStorage(stack, capacity, transferLimit, energyCost);
     }
 }
