@@ -6,6 +6,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.client.screen.ManaDrillScreen;
 import ru.rfvv.metatechreborn.client.screen.MolecularAssemblerScreen;
 import ru.rfvv.metatechreborn.client.screen.NeutroniumCombinerScreen;
 import ru.rfvv.metatechreborn.registry.ModMenus;
@@ -16,6 +17,7 @@ public final class ClientModEvents {
     public static void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> MenuScreens.register(ModMenus.MOLECULAR_ASSEMBLER_9X9.get(), MolecularAssemblerScreen::new));
         event.enqueueWork(() -> MenuScreens.register(ModMenus.NEUTRONIUM_COMBINER.get(), NeutroniumCombinerScreen::new));
+        event.enqueueWork(() -> MenuScreens.register(ModMenus.MANA_DRILL.get(), ManaDrillScreen::new));
     }
     private ClientModEvents() {}
 }

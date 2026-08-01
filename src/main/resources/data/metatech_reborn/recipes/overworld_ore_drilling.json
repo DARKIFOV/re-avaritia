@@ -1,0 +1,15 @@
+{
+  "type": "metatech_reborn:mana_drill_generating",
+  "module": { "item": "metatech_reborn:mana_drill_module" },
+  "mana_cost": 50000,
+  "time": 200,
+  "drops": [
+    { "item": "minecraft:raw_iron", "min": 2, "max": 6, "chance": 10000 },
+    { "item": "minecraft:raw_copper", "min": 3, "max": 9, "chance": 9000 },
+    { "item": "minecraft:raw_gold", "min": 1, "max": 4, "chance": 6500 },
+    { "item": "minecraft:redstone", "min": 4, "max": 12, "chance": 7000 },
+    { "item": "minecraft:lapis_lazuli", "min": 3, "max": 9, "chance": 5000 },
+    { "item": "minecraft:diamond", "min": 1, "max": 2, "chance": 900 },
+    { "item": "minecraft:emerald", "min": 1, "max": 2, "chance": 500 }
+  ]
+}

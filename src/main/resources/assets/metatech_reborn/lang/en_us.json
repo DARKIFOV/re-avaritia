@@ -7,5 +7,12 @@
   "jei.metatech_reborn.molecular_assembling": "Molecular Assembling 9x9",
   "block.metatech_reborn.neutronium_combiner": "Neutronium Combiner",
   "container.metatech_reborn.neutronium_combiner": "Neutronium Combiner",
-  "jei.metatech_reborn.neutronium_combining": "Neutronium Combining"
+  "jei.metatech_reborn.neutronium_combining": "Neutronium Combining",
+  "block.metatech_reborn.mana_drill": "Mana Drill",
+  "container.metatech_reborn.mana_drill": "Mana Drill",
+  "item.metatech_reborn.mana_drill_module": "Mana Drill Mining Module",
+  "item.metatech_reborn.mana_drill_speed_upgrade": "Mana Drill Speed Upgrade",
+  "item.metatech_reborn.mana_drill_looting_upgrade": "Mana Drill Looting Upgrade",
+  "item.metatech_reborn.mana_drill_generation_upgrade": "Mana Drill Generation Upgrade",
+  "jei.metatech_reborn.mana_drill_generating": "Mana Drill Generation"
 }

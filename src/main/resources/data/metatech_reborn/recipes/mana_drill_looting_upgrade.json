@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" L ", "LML", " L "],
+  "key": {
+    "L": { "item": "minecraft:lapis_block" },
+    "M": { "item": "botania:elementium_ingot" }
+  },
+  "result": { "item": "metatech_reborn:mana_drill_looting_upgrade" }
+}

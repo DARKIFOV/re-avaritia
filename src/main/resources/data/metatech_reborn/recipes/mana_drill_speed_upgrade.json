@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" R ", "RMR", " R "],
+  "key": {
+    "R": { "item": "minecraft:redstone_block" },
+    "M": { "item": "botania:manasteel_ingot" }
+  },
+  "result": { "item": "metatech_reborn:mana_drill_speed_upgrade" }
+}

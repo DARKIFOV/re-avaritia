@@ -7,5 +7,12 @@
   "jei.metatech_reborn.molecular_assembling": "Молекулярная сборка 9x9",
   "block.metatech_reborn.neutronium_combiner": "Объединитель нейтрония",
   "container.metatech_reborn.neutronium_combiner": "Объединитель нейтрония",
-  "jei.metatech_reborn.neutronium_combining": "Производство нейтрония"
+  "jei.metatech_reborn.neutronium_combining": "Производство нейтрония",
+  "block.metatech_reborn.mana_drill": "Мана-бур",
+  "container.metatech_reborn.mana_drill": "Мана-бур",
+  "item.metatech_reborn.mana_drill_module": "Модуль добычи мана-бура",
+  "item.metatech_reborn.mana_drill_speed_upgrade": "Улучшение скорости мана-бура",
+  "item.metatech_reborn.mana_drill_looting_upgrade": "Улучшение добычи мана-бура",
+  "item.metatech_reborn.mana_drill_generation_upgrade": "Улучшение генерации мана-бура",
+  "jei.metatech_reborn.mana_drill_generating": "Генерация мана-бура"
 }
