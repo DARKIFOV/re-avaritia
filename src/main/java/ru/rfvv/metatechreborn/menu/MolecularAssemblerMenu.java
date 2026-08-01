@@ -8,6 +8,7 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
@@ -30,7 +31,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         this(containerId, playerInventory,
                 (MolecularAssemblerBlockEntity) playerInventory.player.level()
                         .getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(7));
+                new SimpleContainerData(8));
     }
 
     public MolecularAssemblerMenu(int containerId, Inventory playerInventory,
@@ -51,15 +52,17 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
                 191, 74) {
             @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
         });
+        addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.ENERGY_SLOT,
+                218, 74));
 
         for (int row = 0; row < 4; row++) {
             for (int column = 0; column < 9; column++) {
                 int patternSlot = column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getPatternItems(), patternSlot,
-                        268 + column * 18, 19 + row * 18));
+                        274 + column * 18, 22 + row * 18));
             }
         }
-        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 268, 102));
+        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 274, 105));
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
@@ -108,6 +111,9 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         } else if (original.getItem() instanceof EncodedExtremePatternItem) {
             if (!moveItemStackTo(original, PATTERN_MENU_START,
                     PATTERN_UPGRADE_MENU_SLOT, false)) return ItemStack.EMPTY;
+        } else if (original.getCapability(ForgeCapabilities.ENERGY).isPresent()) {
+            if (!moveItemStackTo(original, MolecularAssemblerBlockEntity.ENERGY_SLOT,
+                    MolecularAssemblerBlockEntity.ENERGY_SLOT + 1, false)) return ItemStack.EMPTY;
         } else if (!moveItemStackTo(original, 0, MolecularAssemblerBlockEntity.GRID_SLOTS, false)) {
             return ItemStack.EMPTY;
         }
@@ -133,4 +139,5 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public boolean isRecipeLocked() { return data.get(4) != 0; }
     public int getActivePatternSlots() { return data.get(5); }
     public int getInstalledPatternCount() { return data.get(6); }
+    public int getStatus() { return data.get(7); }
 }
