@@ -8,11 +8,13 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.item.ElectricSwordItem;
+import ru.rfvv.metatechreborn.item.EnergyFoodItem;
 import ru.rfvv.metatechreborn.item.ManaDrillUpgradeItem;
 import ru.rfvv.metatechreborn.item.MetaVajraItem;
 import ru.rfvv.metatechreborn.item.NeutroniumCombinerUpgradeItem;
 import ru.rfvv.metatechreborn.item.SkullAxeItem;
 import ru.rfvv.metatechreborn.item.SnowGunItem;
+import ru.rfvv.metatechreborn.item.WindRotorItem;
 
 import java.util.List;
 
@@ -85,10 +87,26 @@ public final class ModItems {
     public static final RegistryObject<Item> MANA_DRILL_GENERATION_UPGRADE_3 = upgrade(
             "mana_drill_generation_upgrade_3", ManaDrillUpgradeItem.Type.GENERATION, 3);
 
-    // First restored item batch from MetaAdvanced and MetaThaumcraft.
+    // Restored item batches from MetaAdvanced and MetaThaumcraft.
     public static final RegistryObject<Item> META_VAJRA = ITEMS.register("meta_vajra", MetaVajraItem::new);
     public static final RegistryObject<Item> SNOW_GUN = ITEMS.register("snow_gun", SnowGunItem::new);
     public static final RegistryObject<Item> SKULL_AXE = ITEMS.register("skull_axe", SkullAxeItem::new);
+
+    public static final RegistryObject<Item> ENERGY_FOOD_TIER_1 = energyFood(
+            "energy_food_tier_1", 1, 1.0F, 32, 150, 50_000, 500, 1);
+    public static final RegistryObject<Item> ENERGY_FOOD_TIER_2 = energyFood(
+            "energy_food_tier_2", 2, 2.0F, 16, 300, 100_000, 1_000, 2);
+    public static final RegistryObject<Item> ENERGY_FOOD_TIER_3 = energyFood(
+            "energy_food_tier_3", 3, 3.0F, 1, 450, 150_000, 1_500, 3);
+    public static final RegistryObject<Item> ENERGY_FOOD_TIER_4 = energyFood(
+            "energy_food_tier_4", 20, 20.0F, 0, 600, 300_000, 3_000, 4);
+
+    public static final RegistryObject<Item> WIND_ROTOR_IRIDIUM = windRotor(
+            "item_wind_iridium_rotor", 11, 1_209_600, 320.0F, 10.0D, 120.0D);
+    public static final RegistryObject<Item> WIND_ROTOR_QUANTUM = windRotor(
+            "item_wind_quantum_rotor", 11, 2_419_200, 640.0F, 10.0D, 120.0D);
+    public static final RegistryObject<Item> WIND_ROTOR_ULTIMATE = windRotor(
+            "item_wind_ultimate_rotor", 11, 4_838_400, 1_280.0F, 10.0D, 120.0D);
 
     public static final RegistryObject<Item> ELECTRIC_SWORD_REALMITE = electricSword(
             "electric_sword_realmite", 180_000, 550, 22.0F, 400, 70);
@@ -117,6 +135,18 @@ public final class ModItems {
 
     private static RegistryObject<Item> upgrade(String name, ManaDrillUpgradeItem.Type type, int level) {
         return ITEMS.register(name, () -> new ManaDrillUpgradeItem(type, level));
+    }
+
+    private static RegistryObject<Item> energyFood(String name, int nutrition, float saturation, int useDuration,
+                                                   int energyCost, int capacity, int transferLimit, int tier) {
+        return ITEMS.register(name, () -> new EnergyFoodItem(
+                nutrition, saturation, useDuration, energyCost, capacity, transferLimit, tier));
+    }
+
+    private static RegistryObject<Item> windRotor(String name, int radius, int durability, float efficiency,
+                                                  double minWindStrength, double maxWindStrength) {
+        return ITEMS.register(name, () -> new WindRotorItem(
+                radius, durability, efficiency, minWindStrength, maxWindStrength));
     }
 
     private static RegistryObject<Item> electricSword(String name, int capacity, int transferLimit,
@@ -150,6 +180,14 @@ public final class ModItems {
                 ELECTRIC_SWORD_SKYUNDER, ELECTRIC_SWORD_MORTUM, ELECTRIC_SWORD_CHALITE,
                 ELECTRIC_SWORD_ADMIN
         );
+    }
+
+    public static List<RegistryObject<Item>> energyFoodItems() {
+        return List.of(ENERGY_FOOD_TIER_1, ENERGY_FOOD_TIER_2, ENERGY_FOOD_TIER_3, ENERGY_FOOD_TIER_4);
+    }
+
+    public static List<RegistryObject<Item>> windRotorItems() {
+        return List.of(WIND_ROTOR_IRIDIUM, WIND_ROTOR_QUANTUM, WIND_ROTOR_ULTIMATE);
     }
 
     public static List<RegistryObject<Item>> portedToolItems() {
