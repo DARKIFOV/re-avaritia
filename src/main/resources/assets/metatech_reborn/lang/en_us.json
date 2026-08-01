@@ -1,0 +1,11 @@
+{
+  "block.metatech_reborn.molecular_assembler_9x9": "Molecular Assembler 9x9",
+  "container.metatech_reborn.molecular_assembler_9x9": "Molecular Assembler 9x9",
+  "gui.metatech_reborn.unlock_recipe": "Unlock",
+  "gui.metatech_reborn.recipe_locked": "Recipe locked",
+  "gui.metatech_reborn.recipe_unlocked": "Recipe unlocked",
+  "jei.metatech_reborn.molecular_assembling": "Molecular Assembling 9x9",
+  "block.metatech_reborn.neutronium_combiner": "Neutronium Combiner",
+  "container.metatech_reborn.neutronium_combiner": "Neutronium Combiner",
+  "jei.metatech_reborn.neutronium_combining": "Neutronium Combining"
+}
