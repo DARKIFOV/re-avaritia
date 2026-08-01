@@ -8,6 +8,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.block.ExtremePatternEncoderBlock;
 import ru.rfvv.metatechreborn.block.GreenhouseBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
@@ -20,6 +21,11 @@ public final class ModBlocks {
     public static final RegistryObject<Block> MOLECULAR_ASSEMBLER_9X9 = BLOCKS.register(
             "molecular_assembler_9x9",
             () -> new MolecularAssemblerBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+                    .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> EXTREME_PATTERN_ENCODER = BLOCKS.register(
+            "extreme_pattern_encoder",
+            () -> new ExtremePatternEncoderBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
 
     public static final RegistryObject<Block> NEUTRONIUM_COMBINER = BLOCKS.register(
