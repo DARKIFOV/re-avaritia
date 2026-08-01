@@ -1,0 +1,11 @@
+{
+  "block.metatech_reborn.molecular_assembler_9x9": "Молекулярный сборщик 9x9",
+  "container.metatech_reborn.molecular_assembler_9x9": "Молекулярный сборщик 9x9",
+  "gui.metatech_reborn.unlock_recipe": "Снять фиксацию",
+  "gui.metatech_reborn.recipe_locked": "Рецепт зафиксирован",
+  "gui.metatech_reborn.recipe_unlocked": "Рецепт не зафиксирован",
+  "jei.metatech_reborn.molecular_assembling": "Молекулярная сборка 9x9",
+  "block.metatech_reborn.neutronium_combiner": "Объединитель нейтрония",
+  "container.metatech_reborn.neutronium_combiner": "Объединитель нейтрония",
+  "jei.metatech_reborn.neutronium_combining": "Производство нейтрония"
+}
