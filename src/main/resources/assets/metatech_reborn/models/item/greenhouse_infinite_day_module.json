@@ -1,4 +1,4 @@
 {
   "parent": "minecraft:item/generated",
-  "textures": { "layer0": "minecraft:item/clock" }
+  "textures": { "layer0": "metatech_reborn:item/greenhouse_infinite_day_module" }
 }
