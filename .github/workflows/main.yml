@@ -37,9 +37,11 @@ jobs:
       - name: Build
         run: gradle build --no-daemon --stacktrace
 
-      - name: Upload mod JAR
+      - name: Upload mod and 9x9 companion JARs
         uses: actions/upload-artifact@v4
         with:
           name: MetaTech-Reborn-${{ github.sha }}
-          path: build/libs/*.jar
+          path: |
+            build/libs/*.jar
+            build/addons/*.jar
           if-no-files-found: error
