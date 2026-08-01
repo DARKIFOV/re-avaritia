@@ -35,6 +35,7 @@ public final class MetaTechReborn {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModItems.MOLECULAR_ASSEMBLER_9X9.get());
+            ModItems.nativePatternItems().forEach(item -> event.accept(item.get()));
             event.accept(ModItems.NEUTRONIUM_COMBINER.get());
             event.accept(ModItems.MANA_DRILL.get());
             event.accept(ModItems.MANA_DRILL_CASING.get());
