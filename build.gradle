@@ -106,6 +106,7 @@ sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
     dependsOn tasks.named('extractDrillReworkAssets')
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
         forge_version: forge_version, forge_version_range: forge_version_range,
@@ -118,4 +119,7 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
-tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
+tasks.named('jar', Jar).configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    finalizedBy 'reobfJar'
+}
