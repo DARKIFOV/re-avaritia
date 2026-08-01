@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "metatech_reborn:greenhouse_economy_module_1" },
+    { "item": "minecraft:emerald_block" },
+    { "item": "minecraft:redstone_block" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_economy_module_2" }
+}
