@@ -48,7 +48,7 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
-// Binary resources are stored as text chunks so they can be changed through GitHub's text API.
+// Keep the complete 0.4 resource bundle and apply the 0.5.2 item/recipe overlay.
 def encodedAssetsDir = file('tools/generated_assets_v052')
 def generatedAssetsZip = layout.buildDirectory.file('generated/metatech_assets_v052.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets_v052')
@@ -67,10 +67,19 @@ tasks.register('decodeGeneratedAssets') {
     }
 }
 
+tasks.register('extractBaseAssets', Copy) {
+    inputs.file file('tools/generated_assets.zip')
+    outputs.dir generatedAssetsDir
+    doFirst { delete generatedAssetsDir.get().asFile }
+    from zipTree(file('tools/generated_assets.zip'))
+    into generatedAssetsDir
+}
+
 tasks.register('extractGeneratedAssets', Copy) {
-    dependsOn tasks.named('decodeGeneratedAssets')
+    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeGeneratedAssets')
     from { zipTree(generatedAssetsZip.get().asFile) }
     into generatedAssetsDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 sourceSets.main.resources.srcDir generatedAssetsDir
 
