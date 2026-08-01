@@ -63,38 +63,12 @@ dependencies {
     }
 }
 
-// Keep the complete 0.4 resource bundle and apply the 0.5.2 item/recipe overlay.
-def encodedAssetsDir = file('tools/generated_assets_v052')
-def generatedAssetsZip = layout.buildDirectory.file('generated/metatech_assets_v052.zip')
-def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets_v052')
-
-tasks.register('decodeGeneratedAssets') {
-    inputs.dir encodedAssetsDir
-    outputs.file generatedAssetsZip
-    doLast {
-        def chunks = fileTree(encodedAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No generated asset chunks found in ${encodedAssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedAssetsZip.get().asFile
-        target.parentFile.mkdirs()
-        target.bytes = encoded.toString().decodeBase64()
-    }
-}
-
-tasks.register('extractBaseAssets', Copy) {
-    inputs.file file('tools/generated_assets.zip')
-    outputs.dir generatedAssetsDir
-    doFirst { delete generatedAssetsDir.get().asFile }
+// Keep the last known-good 0.4 machine textures during code and dependency
+// verification. The new item texture overlay will be restored after CI is green.
+def generatedAssetsDir = layout.buildDirectory.dir("generated/metatech_assets")
+tasks.register('extractGeneratedAssets', Copy) {
     from zipTree(file('tools/generated_assets.zip'))
     into generatedAssetsDir
-}
-
-tasks.register('extractGeneratedAssets', Copy) {
-    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeGeneratedAssets')
-    from { zipTree(generatedAssetsZip.get().asFile) }
-    into generatedAssetsDir
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 sourceSets.main.resources.srcDir generatedAssetsDir
 
