@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:spectrolus" },
+  "fuel": { "tag": "minecraft:wool" },
+  "mana": 1200,
+  "time": 100,
+  "consume_fuel": true
+}
