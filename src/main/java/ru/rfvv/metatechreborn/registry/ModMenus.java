@@ -11,7 +11,6 @@ import ru.rfvv.metatechreborn.menu.ExtremePatternEncoderMenu;
 import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
 import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
-import ru.rfvv.metatechreborn.menu.NeutroniumCombinerMenu;
 
 public final class ModMenus {
     public static final DeferredRegister<MenuType<?>> MENUS =
@@ -20,8 +19,6 @@ public final class ModMenus {
             MENUS.register("molecular_assembler_9x9", () -> IForgeMenuType.create(MolecularAssemblerMenu::new));
     public static final RegistryObject<MenuType<ExtremePatternEncoderMenu>> EXTREME_PATTERN_ENCODER =
             MENUS.register("extreme_pattern_encoder", () -> IForgeMenuType.create(ExtremePatternEncoderMenu::new));
-    public static final RegistryObject<MenuType<NeutroniumCombinerMenu>> NEUTRONIUM_COMBINER =
-            MENUS.register("neutronium_combiner", () -> IForgeMenuType.create(NeutroniumCombinerMenu::new));
     public static final RegistryObject<MenuType<ManaDrillMenu>> MANA_DRILL =
             MENUS.register("mana_drill", () -> IForgeMenuType.create(ManaDrillMenu::new));
     public static final RegistryObject<MenuType<GreenhouseMenu>> GREENHOUSE =
