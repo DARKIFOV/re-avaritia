@@ -12,7 +12,6 @@ import ru.rfvv.metatechreborn.block.ExtremePatternEncoderBlock;
 import ru.rfvv.metatechreborn.block.GreenhouseBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
-import ru.rfvv.metatechreborn.block.NeutroniumCombinerBlock;
 
 public final class ModBlocks {
     public static final DeferredRegister<Block> BLOCKS =
@@ -26,11 +25,6 @@ public final class ModBlocks {
     public static final RegistryObject<Block> EXTREME_PATTERN_ENCODER = BLOCKS.register(
             "extreme_pattern_encoder",
             () -> new ExtremePatternEncoderBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
-                    .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> NEUTRONIUM_COMBINER = BLOCKS.register(
-            "neutronium_combiner",
-            () -> new NeutroniumCombinerBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
 
     public static final RegistryObject<Block> MANA_DRILL = BLOCKS.register(
