@@ -22,7 +22,7 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
 
     public LuckConverterMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory, (LuckConverterBlockEntity) inventory.player.level().getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(9));
+                new SimpleContainerData(10));
     }
 
     public LuckConverterMenu(int id, Inventory inventory, LuckConverterBlockEntity blockEntity, ContainerData data) {
@@ -34,37 +34,43 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         int columns = advanced ? 12 : 10;
         int inputRows = advanced ? 6 : 3;
         int outputRows = advanced ? 5 : 3;
-        int inputY = 28;
-        int outputY = advanced ? 146 : 92;
+        int inputY = 30;
+        int outputY = advanced ? 150 : 96;
         for (int row = 0; row < inputRows; row++) {
             for (int column = 0; column < columns; column++) {
                 int handlerSlot = column + row * columns;
-                addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot, 10 + column * 18, inputY + row * 18));
+                addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot,
+                        10 + column * 18, inputY + row * 18));
             }
         }
         for (int row = 0; row < outputRows; row++) {
             for (int column = 0; column < columns; column++) {
                 int handlerSlot = LuckConverterBlockEntity.FIRST_OUTPUT + column + row * columns;
-                addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot, 10 + column * 18, outputY + row * 18) {
+                addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot,
+                        10 + column * 18, outputY + row * 18) {
                     @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
                 });
             }
         }
 
-        int sideX = advanced ? 270 : 214;
-        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.MODULE_SLOT, sideX, 156));
-        for (int i = 0; i < LuckConverterBlockEntity.UPGRADE_SLOTS; i++) {
-            addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.FIRST_UPGRADE + i,
-                    sideX, 28 + i * 20));
+        int upgradesX = advanced ? 242 : 206;
+        for (int index = 0; index < LuckConverterBlockEntity.UPGRADE_SLOTS; index++) {
+            int column = index % 2;
+            int row = index / 2;
+            addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.FIRST_UPGRADE + index,
+                    upgradesX + column * 24, 42 + row * 26));
         }
-        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.ENERGY_SLOT, sideX, 180));
+        int utilityX = advanced ? 316 : 280;
+        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.MODULE_SLOT, utilityX, 42));
+        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.ENERGY_SLOT, utilityX, 94));
         this.machineMenuSlots = slots.size();
 
-        int playerX = advanced ? 70 : 52;
-        int playerY = advanced ? 318 : 218;
+        int playerX = advanced ? 101 : 83;
+        int playerY = advanced ? 322 : 222;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, playerX + column * 18, playerY + row * 18));
+                addSlot(new Slot(inventory, column + row * 9 + 9,
+                        playerX + column * 18, playerY + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
@@ -73,21 +79,26 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         addDataSlots(data);
     }
 
-    @Override public boolean stillValid(@NotNull Player player) {
+    @Override
+    public boolean stillValid(@NotNull Player player) {
         return stillValid(net.minecraft.world.inventory.ContainerLevelAccess.create(
                 blockEntity.getLevel(), blockEntity.getBlockPos()), player,
                 advanced ? ModBlocks.ADVANCED_LUCK_CONVERTER.get() : ModBlocks.LUCK_CONVERTER.get());
     }
 
-    @Override public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
+    @Override
+    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
         Slot slot = slots.get(index);
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
         if (index < machineMenuSlots) {
             if (!moveItemStackTo(original, machineMenuSlots, slots.size(), true)) return ItemStack.EMPTY;
-        } else if (!moveItemStackTo(original, 0, machineMenuSlots, false)) return ItemStack.EMPTY;
-        if (original.isEmpty()) slot.set(ItemStack.EMPTY); else slot.setChanged();
+        } else if (!moveItemStackTo(original, 0, machineMenuSlots, false)) {
+            return ItemStack.EMPTY;
+        }
+        if (original.isEmpty()) slot.set(ItemStack.EMPTY);
+        else slot.setChanged();
         slot.onTake(player, original);
         return copy;
     }
@@ -101,6 +112,14 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
     public int getStatus() { return data.get(5); }
     public int getOperations() { return data.get(7); }
     public int getEnergyPerTick() { return data.get(8); }
-    public int progressPixels(int width) { return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress()); }
-    public int energyPixels(int height) { return getEnergyCapacity() <= 0 ? 0 : Math.min(height, getEnergy() * height / getEnergyCapacity()); }
+    public int getSpeedReductionPercent() { return data.get(9); }
+    public boolean isInstantSpeed() { return getSpeedReductionPercent() >= 100; }
+
+    public int progressPixels(int width) {
+        return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress());
+    }
+
+    public int energyPixels(int height) {
+        return getEnergyCapacity() <= 0 ? 0 : Math.min(height, getEnergy() * height / getEnergyCapacity());
+    }
 }
