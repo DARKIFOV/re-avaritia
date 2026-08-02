@@ -40,7 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-/** Nine independent collector processes. Collector blocks are catalysts and are not consumed. */
+/** Nine independent collector lanes. Every lane accepts a complete stack and scales production with its size. */
 public final class NeutroniumCombinerBlockEntity extends BlockEntity implements MenuProvider {
     public static final int INPUT_SLOTS = 9;
     public static final int OUTPUT_SLOTS = 40;
@@ -76,7 +76,8 @@ public final class NeutroniumCombinerBlockEntity extends BlockEntity implements 
 
         @Override
         public int getSlotLimit(int slot) {
-            if (slot < INPUT_SLOTS || slot == ENERGY_SLOT) return 1;
+            if (slot < INPUT_SLOTS) return 64;
+            if (slot == ENERGY_SLOT) return 1;
             if (slot >= FIRST_UPGRADE_SLOT) return 8;
             return 64;
         }
@@ -180,10 +181,12 @@ public final class NeutroniumCombinerBlockEntity extends BlockEntity implements 
             }
 
             NeutroniumCombinerRecipe recipe = match.get();
+            int parallelCollectors = Math.max(1, collector.getCount());
             int operationTime = adjustedTime(recipe.time(), speed);
-            int energyPerTick = adjustedEnergy(recipe.energyPerTick(), efficiency, output);
+            int energyPerTick = multiplyClamped(adjustedEnergy(recipe.energyPerTick(), efficiency, output),
+                    parallelCollectors);
             ItemStack result = recipe.result();
-            result.setCount(Math.max(1, result.getCount() * (1 + output)));
+            result.setCount(multiplyClamped(Math.max(1, result.getCount() * (1 + output)), parallelCollectors));
             maxProgresses[slot] = operationTime;
 
             if (!canInsertOutput(result)) {
@@ -210,6 +213,11 @@ public final class NeutroniumCombinerBlockEntity extends BlockEntity implements 
         }
 
         if (CommonConfig.NEUTRON_COMBINER_AUTO_EJECT.get() && level.getGameTime() % 5L == 0L) autoEject(level);
+    }
+
+    private static int multiplyClamped(int value, int multiplier) {
+        long result = (long) Math.max(0, value) * Math.max(1, multiplier);
+        return (int) Math.min(Integer.MAX_VALUE, result);
     }
 
     private void chargeFromEnergyItem() {
