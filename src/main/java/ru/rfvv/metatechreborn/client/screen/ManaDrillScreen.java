@@ -20,6 +20,7 @@ public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu
     @Override public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderMachineTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -72,6 +73,33 @@ public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu
                         : "gui.metatech_reborn.structure_missing"),
                 12, 128, 100, menu.isStructureFormed() ? 0x55E58A : 0xFF7382, 2);
         g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
+    }
+
+    private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (isInside(mouseX, mouseY, 104, 32, 8, 64)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.mana_drill.tooltip.mana",
+                    menu.getMana(), menu.getManaCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 132, 96, 182, 10)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.progress_ticks",
+                    menu.getProgress(), menu.getMaxProgress()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 20, 34, 18, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.mana_drill.tooltip.module"), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 20, 64, 66, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.mana_drill.tooltip.upgrades",
+                    menu.getSpeedLevel(), menu.getLootingLevel(), menu.getGenerationLevel()),
+                    mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 132, 116, 8, 8)) {
+            g.renderTooltip(font, Component.translatable(statusKey(menu.getStatus())), mouseX, mouseY);
+        }
+    }
+
+    private boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= leftPos + x && mouseX < leftPos + x + width
+                && mouseY >= topPos + y && mouseY < topPos + y + height;
     }
 
     private static String statusKey(int status) {
