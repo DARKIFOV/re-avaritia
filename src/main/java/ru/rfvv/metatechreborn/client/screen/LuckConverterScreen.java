@@ -29,6 +29,7 @@ public final class LuckConverterScreen extends AbstractContainerScreen<LuckConve
                        float partialTick) {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderMachineTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -145,6 +146,43 @@ public final class LuckConverterScreen extends AbstractContainerScreen<LuckConve
                 Component.literal(menu.getEnergy() + " / "
                         + menu.getEnergyCapacity() + " FE"),
                 10, statusY + 35, 0xF4D27A, false);
+    }
+
+    private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        int columns = menu.isAdvanced() ? 12 : 10;
+        int statusY = menu.isAdvanced() ? 250 : 158;
+        int upgradesX = menu.isAdvanced() ? 242 : 206;
+        int utilityX = menu.isAdvanced() ? 316 : 280;
+        int gridWidth = columns * 18;
+
+        if (isInside(mouseX, mouseY, 10, statusY + 39, gridWidth, 9)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.progress_ticks",
+                    menu.getProgress(), menu.getMaxProgress()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, utilityX + 22, 42, 7, 68)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.energy",
+                    menu.getEnergy(), menu.getEnergyCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, upgradesX, 126,
+                utilityX + 18 - upgradesX, 6)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.luck_converter.tooltip.speed",
+                    speedText()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, utilityX, 42, 18, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.luck_converter.tooltip.module"), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, utilityX, 94, 18, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.energy_slot"), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, upgradesX, 42, 42, 70)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.luck_converter.tooltip.upgrades"), mouseX, mouseY);
+        }
+    }
+
+    private boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= leftPos + x && mouseX < leftPos + x + width
+                && mouseY >= topPos + y && mouseY < topPos + y + height;
     }
 
     private Component speedText() {
