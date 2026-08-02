@@ -23,6 +23,7 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderMachineTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -82,6 +83,35 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
                 12, 150, 0xD9F4ED, false);
         g.drawString(font, Component.literal("M"), 287, 22, 0x67D9FF, false);
         g.drawString(font, Component.literal("F"), 304, 22, 0x79AFFF, false);
+    }
+
+    private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (isInside(mouseX, mouseY, 112, 92, 132, 10)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.progress_ticks",
+                    menu.getProgress(), menu.getMaxProgress()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 286, 34, 10, 80)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.greenhouse.tooltip.mana",
+                    menu.getMana(), menu.getManaCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 303, 34, 10, 80)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.greenhouse.tooltip.fluid",
+                    menu.getFluidAmount(), menu.getFluidCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 20, 76, 66, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.greenhouse.tooltip.modules",
+                    menu.getSpeedLevel(), menu.getEfficiencyLevel(), menu.getEconomyLevel()),
+                    mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 20, 34, 18, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.greenhouse.tooltip.flower"), mouseX, mouseY);
+        }
+    }
+
+    private boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= leftPos + x && mouseX < leftPos + x + width
+                && mouseY >= topPos + y && mouseY < topPos + y + height;
     }
 
     private Component modeComponent() {
