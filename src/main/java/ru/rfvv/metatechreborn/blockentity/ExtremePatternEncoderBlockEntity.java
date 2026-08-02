@@ -48,11 +48,16 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
     public static final int STATUS_OUTPUT_BLOCKED = 4;
 
     private int status = STATUS_IDLE;
+    private boolean ghostGrid;
+    private boolean updatingGhostGrid;
 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
         @Override
         protected void onContentsChanged(int slot) {
-            if (slot < GRID_SLOTS) status = STATUS_IDLE;
+            if (slot < GRID_SLOTS) {
+                status = STATUS_IDLE;
+                if (!updatingGhostGrid) ghostGrid = false;
+            }
             setChanged();
         }
 
@@ -63,7 +68,7 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            if (slot < GRID_SLOTS) return true;
+            if (slot < GRID_SLOTS) return !ghostGrid;
             if (slot == BLANK_SLOT) return stack.is(ModItems.BLANK_EXTREME_PATTERN.get());
             return false;
         }
@@ -73,29 +78,51 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
         @Override public int getSlots() { return GRID_SLOTS; }
         @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
         @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-            return items.insertItem(slot, stack, simulate);
+            return ghostGrid ? stack : items.insertItem(slot, stack, simulate);
         }
         @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-            return items.extractItem(slot, amount, simulate);
+            return ghostGrid ? ItemStack.EMPTY : items.extractItem(slot, amount, simulate);
         }
         @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
         @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            return items.isItemValid(slot, stack);
+            return !ghostGrid && items.isItemValid(slot, stack);
         }
     };
 
-    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> items);
+    private final IItemHandler automation = new IItemHandler() {
+        @Override public int getSlots() { return TOTAL_SLOTS; }
+        @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
+        @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
+        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return slot < GRID_SLOTS ? !ghostGrid && items.isItemValid(slot, stack)
+                    : items.isItemValid(slot, stack);
+        }
+        @Override public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+            if (slot < GRID_SLOTS && ghostGrid) return stack;
+            return items.insertItem(slot, stack, simulate);
+        }
+        @Override public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (slot < GRID_SLOTS && ghostGrid) return ItemStack.EMPTY;
+            return items.extractItem(slot, amount, simulate);
+        }
+    };
+
+    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> automation);
 
     private final ContainerData data = new ContainerData() {
         @Override public int get(int index) {
             return switch (index) {
                 case 0 -> status;
                 case 1 -> findOutput(level).isPresent() ? 1 : 0;
+                case 2 -> ghostGrid ? 1 : 0;
                 default -> 0;
             };
         }
-        @Override public void set(int index, int value) { if (index == 0) status = value; }
-        @Override public int getCount() { return 2; }
+        @Override public void set(int index, int value) {
+            if (index == 0) status = value;
+            else if (index == 2) ghostGrid = value != 0;
+        }
+        @Override public int getCount() { return 3; }
     };
 
     public ExtremePatternEncoderBlockEntity(BlockPos pos, BlockState state) {
@@ -140,14 +167,54 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
         return true;
     }
 
+    public void setGhostGrid(NonNullList<ItemStack> source, Player player) {
+        if (level == null || level.isClientSide) return;
+        if (!ghostGrid) returnRealGridItems(player);
+
+        updatingGhostGrid = true;
+        try {
+            for (int slot = 0; slot < GRID_SLOTS; slot++) {
+                ItemStack stack = slot < source.size() ? source.get(slot) : ItemStack.EMPTY;
+                if (stack.isEmpty()) {
+                    items.setStackInSlot(slot, ItemStack.EMPTY);
+                } else {
+                    ItemStack copy = stack.copy();
+                    copy.setCount(1);
+                    items.setStackInSlot(slot, copy);
+                }
+            }
+        } finally {
+            updatingGhostGrid = false;
+        }
+        ghostGrid = true;
+        status = STATUS_IDLE;
+        setChanged();
+    }
+
     public void clearGrid(Player player) {
         if (level == null || level.isClientSide) return;
+        if (ghostGrid) {
+            updatingGhostGrid = true;
+            try {
+                for (int slot = 0; slot < GRID_SLOTS; slot++) {
+                    items.setStackInSlot(slot, ItemStack.EMPTY);
+                }
+            } finally {
+                updatingGhostGrid = false;
+            }
+        } else {
+            returnRealGridItems(player);
+        }
+        ghostGrid = false;
+        setStatus(STATUS_IDLE);
+    }
+
+    private void returnRealGridItems(Player player) {
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
             ItemStack stack = items.extractItem(slot, 64, false);
             if (stack.isEmpty()) continue;
             if (!player.getInventory().add(stack)) player.drop(stack, false);
         }
-        setStatus(STATUS_IDLE);
     }
 
     private Optional<ItemStack> findOutput(@Nullable Level targetLevel) {
@@ -176,10 +243,11 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
 
     public ItemStackHandler getItems() { return items; }
     public ContainerData getData() { return data; }
+    public boolean isGhostGrid() { return ghostGrid; }
 
     public NonNullList<ItemStack> getDrops() {
         NonNullList<ItemStack> drops = NonNullList.create();
-        for (int slot = 0; slot < TOTAL_SLOTS; slot++) {
+        for (int slot = ghostGrid ? GRID_SLOTS : 0; slot < TOTAL_SLOTS; slot++) {
             ItemStack stack = items.getStackInSlot(slot);
             if (!stack.isEmpty()) drops.add(stack.copy());
         }
@@ -199,12 +267,14 @@ public final class ExtremePatternEncoderBlockEntity extends BlockEntity implemen
         super.saveAdditional(tag);
         tag.put("Inventory", items.serializeNBT());
         tag.putInt("Status", status);
+        tag.putBoolean("GhostGrid", ghostGrid);
     }
 
     @Override public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         items.deserializeNBT(tag.getCompound("Inventory"));
         status = tag.getInt("Status");
+        ghostGrid = tag.getBoolean("GhostGrid");
     }
 
     @Override public <T> @NotNull LazyOptional<T> getCapability(
