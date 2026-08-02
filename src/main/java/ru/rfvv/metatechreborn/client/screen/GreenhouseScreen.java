@@ -4,6 +4,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.blockentity.GreenhouseBlockEntity;
 import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
@@ -79,7 +81,7 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
         graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fluid_short",
                         menu.getFluidAmount(), menu.getFluidCapacity()),
                 104, 59, 0x79AFFF, false);
-        graphics.drawString(font, Component.translatable(modeTranslationKey(menu.getModeId())),
+        graphics.drawString(font, modeComponent(),
                 104, 93, 0xFFD56A, false);
         graphics.drawString(font, Component.translatable(statusTranslationKey(menu.getStatus())),
                 104, 105, statusColor(menu.getStatus()), false);
@@ -90,17 +92,18 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
         graphics.drawString(font, Component.literal("F"), 288, 17, 0x79AFFF, false);
     }
 
-    private static String modeTranslationKey(int mode) {
-        return switch (mode) {
-            case 1 -> "gui.metatech_reborn.greenhouse.mode.endoflame";
-            case 2 -> "gui.metatech_reborn.greenhouse.mode.hydroangeas";
-            case 3 -> "gui.metatech_reborn.greenhouse.mode.gourmaryllis";
-            case 4 -> "gui.metatech_reborn.greenhouse.mode.entropinnyum";
-            case 5 -> "gui.metatech_reborn.greenhouse.mode.thermalily";
-            case 6 -> "gui.metatech_reborn.greenhouse.mode.spectrolus";
-            case 7 -> "gui.metatech_reborn.greenhouse.mode.custom";
-            default -> "gui.metatech_reborn.greenhouse.mode.idle";
-        };
+    private Component modeComponent() {
+        ItemStack flower = menu.getSlot(GreenhouseBlockEntity.FLOWER_SLOT).getItem();
+        if (flower.isEmpty()) {
+            return Component.translatable("gui.metatech_reborn.greenhouse.mode.idle");
+        }
+        Component flowerName = flower.getHoverName();
+        if (menu.getModeId() == 6) {
+            DyeColor color = DyeColor.byId(menu.getSpectrolusNextColor());
+            return Component.empty().append(flowerName).append(": ")
+                    .append(Component.translatable("color.minecraft." + color.getName()));
+        }
+        return flowerName;
     }
 
     private static String statusTranslationKey(int status) {
