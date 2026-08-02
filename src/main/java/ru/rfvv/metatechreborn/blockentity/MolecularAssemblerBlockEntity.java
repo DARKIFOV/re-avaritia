@@ -24,6 +24,7 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.rfvv.metatechreborn.MetaTechReborn;
@@ -47,10 +48,11 @@ import java.util.Optional;
 /**
  * Extreme 9x9 molecular assembler.
  *
- * Manual jobs use the visible output slot. AE2 jobs use a separate persistent
- * return buffer, so a restart, chunk unload or temporarily full ME network cannot
- * duplicate or delete the crafted result. Invalidated AE2 jobs return their input
- * to that same buffer instead of trapping or deleting it.
+ * It combines the recoverable MetaAdvanced/LoliEnergistics architecture with the
+ * official AE2 15.x APIs: 36 internal patterns, five AE2 speed-card slots,
+ * parallel persistent jobs, exact server-side recipe validation and a durable ME
+ * return/refund buffer. Manual crafting remains available through the visible
+ * 9x9 grid and output slot.
  */
 public final class MolecularAssemblerBlockEntity extends BlockEntity implements MenuProvider {
     public static final int GRID_SIZE = 9;
@@ -63,12 +65,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int MAX_PATTERN_SLOTS = PatternCapacityUpgradeItem.TOTAL_SLOTS;
     public static final int PATTERN_STORAGE_SLOTS = MAX_PATTERN_SLOTS;
     public static final int EXTRA_PATTERN_SLOTS = PatternCapacityUpgradeItem.EXTRA_SLOTS;
+    public static final int SPEED_CARD_SLOTS = 5;
 
-    /**
-     * Large enough to return 81 different grid inputs plus recipe containers,
-     * by-products and the crafted result without dropping anything.
-     */
     private static final int NETWORK_RETURN_SLOTS = 128;
+    private static final ResourceLocation AE2_SPEED_CARD = new ResourceLocation("ae2", "speed_card");
 
     public static final int STATUS_IDLE = 0;
     public static final int STATUS_NO_RECIPE = 1;
@@ -86,10 +86,13 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private MachineRecipeMatch.Source lockedRecipeSource;
     private ItemStack lockedResult = ItemStack.EMPTY;
     private boolean templateLocked;
+
+    /** Migration path for pre-0.6.0 worlds that stored one AE2 job in the visible grid. */
     private boolean ae2JobActive;
 
     private final NonNullList<ItemStack> lockedTemplate =
             NonNullList.withSize(GRID_SLOTS, ItemStack.EMPTY);
+    private final MolecularAssemblerJobQueue parallelJobs = new MolecularAssemblerJobQueue(this);
 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
         @Override
@@ -147,6 +150,14 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
             if (!canRemovePatternUpgrade()) return ItemStack.EMPTY;
             return super.extractItem(slot, amount, simulate);
+        }
+    };
+
+    private final ItemStackHandler speedItems = new ItemStackHandler(SPEED_CARD_SLOTS) {
+        @Override protected void onContentsChanged(int slot) { setChanged(); }
+        @Override public int getSlotLimit(int slot) { return 1; }
+        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return isAe2SpeedCard(stack);
         }
     };
 
@@ -213,6 +224,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 case 5 -> getActivePatternSlots();
                 case 6 -> getInstalledPatternCount();
                 case 7 -> status;
+                case 8 -> parallelJobs.size();
+                case 9 -> getSpeedCardCount();
                 default -> 0;
             };
         }
@@ -224,7 +237,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             else if (index == 7) status = value;
         }
 
-        @Override public int getCount() { return 8; }
+        @Override public int getCount() { return 10; }
     };
 
     public MolecularAssemblerBlockEntity(BlockPos pos, BlockState state) {
@@ -239,14 +252,31 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private void tickServer(Level level) {
         chargeFromEnergyItem();
         flushNetworkReturnBuffer();
-
-        if (hasPendingNetworkReturns()) {
-            setStatus(STATUS_RETURNING_TO_NETWORK);
-            return;
-        }
+        MolecularAssemblerJobQueue.TickState queueState = parallelJobs.tick(level);
 
         if (CommonConfig.AUTO_EJECT_OUTPUT.get() && level.getGameTime() % 5L == 0L) {
             autoEjectOutput(level);
+        }
+
+        // With no manual/legacy grid job, expose the aggregate AE2 queue state.
+        if (isGridEmpty() && !ae2JobActive) {
+            if (hasPendingNetworkReturns()) {
+                setStatus(STATUS_RETURNING_TO_NETWORK);
+            } else {
+                switch (queueState) {
+                    case RUNNING, WAITING -> setStatus(STATUS_RUNNING);
+                    case NO_ENERGY -> setStatus(STATUS_NO_ENERGY);
+                    case OUTPUT_BLOCKED -> setStatus(STATUS_OUTPUT_FULL);
+                    case IDLE -> setStatus(getInstalledPatternCount() > 0
+                            ? STATUS_AE2_READY : STATUS_IDLE);
+                }
+            }
+            return;
+        }
+
+        if (ae2JobActive && hasPendingNetworkReturns()) {
+            setStatus(STATUS_RETURNING_TO_NETWORK);
+            return;
         }
 
         Optional<MachineRecipeMatch> match = lockedRecipeId == null
@@ -259,14 +289,13 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 return;
             }
             resetProgressOnly();
-            setStatus(isGridEmpty() && getInstalledPatternCount() > 0 ? STATUS_AE2_READY
-                    : isGridEmpty() ? STATUS_IDLE : STATUS_NO_RECIPE);
+            setStatus(STATUS_NO_RECIPE);
             return;
         }
 
         MachineRecipeMatch active = match.get();
         if (ae2JobActive && !lockedResult.isEmpty()
-                && !ItemStack.isSameItemSameTags(active.result(), lockedResult)) {
+                && !sameStackAndCount(active.result(), lockedResult)) {
             abortAe2JobToNetwork("resolved output differs from the requested AE2 output");
             return;
         }
@@ -283,13 +312,12 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
 
         int energyPerTick = Math.max(0, active.energyPerTick());
-        if (energy.getEnergyStored() < energyPerTick) {
+        if (!consumeAssemblerEnergy(energyPerTick)) {
             setStatus(STATUS_NO_ENERGY);
             return;
         }
 
         setStatus(STATUS_RUNNING);
-        if (energyPerTick > 0) energy.extractEnergy(energyPerTick, false);
         progress++;
         setChanged();
 
@@ -321,10 +349,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         });
     }
 
-    private Optional<MachineRecipeMatch> findAnyMatch(Level level) {
+    Optional<MachineRecipeMatch> findAnyMatch(Level level, IItemHandler grid) {
         if (isAvaritiaAvailable()) {
             try {
-                Optional<MachineRecipeMatch> avaritia = AvaritiaIntegration.findMatch(level, recipeGrid);
+                Optional<MachineRecipeMatch> avaritia = AvaritiaIntegration.findMatch(level, grid);
                 if (avaritia.isPresent()) return avaritia;
             } catch (LinkageError | RuntimeException error) {
                 MetaTechReborn.LOGGER.error("Re-Avaritia recipe integration failed; using MetaTech recipes", error);
@@ -333,37 +361,45 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         return level.getRecipeManager().getAllRecipesFor(ModRecipes.MOLECULAR_ASSEMBLING_TYPE.get())
                 .stream()
-                .filter(recipe -> recipe.matches(recipeGrid))
+                .filter(recipe -> recipe.matches(grid))
                 .findFirst()
-                .map(this::createMetaTechMatch);
+                .map(recipe -> createMetaTechMatch(recipe, grid));
     }
 
-    private Optional<MachineRecipeMatch> findLockedMatch(Level level) {
-        if (lockedRecipeId == null || lockedRecipeSource == null) return Optional.empty();
-
-        if (lockedRecipeSource == MachineRecipeMatch.Source.AVARITIA) {
+    Optional<MachineRecipeMatch> findMatch(Level level, ResourceLocation recipeId,
+                                           MachineRecipeMatch.Source source, IItemHandler grid) {
+        if (recipeId == null || source == null) return Optional.empty();
+        if (source == MachineRecipeMatch.Source.AVARITIA) {
             if (!isAvaritiaAvailable()) return Optional.empty();
             try {
-                return AvaritiaIntegration.findMatchById(level, lockedRecipeId, recipeGrid);
+                return AvaritiaIntegration.findMatchById(level, recipeId, grid);
             } catch (LinkageError | RuntimeException error) {
-                MetaTechReborn.LOGGER.error("Unable to resolve locked Re-Avaritia recipe {}", lockedRecipeId, error);
+                MetaTechReborn.LOGGER.error("Unable to resolve locked Re-Avaritia recipe {}", recipeId, error);
                 return Optional.empty();
             }
         }
 
-        return level.getRecipeManager().byKey(lockedRecipeId)
+        return level.getRecipeManager().byKey(recipeId)
                 .filter(MolecularAssemblerRecipe.class::isInstance)
                 .map(MolecularAssemblerRecipe.class::cast)
-                .filter(recipe -> recipe.matches(recipeGrid))
-                .map(this::createMetaTechMatch);
+                .filter(recipe -> recipe.matches(grid))
+                .map(recipe -> createMetaTechMatch(recipe, grid));
     }
 
-    private MachineRecipeMatch createMetaTechMatch(MolecularAssemblerRecipe recipe) {
+    private Optional<MachineRecipeMatch> findAnyMatch(Level level) {
+        return findAnyMatch(level, recipeGrid);
+    }
+
+    private Optional<MachineRecipeMatch> findLockedMatch(Level level) {
+        return findMatch(level, lockedRecipeId, lockedRecipeSource, recipeGrid);
+    }
+
+    private MachineRecipeMatch createMetaTechMatch(MolecularAssemblerRecipe recipe, IItemHandler grid) {
         return new MachineRecipeMatch(
                 recipe.getId(),
                 MachineRecipeMatch.Source.METATECH,
                 recipe.result(),
-                recipe.getRemainingItems(recipeGrid),
+                recipe.getRemainingItems(grid),
                 recipe.time(),
                 recipe.energyPerTick()
         );
@@ -397,7 +433,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     public void clearRecipeLock() {
-        if (isAe2Busy()) return;
+        if (ae2JobActive) return;
         clearRecipeLockInternal();
     }
 
@@ -438,11 +474,15 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     public boolean canAcceptAe2Plan() {
-        return progress == 0 && !ae2JobActive && isGridEmpty() && !hasPendingNetworkReturns();
+        return !ae2JobActive && parallelJobs.canAccept();
     }
 
     public boolean isAe2Busy() {
-        return ae2JobActive || hasPendingNetworkReturns();
+        return ae2JobActive || parallelJobs.isFull();
+    }
+
+    public int getQueuedJobCount() {
+        return parallelJobs.size();
     }
 
     private boolean isGridEmpty() {
@@ -456,31 +496,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return lockedResult.copy();
     }
 
-    /** Receives an already validated, complete AE2 input placement atomically. */
+    /** Receives a complete AE2 input placement atomically into the persistent queue. */
     public boolean acceptDecodedAe2Pattern(ExtremePatternData pattern,
                                            NonNullList<ItemStack> placement) {
-        if (!canAcceptAe2Plan() || placement.size() != GRID_SLOTS) return false;
-        if (pattern.output().isEmpty()) return false;
-
-        for (int slot = 0; slot < GRID_SLOTS; slot++) {
-            ItemStack expected = pattern.inputs().get(slot);
-            ItemStack supplied = placement.get(slot);
-            if (expected.isEmpty() != supplied.isEmpty()) return false;
-            if (!expected.isEmpty() && !ItemStack.isSameItemSameTags(expected, supplied)) return false;
-        }
-
-        applyPlacement(placement);
-        lockedRecipeId = null;
-        lockedRecipeSource = null;
-        lockedResult = pattern.output().copy();
-        templateLocked = true;
-        ae2JobActive = true;
-        for (int slot = 0; slot < GRID_SLOTS; slot++) {
-            lockedTemplate.set(slot, pattern.inputs().get(slot).copy());
-        }
-        setStatus(STATUS_RUNNING);
-        setChanged();
-        return true;
+        return parallelJobs.enqueue(pattern, placement);
     }
 
     public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks,
@@ -492,7 +511,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             Optional<ExtremePatternData> decoded = EncodedExtremePatternItem.read(patternItems.getStackInSlot(slot));
             if (decoded.isEmpty()) continue;
             ExtremePatternData pattern = decoded.get();
-            if (!ItemStack.isSameItemSameTags(pattern.output(), requestedOutput)
+            if (!sameStackAndCount(pattern.output(), requestedOutput)
                     || requestedAmount != pattern.output().getCount()) continue;
 
             Optional<NonNullList<ItemStack>> placement = createPlacement(pattern.inputs(), suppliedStacks);
@@ -551,17 +570,6 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return Optional.of(placement);
     }
 
-    private void applyPlacement(NonNullList<ItemStack> placement) {
-        suppressInventoryCallbacks = true;
-        try {
-            for (int slot = 0; slot < GRID_SLOTS; slot++) items.setStackInSlot(slot, placement.get(slot).copy());
-        } finally {
-            suppressInventoryCallbacks = false;
-        }
-        progress = 0;
-        setChanged();
-    }
-
     private boolean canInsertIntoGridSlot(int slot, ItemStack stack) {
         if (slot < 0 || slot >= GRID_SLOTS) return false;
         if (!templateLocked) return !ae2JobActive;
@@ -577,11 +585,29 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     private boolean canQueueNetworkOutputs(MachineRecipeMatch match) {
-        ItemStackHandler simulated = copyNetworkReturnBuffer();
+        List<ItemStack> stacks = new ArrayList<>();
         for (ItemStack remainder : match.remainingItems()) {
-            if (!insertIntoHandler(simulated, remainder.copy(), false).isEmpty()) return false;
+            if (!remainder.isEmpty()) stacks.add(remainder.copy());
         }
-        return insertIntoHandler(simulated, match.result().copy(), false).isEmpty();
+        stacks.add(match.result().copy());
+        return canQueueStacksForNetwork(stacks);
+    }
+
+    private boolean canQueueStacksForNetwork(List<ItemStack> stacks) {
+        ItemStackHandler simulated = copyNetworkReturnBuffer();
+        for (ItemStack stack : stacks) {
+            if (!insertIntoHandler(simulated, stack.copy(), false).isEmpty()) return false;
+        }
+        return true;
+    }
+
+    boolean queueStacksForNetwork(List<ItemStack> stacks) {
+        if (!canQueueStacksForNetwork(stacks)) return false;
+        for (ItemStack stack : stacks) {
+            if (!stack.isEmpty()) insertIntoHandler(networkReturnBuffer, stack.copy(), false);
+        }
+        setChanged();
+        return true;
     }
 
     private ItemStackHandler copyNetworkReturnBuffer() {
@@ -601,10 +627,12 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
             NonNullList<ItemStack> remaining = match.remainingItems();
             if (ae2JobActive) {
+                List<ItemStack> products = new ArrayList<>();
                 for (ItemStack remainder : remaining) {
-                    if (!remainder.isEmpty()) insertIntoHandler(networkReturnBuffer, remainder.copy(), false);
+                    if (!remainder.isEmpty()) products.add(remainder.copy());
                 }
-                insertIntoHandler(networkReturnBuffer, match.result().copy(), false);
+                products.add(match.result().copy());
+                queueStacksForNetwork(products);
             } else {
                 for (int slot = 0; slot < Math.min(GRID_SLOTS, remaining.size()); slot++) {
                     ItemStack remainder = remaining.get(slot).copy();
@@ -627,11 +655,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         progress = 0;
         maxProgress = match.craftTime();
-        if (ae2JobActive) {
-            setStatus(STATUS_RETURNING_TO_NETWORK);
-        } else {
-            setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
-        }
+        setStatus(ae2JobActive ? STATUS_RETURNING_TO_NETWORK
+                : getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
         setChanged();
     }
 
@@ -640,23 +665,19 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         MetaTechReborn.LOGGER.warn("Returning invalid molecular assembler AE2 job at {}: {}",
                 worldPosition, reason);
 
-        ItemStackHandler simulated = copyNetworkReturnBuffer();
+        List<ItemStack> refund = new ArrayList<>();
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
             ItemStack stack = items.getStackInSlot(slot);
-            if (!stack.isEmpty() && !insertIntoHandler(simulated, stack.copy(), false).isEmpty()) {
-                setStatus(STATUS_OUTPUT_FULL);
-                return;
-            }
+            if (!stack.isEmpty()) refund.add(stack.copy());
+        }
+        if (!queueStacksForNetwork(refund)) {
+            setStatus(STATUS_OUTPUT_FULL);
+            return;
         }
 
         suppressInventoryCallbacks = true;
         try {
-            for (int slot = 0; slot < GRID_SLOTS; slot++) {
-                ItemStack stack = items.getStackInSlot(slot);
-                if (stack.isEmpty()) continue;
-                insertIntoHandler(networkReturnBuffer, stack.copy(), false);
-                items.setStackInSlot(slot, ItemStack.EMPTY);
-            }
+            for (int slot = 0; slot < GRID_SLOTS; slot++) items.setStackInSlot(slot, ItemStack.EMPTY);
         } finally {
             suppressInventoryCallbacks = false;
         }
@@ -774,6 +795,32 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     }
 
+    boolean consumeAssemblerEnergy(int amount) {
+        if (amount <= 0) return true;
+        if (energy.getEnergyStored() < amount) return false;
+        energy.extractEnergy(amount, false);
+        return true;
+    }
+
+    void markChangedAndRunning() {
+        setStatus(STATUS_RUNNING);
+        setChanged();
+    }
+
+    public static boolean isAe2SpeedCard(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation id = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        return AE2_SPEED_CARD.equals(id);
+    }
+
+    public int getSpeedCardCount() {
+        int count = 0;
+        for (int slot = 0; slot < SPEED_CARD_SLOTS; slot++) {
+            if (isAe2SpeedCard(speedItems.getStackInSlot(slot))) count++;
+        }
+        return count;
+    }
+
     public NonNullList<ItemStack> getDrops() {
         NonNullList<ItemStack> drops = NonNullList.create();
         for (int slot = 0; slot < TOTAL_SLOTS; slot++) {
@@ -786,16 +833,22 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
         ItemStack upgrade = patternUpgradeItems.getStackInSlot(0);
         if (!upgrade.isEmpty()) drops.add(upgrade.copy());
+        for (int slot = 0; slot < SPEED_CARD_SLOTS; slot++) {
+            ItemStack stack = speedItems.getStackInSlot(slot);
+            if (!stack.isEmpty()) drops.add(stack.copy());
+        }
         for (int slot = 0; slot < NETWORK_RETURN_SLOTS; slot++) {
             ItemStack stack = networkReturnBuffer.getStackInSlot(slot);
             if (!stack.isEmpty()) drops.add(stack.copy());
         }
+        parallelJobs.addDrops(drops);
         return drops;
     }
 
     public ItemStackHandler getItems() { return items; }
     public ItemStackHandler getPatternItems() { return patternItems; }
     public ItemStackHandler getPatternUpgradeItems() { return patternUpgradeItems; }
+    public ItemStackHandler getSpeedItems() { return speedItems; }
     public ContainerData getData() { return data; }
 
     @Override public @NotNull Component getDisplayName() {
@@ -838,7 +891,9 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         tag.put("Inventory", items.serializeNBT());
         tag.put("Patterns", patternItems.serializeNBT());
         tag.put("PatternUpgrade", patternUpgradeItems.serializeNBT());
+        tag.put("SpeedCards", speedItems.serializeNBT());
         tag.put("NetworkReturns", networkReturnBuffer.serializeNBT());
+        tag.put("ParallelJobs", parallelJobs.save());
         tag.putInt("Energy", energy.getEnergyStored());
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
@@ -882,8 +937,14 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (tag.contains("PatternUpgrade", Tag.TAG_COMPOUND)) {
             patternUpgradeItems.deserializeNBT(tag.getCompound("PatternUpgrade"));
         }
+        if (tag.contains("SpeedCards", Tag.TAG_COMPOUND)) {
+            speedItems.deserializeNBT(tag.getCompound("SpeedCards"));
+        }
         if (tag.contains("NetworkReturns", Tag.TAG_COMPOUND)) {
             networkReturnBuffer.deserializeNBT(tag.getCompound("NetworkReturns"));
+        }
+        if (tag.contains("ParallelJobs", Tag.TAG_COMPOUND)) {
+            parallelJobs.load(tag.getCompound("ParallelJobs"));
         }
         energy.setEnergyStored(tag.getInt("Energy"));
         progress = tag.getInt("Progress");
@@ -948,6 +1009,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         super.invalidateCaps();
         itemCapability.invalidate();
         energyCapability.invalidate();
+    }
+
+    private static boolean sameStackAndCount(ItemStack first, ItemStack second) {
+        return ItemStack.isSameItemSameTags(first, second) && first.getCount() == second.getCount();
     }
 
     private static void popItem(Level level, BlockPos pos, ItemStack stack) {
