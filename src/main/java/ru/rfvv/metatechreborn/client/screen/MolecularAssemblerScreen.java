@@ -17,7 +17,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
 
     public MolecularAssemblerScreen(MolecularAssemblerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 456;
+        imageWidth = 430;
         imageHeight = 256;
         inventoryLabelX = 8;
         inventoryLabelY = 168;
@@ -54,22 +54,24 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         graphics.fill(panelLeft, topPos, panelRight, topPos + imageHeight, 0xFF10242C);
         graphics.fill(panelLeft + 2, topPos + 2, panelRight - 2, topPos + imageHeight - 2, 0xFF17343E);
         graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 96, 0xFF0B1D24);
-        graphics.fill(panelLeft + 9, topPos + 99, panelRight - 9, topPos + 137, 0xFF0B1D24);
+        graphics.fill(panelLeft + 9, topPos + 99, panelRight - 9, topPos + 142, 0xFF0B1D24);
 
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 9; column++) {
-                int slot = column + row * 9;
-                int x = leftPos + 273 + column * 18;
-                int y = topPos + 21 + row * 18;
-                boolean active = slot < menu.getActivePatternSlots();
-                graphics.fill(x, y, x + 18, y + 18, 0xFF061319);
-                graphics.fill(x + 1, y + 1, x + 17, y + 17,
-                        active ? 0xFF37515A : 0xFF1D292D);
-                if (!active) graphics.fill(x + 4, y + 4, x + 14, y + 14, 0xAA000000);
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; slot++) {
+            int column = slot % MolecularAssemblerMenu.PATTERN_COLUMNS;
+            int row = slot / MolecularAssemblerMenu.PATTERN_COLUMNS;
+            int x = leftPos + 280 + column * 18;
+            int y = topPos + 21 + row * 18;
+            boolean active = slot < menu.getActivePatternSlots();
+            graphics.fill(x, y, x + 18, y + 18, 0xFF061319);
+            graphics.fill(x + 1, y + 1, x + 17, y + 17,
+                    active ? 0xFF37515A : 0xFF1D292D);
+            if (!active) {
+                graphics.fill(x + 4, y + 4, x + 14, y + 14, 0xAA000000);
+                graphics.fill(x + 7, y + 5, x + 11, y + 13, 0xFF26363C);
             }
         }
 
-        drawSlot(graphics, 274, 105, true);
+        drawSlot(graphics, 281, 105, true);
         drawSlot(graphics, 191, 74, true);
         drawSlot(graphics, 218, 74, true);
 
@@ -118,12 +120,12 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         graphics.drawString(font,
                 Component.translatable("gui.metatech_reborn.pattern_count",
                         menu.getInstalledPatternCount(), menu.getActivePatternSlots()),
-                298, 107, 0x9CCBFF, false);
+                306, 107, 0x9CCBFF, false);
         graphics.drawString(font,
                 Component.translatable(menu.getActivePatternSlots() == MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS
                         ? "gui.metatech_reborn.pattern_capacity.full"
                         : "gui.metatech_reborn.pattern_capacity.base"),
-                266, 126, 0xBBD5E7, false);
+                266, 127, 0xBBD5E7, false);
     }
 
     private static String statusKey(int status) {
@@ -133,6 +135,8 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             case MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.assembler.status.output";
             case MolecularAssemblerBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.assembler.status.running";
             case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> "gui.metatech_reborn.assembler.status.ae2_ready";
+            case MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK ->
+                    "gui.metatech_reborn.assembler.status.returning";
             default -> "gui.metatech_reborn.assembler.status.idle";
         };
     }
@@ -141,6 +145,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         return switch (status) {
             case MolecularAssemblerBlockEntity.STATUS_RUNNING -> 0xFF52E389;
             case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> 0xFF6ED7FF;
+            case MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK -> 0xFFB68CFF;
             case MolecularAssemblerBlockEntity.STATUS_NO_ENERGY -> 0xFFFFD56A;
             case MolecularAssemblerBlockEntity.STATUS_NO_RECIPE,
                  MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> 0xFFFF7382;
