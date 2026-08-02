@@ -4,23 +4,18 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
-import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
 
 public final class MolecularAssemblerScreen extends AbstractContainerScreen<MolecularAssemblerMenu> {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(
-            MetaTechReborn.MOD_ID, "textures/gui/molecular_assembler_9x9.png");
-
     public MolecularAssemblerScreen(MolecularAssemblerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 456;
-        imageHeight = 256;
-        inventoryLabelX = 8;
-        inventoryLabelY = 168;
+        imageWidth = 484;
+        imageHeight = 286;
+        inventoryLabelX = 10;
+        inventoryLabelY = 190;
     }
 
     @Override
@@ -34,7 +29,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                                         menu.containerId, MolecularAssemblerMenu.UNLOCK_BUTTON_ID);
                             }
                         })
-                .bounds(leftPos + 170, topPos + 16, 82, 20)
+                .bounds(leftPos + 186, topPos + 28, 100, 20)
                 .build());
     }
 
@@ -46,84 +41,81 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
     }
 
     @Override
-    protected void renderBg(@NotNull GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, 256, imageHeight, 512, 512);
+    protected void renderBg(@NotNull GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        MetaTechGui.background(g, leftPos, topPos, imageWidth, imageHeight);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 20, 166, 166);
+        MetaTechGui.panel(g, leftPos + 178, topPos + 6, 114, 180);
+        MetaTechGui.panel(g, leftPos + 296, topPos + 6, 182, 180);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 196, 166, 84);
 
-        int panelLeft = leftPos + 256;
-        int panelRight = leftPos + imageWidth;
-        graphics.fill(panelLeft, topPos, panelRight, topPos + imageHeight, 0xFF10242C);
-        graphics.fill(panelLeft + 2, topPos + 2, panelRight - 2, topPos + imageHeight - 2, 0xFF17343E);
-        graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 96, 0xFF0B1D24);
-        graphics.fill(panelLeft + 9, topPos + 99, panelRight - 9, topPos + 137, 0xFF0B1D24);
+        MetaTechGui.grid(g, leftPos + 10, topPos + 26, 9, 9, 0xFF48BFE3);
+        MetaTechGui.grid(g, leftPos + 10, topPos + 202, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 10, topPos + 260, 9, 1, 0xFF73879A);
+
+        MetaTechGui.slot(g, leftPos + 194, topPos + 72, 0xFF7A5DE8);
+        MetaTechGui.slot(g, leftPos + 226, topPos + 72, 0xFFFFC857);
 
         for (int row = 0; row < 4; row++) {
             for (int column = 0; column < 9; column++) {
                 int slot = column + row * 9;
-                int x = leftPos + 273 + column * 18;
-                int y = topPos + 21 + row * 18;
-                boolean active = slot < menu.getActivePatternSlots();
-                graphics.fill(x, y, x + 18, y + 18, 0xFF061319);
-                graphics.fill(x + 1, y + 1, x + 17, y + 17,
-                        active ? 0xFF37515A : 0xFF1D292D);
-                if (!active) graphics.fill(x + 4, y + 4, x + 14, y + 14, 0xAA000000);
+                int accent = slot < menu.getActivePatternSlots() ? 0xFF48BFE3 : 0xFF33444F;
+                MetaTechGui.slot(g, leftPos + 304 + column * 18, topPos + 28 + row * 18, accent);
+                if (slot >= menu.getActivePatternSlots()) {
+                    g.fill(leftPos + 308 + column * 18, topPos + 32 + row * 18,
+                            leftPos + 316 + column * 18, topPos + 40 + row * 18, 0xAA000000);
+                }
             }
         }
+        MetaTechGui.slot(g, leftPos + 304, topPos + 110, 0xFF7A5DE8);
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.AE2_SPEED_CARD_SLOTS; slot++) {
+            MetaTechGui.slot(g, leftPos + 334 + slot * 20, topPos + 110, 0xFF48BFE3);
+        }
 
-        drawSlot(graphics, 274, 105, true);
-        drawSlot(graphics, 191, 74, true);
-        drawSlot(graphics, 218, 74, true);
+        int progress = menu.getProgressPixels(92);
+        g.fill(leftPos + 188, topPos + 103, leftPos + 282, topPos + 113, 0xFF03090D);
+        g.fill(leftPos + 189, topPos + 104, leftPos + 189 + progress, topPos + 112, MetaTechGui.CYAN);
 
-        int progress = menu.getProgressPixels(66);
-        graphics.fill(leftPos + 177, topPos + 112, leftPos + 243, topPos + 121, 0xFF07171D);
-        graphics.fill(leftPos + 178, topPos + 113, leftPos + 178 + progress, topPos + 120, 0xFF43D7FF);
-
-        int energyPixels = menu.getEnergyPixels(51);
-        graphics.fill(leftPos + 238, topPos + 50, leftPos + 246, topPos + 102, 0xFF07171D);
-        graphics.fill(leftPos + 239, topPos + 101 - energyPixels,
-                leftPos + 245, topPos + 101, 0xFFFFC857);
-    }
-
-    private void drawSlot(GuiGraphics graphics, int x, int y, boolean active) {
-        graphics.fill(leftPos + x - 1, topPos + y - 1,
-                leftPos + x + 17, topPos + y + 17, 0xFF061319);
-        graphics.fill(leftPos + x, topPos + y,
-                leftPos + x + 16, topPos + y + 16, active ? 0xFF37515A : 0xFF1D292D);
+        int energyPixels = menu.getEnergyPixels(56);
+        g.fill(leftPos + 266, topPos + 62, leftPos + 274, topPos + 120, 0xFF03090D);
+        g.fill(leftPos + 267, topPos + 119 - energyPixels,
+                leftPos + 273, topPos + 119, MetaTechGui.GOLD);
     }
 
     @Override
-    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 8, 4, 0xEAF8FF, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
+    protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
+        g.drawString(font, title, 10, 8, 0xEAF8FF, false);
+        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
 
-        graphics.drawString(font,
-                Component.translatable(menu.isRecipeLocked()
+        g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.output"),
+                188, 59, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.charge"),
+                224, 59, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable(menu.isRecipeLocked()
                         ? "gui.metatech_reborn.recipe_locked"
                         : "gui.metatech_reborn.recipe_unlocked"),
-                170, 40, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
-        graphics.drawString(font, Component.translatable(statusKey(menu.getStatus())),
-                170, 52, statusColor(menu.getStatus()), false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.assembler.output"),
-                179, 64, 0xBBD5E7, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.assembler.charge"),
-                210, 64, 0xBBD5E7, false);
-        graphics.drawString(font,
-                Component.translatable("gui.metatech_reborn.assembler.energy",
-                        menu.getEnergyStored(), menu.getEnergyCapacity()),
-                170, 128, 0xF4D27A, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.ae2_native_patterns"),
-                170, 141, 0x9CCBFF, false);
+                186, 51, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
 
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.pattern_bank"),
-                266, 6, 0xEAF8FF, false);
-        graphics.drawString(font,
-                Component.translatable("gui.metatech_reborn.pattern_count",
+        MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(menu.getStatus())),
+                186, 122, 98, statusColor(menu.getStatus()), 3);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.energy",
+                        menu.getEnergyStored(), menu.getEnergyCapacity()),
+                186, 154, 0xF4D27A, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.speed_cards",
+                        menu.getAe2SpeedCards()),
+                186, 166, 0x6ED7FF, false);
+
+        g.drawString(font, Component.translatable("gui.metatech_reborn.pattern_bank"),
+                302, 10, 0xEAF8FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.pattern_count",
                         menu.getInstalledPatternCount(), menu.getActivePatternSlots()),
-                298, 107, 0x9CCBFF, false);
-        graphics.drawString(font,
-                Component.translatable(menu.getActivePatternSlots() == MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS
-                        ? "gui.metatech_reborn.pattern_capacity.full"
-                        : "gui.metatech_reborn.pattern_capacity.base"),
-                266, 126, 0xBBD5E7, false);
+                304, 134, 0x9CCBFF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.pattern_capacity_slot"),
+                304, 146, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.ae2_speed_cards"),
+                334, 122, 0x6ED7FF, false);
+        MetaTechGui.drawWrapped(g, font,
+                Component.translatable("gui.metatech_reborn.ae2_native_patterns"),
+                304, 158, 166, 0x9CCBFF, 2);
     }
 
     private static String statusKey(int status) {
