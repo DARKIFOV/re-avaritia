@@ -20,7 +20,7 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
 
     public GreenhouseMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory, (GreenhouseBlockEntity) inventory.player.level()
-                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(11));
+                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(12));
     }
 
     public GreenhouseMenu(int id, Inventory inventory, GreenhouseBlockEntity blockEntity, ContainerData data) {
@@ -89,6 +89,7 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
     public int getEconomyLevel() { return data.get(8); }
     public int getModeId() { return data.get(9); }
     public int getStatus() { return data.get(10); }
+    public int getSpectrolusNextColor() { return data.get(11); }
 
     public int getProgressPixels(int width) {
         return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress());
