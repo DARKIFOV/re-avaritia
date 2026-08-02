@@ -60,6 +60,20 @@ tasks.register('extractBundledAssets', Copy) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+tasks.register('applySourceHotfixes') {
+    inputs.file file('tools/apply_068_hotfixes.py')
+    outputs.upToDateWhen { false }
+    doLast {
+        exec {
+            commandLine 'python3', 'tools/apply_068_hotfixes.py'
+        }
+    }
+}
+
+tasks.named('compileJava').configure {
+    dependsOn tasks.named('applySourceHotfixes')
+}
+
 sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
