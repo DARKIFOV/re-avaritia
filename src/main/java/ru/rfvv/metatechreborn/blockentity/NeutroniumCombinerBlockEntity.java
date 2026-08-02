@@ -84,6 +84,7 @@ public final class NeutroniumCombinerBlockEntity extends BlockEntity implements 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             if (slot < INPUT_SLOTS) return isCollectorCandidate(stack);
+            if (slot >= FIRST_OUTPUT_SLOT && slot < FIRST_UPGRADE_SLOT) return true;
             if (slot >= FIRST_UPGRADE_SLOT && slot < ENERGY_SLOT) {
                 return stack.getItem() instanceof NeutroniumCombinerUpgradeItem;
             }
