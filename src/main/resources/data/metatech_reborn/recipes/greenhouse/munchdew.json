@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:munchdew" },
+  "fuel": { "tag": "minecraft:leaves" },
+  "mana": 160,
+  "time": 80,
+  "consume_fuel": true
+}
