@@ -3,8 +3,10 @@ package ru.rfvv.metatechreborn.blockentity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
@@ -25,6 +27,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
@@ -43,6 +46,7 @@ import ru.rfvv.metatechreborn.util.TrackingEnergyStorage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /** Modern Forge rewrite of MetaAdvanced's normal and advanced luck changers. */
@@ -86,7 +90,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            if (slot < MAX_INPUTS) return stack.getItem() instanceof BlockItem;
+            if (slot < MAX_INPUTS) return isProcessableInput(stack);
             if (slot >= FIRST_OUTPUT && slot < MODULE_SLOT) return true;
             if (slot == MODULE_SLOT) {
                 return stack.getItem() instanceof LuckModuleItem || stack.getItem() instanceof PickaxeItem;
@@ -215,7 +219,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         int amount = operationsPerInput();
         for (int slot = 0; slot < inputSlots(); slot++) {
             ItemStack stack = items.getStackInSlot(slot);
-            if (!(stack.getItem() instanceof BlockItem)) continue;
+            if (!isProcessableInput(stack)) continue;
             work.add(new PendingInput(slot, Math.min(amount, stack.getCount()), stack.copy()));
         }
         return work;
@@ -229,20 +233,57 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         boolean smelt = hasUpgrade(LuckConverterUpgradeItem.Type.SMELT);
 
         for (PendingInput input : work) {
-            BlockItem blockItem = (BlockItem) input.stack().getItem();
-            BlockState state = blockItem.getBlock().defaultBlockState();
-            for (int operation = 0; operation < input.amount(); operation++) {
-                List<ItemStack> drops = Block.getDrops(
-                        state, serverLevel, worldPosition, null, null, tool);
-                if (drops.isEmpty()) drops = List.of(new ItemStack(blockItem));
-                for (ItemStack drop : drops) {
-                    ItemStack converted = smelt ? smelt(drop) : drop.copy();
-                    if (doubleDrops) converted.setCount(converted.getCount() * 2);
-                    merge(result, converted);
+            if (input.stack().getItem() instanceof BlockItem blockItem) {
+                BlockState state = blockItem.getBlock().defaultBlockState();
+                for (int operation = 0; operation < input.amount(); operation++) {
+                    List<ItemStack> drops = Block.getDrops(
+                            state, serverLevel, worldPosition, null, null, tool);
+                    if (drops.isEmpty()) drops = List.of(new ItemStack(blockItem));
+                    addConvertedDrops(result, drops, smelt, doubleDrops);
                 }
+                continue;
+            }
+
+            for (int operation = 0; operation < input.amount(); operation++) {
+                ItemStack rawDrop = input.stack().copy();
+                rawDrop.setCount(rawMaterialOutputCount());
+                addConvertedDrops(result, List.of(rawDrop), smelt, doubleDrops);
             }
         }
         return result;
+    }
+
+    private void addConvertedDrops(List<ItemStack> result, List<ItemStack> drops,
+                                   boolean smelt, boolean doubleDrops) {
+        for (ItemStack drop : drops) {
+            ItemStack converted = smelt ? smelt(drop) : drop.copy();
+            if (doubleDrops) converted.setCount(converted.getCount() * 2);
+            merge(result, converted);
+        }
+    }
+
+    private int rawMaterialOutputCount() {
+        int fortune = Math.max(0, luckLevel());
+        if (fortune <= 0 || level == null) return 1;
+        return 1 + level.random.nextInt(fortune + 1);
+    }
+
+    private static boolean isProcessableInput(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (stack.getItem() instanceof BlockItem) return true;
+        if (stack.is(Tags.Items.RAW_MATERIALS) || stack.is(Tags.Items.ORES)) return true;
+
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (id == null) return false;
+        String path = id.getPath().toLowerCase(Locale.ROOT);
+        return path.startsWith("raw_")
+                || path.endsWith("_raw")
+                || path.endsWith("_ore")
+                || path.contains("crushed_ore")
+                || path.contains("ore_chunk")
+                || path.contains("ore_piece")
+                || path.endsWith("_chunk")
+                || path.endsWith("_cluster");
     }
 
     private ItemStack smelt(ItemStack input) {
@@ -288,7 +329,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
     private boolean hasInput() {
         for (int slot = 0; slot < inputSlots(); slot++) {
-            if (items.getStackInSlot(slot).getItem() instanceof BlockItem) return true;
+            if (isProcessableInput(items.getStackInSlot(slot))) return true;
         }
         return false;
     }
