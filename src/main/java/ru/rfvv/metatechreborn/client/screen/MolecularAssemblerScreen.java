@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
 
 public final class MolecularAssemblerScreen extends AbstractContainerScreen<MolecularAssemblerMenu> {
@@ -16,7 +17,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
 
     public MolecularAssemblerScreen(MolecularAssemblerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 256;
+        imageWidth = 456;
         imageHeight = 256;
         inventoryLabelX = 8;
         inventoryLabelY = 168;
@@ -33,7 +34,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                                         menu.containerId, MolecularAssemblerMenu.UNLOCK_BUTTON_ID);
                             }
                         })
-                .bounds(leftPos + 176, topPos + 17, 72, 18)
+                .bounds(leftPos + 170, topPos + 16, 82, 20)
                 .build());
     }
 
@@ -46,29 +47,104 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
 
     @Override
     protected void renderBg(@NotNull GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, 512, 512);
+        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, 256, imageHeight, 512, 512);
+
+        int panelLeft = leftPos + 256;
+        int panelRight = leftPos + imageWidth;
+        graphics.fill(panelLeft, topPos, panelRight, topPos + imageHeight, 0xFF10242C);
+        graphics.fill(panelLeft + 2, topPos + 2, panelRight - 2, topPos + imageHeight - 2, 0xFF17343E);
+        graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 96, 0xFF0B1D24);
+        graphics.fill(panelLeft + 9, topPos + 99, panelRight - 9, topPos + 137, 0xFF0B1D24);
+
+        for (int row = 0; row < 4; row++) {
+            for (int column = 0; column < 9; column++) {
+                int slot = column + row * 9;
+                int x = leftPos + 273 + column * 18;
+                int y = topPos + 21 + row * 18;
+                boolean active = slot < menu.getActivePatternSlots();
+                graphics.fill(x, y, x + 18, y + 18, 0xFF061319);
+                graphics.fill(x + 1, y + 1, x + 17, y + 17,
+                        active ? 0xFF37515A : 0xFF1D292D);
+                if (!active) graphics.fill(x + 4, y + 4, x + 14, y + 14, 0xAA000000);
+            }
+        }
+
+        drawSlot(graphics, 274, 105, true);
+        drawSlot(graphics, 191, 74, true);
+        drawSlot(graphics, 218, 74, true);
 
         int progress = menu.getProgressPixels(66);
-        graphics.fill(leftPos + 177, topPos + 112, leftPos + 177 + progress, topPos + 120, 0xFF43D7FF);
+        graphics.fill(leftPos + 177, topPos + 112, leftPos + 243, topPos + 121, 0xFF07171D);
+        graphics.fill(leftPos + 178, topPos + 113, leftPos + 178 + progress, topPos + 120, 0xFF43D7FF);
 
         int energyPixels = menu.getEnergyPixels(51);
-        graphics.fill(leftPos + 236, topPos + 100 - energyPixels,
-                leftPos + 244, topPos + 101, 0xFFFFC857);
+        graphics.fill(leftPos + 238, topPos + 50, leftPos + 246, topPos + 102, 0xFF07171D);
+        graphics.fill(leftPos + 239, topPos + 101 - energyPixels,
+                leftPos + 245, topPos + 101, 0xFFFFC857);
+    }
+
+    private void drawSlot(GuiGraphics graphics, int x, int y, boolean active) {
+        graphics.fill(leftPos + x - 1, topPos + y - 1,
+                leftPos + x + 17, topPos + y + 17, 0xFF061319);
+        graphics.fill(leftPos + x, topPos + y,
+                leftPos + x + 16, topPos + y + 16, active ? 0xFF37515A : 0xFF1D292D);
     }
 
     @Override
     protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 8, 4, 0xEAF8FF, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
+
         graphics.drawString(font,
                 Component.translatable(menu.isRecipeLocked()
                         ? "gui.metatech_reborn.recipe_locked"
                         : "gui.metatech_reborn.recipe_unlocked"),
-                176, 40, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
+                170, 40, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
+        graphics.drawString(font, Component.translatable(statusKey(menu.getStatus())),
+                170, 52, statusColor(menu.getStatus()), false);
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.assembler.output"),
+                179, 64, 0xBBD5E7, false);
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.assembler.charge"),
+                210, 64, 0xBBD5E7, false);
         graphics.drawString(font,
-                Component.literal(menu.getEnergyStored() + " / " + menu.getEnergyCapacity() + " FE"),
-                176, 128, 0xF4D27A, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.ae2_direct"),
-                176, 144, 0x9CCBFF, false);
+                Component.translatable("gui.metatech_reborn.assembler.energy",
+                        menu.getEnergyStored(), menu.getEnergyCapacity()),
+                170, 128, 0xF4D27A, false);
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.ae2_native_patterns"),
+                170, 141, 0x9CCBFF, false);
+
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.pattern_bank"),
+                266, 6, 0xEAF8FF, false);
+        graphics.drawString(font,
+                Component.translatable("gui.metatech_reborn.pattern_count",
+                        menu.getInstalledPatternCount(), menu.getActivePatternSlots()),
+                298, 107, 0x9CCBFF, false);
+        graphics.drawString(font,
+                Component.translatable(menu.getActivePatternSlots() == MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS
+                        ? "gui.metatech_reborn.pattern_capacity.full"
+                        : "gui.metatech_reborn.pattern_capacity.base"),
+                266, 126, 0xBBD5E7, false);
+    }
+
+    private static String statusKey(int status) {
+        return switch (status) {
+            case MolecularAssemblerBlockEntity.STATUS_NO_RECIPE -> "gui.metatech_reborn.assembler.status.recipe";
+            case MolecularAssemblerBlockEntity.STATUS_NO_ENERGY -> "gui.metatech_reborn.assembler.status.energy";
+            case MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.assembler.status.output";
+            case MolecularAssemblerBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.assembler.status.running";
+            case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> "gui.metatech_reborn.assembler.status.ae2_ready";
+            default -> "gui.metatech_reborn.assembler.status.idle";
+        };
+    }
+
+    private static int statusColor(int status) {
+        return switch (status) {
+            case MolecularAssemblerBlockEntity.STATUS_RUNNING -> 0xFF52E389;
+            case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> 0xFF6ED7FF;
+            case MolecularAssemblerBlockEntity.STATUS_NO_ENERGY -> 0xFFFFD56A;
+            case MolecularAssemblerBlockEntity.STATUS_NO_RECIPE,
+                 MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> 0xFFFF7382;
+            default -> 0xFFBBD5E7;
+        };
     }
 }

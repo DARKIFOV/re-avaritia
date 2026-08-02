@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:rafflowsia" },
+  "fuel_mode": "special_flower",
+  "mana": 2000,
+  "time": 40,
+  "consume_fuel": true
+}

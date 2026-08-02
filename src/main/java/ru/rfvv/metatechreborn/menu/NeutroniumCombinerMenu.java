@@ -22,7 +22,7 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
         this(containerId, playerInventory,
                 (NeutroniumCombinerBlockEntity) playerInventory.player.level()
                         .getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(23));
+                new SimpleContainerData(32));
     }
 
     public NeutroniumCombinerMenu(int containerId, Inventory playerInventory,
@@ -53,6 +53,8 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
             int slot = NeutroniumCombinerBlockEntity.FIRST_UPGRADE_SLOT + column;
             addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 10 + column * 22, 116));
         }
+        addSlot(new SlotItemHandler(blockEntity.getItems(),
+                NeutroniumCombinerBlockEntity.ENERGY_SLOT, 98, 116));
 
         int inventoryX = 62;
         int inventoryY = 157;
@@ -101,11 +103,15 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
         return maximum <= 0 ? 0 : Math.min(width, data.get(inputSlot) * width / maximum);
     }
 
-    public int getEnergyStored() { return data.get(18); }
-    public int getEnergyCapacity() { return data.get(19); }
-    public int getSpeedUpgrades() { return data.get(20); }
-    public int getEfficiencyUpgrades() { return data.get(21); }
-    public int getOutputUpgrades() { return data.get(22); }
+    public int getStatus(int inputSlot) {
+        return data.get(NeutroniumCombinerBlockEntity.INPUT_SLOTS * 2 + inputSlot);
+    }
+
+    public int getEnergyStored() { return data.get(27); }
+    public int getEnergyCapacity() { return data.get(28); }
+    public int getSpeedUpgrades() { return data.get(29); }
+    public int getEfficiencyUpgrades() { return data.get(30); }
+    public int getOutputUpgrades() { return data.get(31); }
 
     public int getEnergyPixels(int height) {
         int capacity = getEnergyCapacity();

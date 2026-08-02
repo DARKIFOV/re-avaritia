@@ -26,7 +26,6 @@ public final class MetaTechJeiPlugin implements IModPlugin {
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(
                 new MolecularAssemblerRecipeCategory(registration.getJeiHelpers().getGuiHelper()),
-                new NeutroniumCombinerRecipeCategory(registration.getJeiHelpers().getGuiHelper()),
                 new ManaDrillRecipeCategory(registration.getJeiHelpers().getGuiHelper()));
     }
 
@@ -38,10 +37,6 @@ public final class MetaTechJeiPlugin implements IModPlugin {
                 Minecraft.getInstance().level.getRecipeManager()
                         .getAllRecipesFor(ModRecipes.MOLECULAR_ASSEMBLING_TYPE.get()));
         registration.addRecipes(
-                NeutroniumCombinerRecipeCategory.TYPE,
-                Minecraft.getInstance().level.getRecipeManager()
-                        .getAllRecipesFor(ModRecipes.NEUTRONIUM_COMBINING_TYPE.get()));
-        registration.addRecipes(
                 ManaDrillRecipeCategory.TYPE,
                 Minecraft.getInstance().level.getRecipeManager()
                         .getAllRecipesFor(ModRecipes.MANA_DRILL_GENERATING_TYPE.get()));
@@ -52,9 +47,6 @@ public final class MetaTechJeiPlugin implements IModPlugin {
         registration.addRecipeCatalyst(
                 ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
                 MolecularAssemblerRecipeCategory.TYPE);
-        registration.addRecipeCatalyst(
-                ModItems.NEUTRONIUM_COMBINER.get(),
-                NeutroniumCombinerRecipeCategory.TYPE);
         registration.addRecipeCatalyst(
                 ModItems.MANA_DRILL.get(),
                 ManaDrillRecipeCategory.TYPE);

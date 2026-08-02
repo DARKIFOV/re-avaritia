@@ -1,0 +1,9 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:gourmaryllis" },
+  "fuel": { "item": "minecraft:bread" },
+  "fuel_mode": "edible",
+  "mana": 5000,
+  "time": 200,
+  "consume_fuel": true
+}

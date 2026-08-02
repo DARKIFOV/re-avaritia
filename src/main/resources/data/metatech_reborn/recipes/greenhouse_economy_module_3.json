@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "metatech_reborn:greenhouse_economy_module_2" },
+    { "item": "minecraft:diamond" },
+    { "item": "botania:terrasteel_ingot" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_economy_module_3" }
+}

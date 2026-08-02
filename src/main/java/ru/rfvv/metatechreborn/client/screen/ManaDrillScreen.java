@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
 
 public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu> {
@@ -38,22 +39,44 @@ public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu
         graphics.fill(leftPos + 18, topPos + 78,
                 leftPos + 18 + progressPixels, topPos + 82, 0xFFB26CFF);
 
-        int statusColor = menu.isStructureFormed() ? 0xFF52E389 : 0xFFFF5B6E;
-        graphics.fill(leftPos + 18, topPos + 96, leftPos + 25, topPos + 103, statusColor);
+        graphics.fill(leftPos + 18, topPos + 96, leftPos + 25, topPos + 103,
+                statusColor(menu.getStatus()));
     }
 
     @Override protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 8, 5, 0xEAF8FF, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
-        graphics.drawString(font, Component.literal(menu.getMana() + " / " + menu.getManaCapacity() + " Mana"),
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.mana",
+                        menu.getMana(), menu.getManaCapacity()),
                 102, 6, 0x6EE7F9, false);
         graphics.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.levels",
                         menu.getSpeedLevel(), menu.getLootingLevel(), menu.getGenerationLevel()),
                 8, 108, 0xD8E6F3, false);
-        graphics.drawString(font,
-                Component.translatable(menu.isStructureFormed()
-                        ? "gui.metatech_reborn.structure_formed"
-                        : "gui.metatech_reborn.structure_missing"),
-                30, 95, menu.isStructureFormed() ? 0x52E389 : 0xFF7382, false);
+        graphics.drawString(font, Component.translatable(statusKey(menu.getStatus())),
+                30, 95, statusColor(menu.getStatus()), false);
+    }
+
+    private static String statusKey(int status) {
+        return switch (status) {
+            case ManaDrillBlockEntity.STATUS_STRUCTURE_MISSING -> "gui.metatech_reborn.mana_drill.status.structure";
+            case ManaDrillBlockEntity.STATUS_NO_MODULE -> "gui.metatech_reborn.mana_drill.status.module";
+            case ManaDrillBlockEntity.STATUS_NO_RECIPE -> "gui.metatech_reborn.mana_drill.status.recipe";
+            case ManaDrillBlockEntity.STATUS_NO_MANA -> "gui.metatech_reborn.mana_drill.status.mana";
+            case ManaDrillBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.mana_drill.status.output";
+            case ManaDrillBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.mana_drill.status.running";
+            default -> "gui.metatech_reborn.mana_drill.status.idle";
+        };
+    }
+
+    private static int statusColor(int status) {
+        return switch (status) {
+            case ManaDrillBlockEntity.STATUS_RUNNING -> 0xFF52E389;
+            case ManaDrillBlockEntity.STATUS_NO_MANA -> 0xFFFFD56A;
+            case ManaDrillBlockEntity.STATUS_STRUCTURE_MISSING,
+                 ManaDrillBlockEntity.STATUS_NO_MODULE,
+                 ManaDrillBlockEntity.STATUS_NO_RECIPE,
+                 ManaDrillBlockEntity.STATUS_OUTPUT_FULL -> 0xFFFF7382;
+            default -> 0xFF9CCBFF;
+        };
     }
 }

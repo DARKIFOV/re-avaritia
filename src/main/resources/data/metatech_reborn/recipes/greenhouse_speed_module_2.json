@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "metatech_reborn:greenhouse_speed_module_1" },
+    { "item": "minecraft:blaze_powder" },
+    { "item": "botania:mana_powder" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_speed_module_2" }
+}
