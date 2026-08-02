@@ -61,12 +61,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Compact Botania generating-flower greenhouse.
- *
- * <p>Standard flowers use item/fluid equivalents of their original mechanics.
- * Datapacks can add more flowers through the greenhouse recipe type.</p>
- */
+/** Compact Botania generating-flower greenhouse. */
 public final class GreenhouseBlockEntity extends BlockEntity implements MenuProvider, ManaPool, SparkAttachable {
     public static final int FLOWER_SLOT = 0;
     public static final int FIRST_MODULE_SLOT = 1;
@@ -122,7 +117,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
 
         @Override
         public int getSlotLimit(int slot) {
-            if (slot == FLOWER_SLOT) return 1;
+            if (slot == FLOWER_SLOT) return 64;
             if (slot >= FIRST_MODULE_SLOT && slot < FIRST_MODULE_SLOT + MODULE_SLOTS) return 1;
             return super.getSlotLimit(slot);
         }
@@ -139,8 +134,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
 
     private final FluidTank tank = new FluidTank(FLUID_CAPACITY,
             stack -> stack.getFluid() == Fluids.WATER || stack.getFluid() == Fluids.LAVA) {
-        @Override
-        protected void onContentsChanged() {
+        @Override protected void onContentsChanged() {
             resetProgress(false);
             setChanged();
         }
@@ -150,8 +144,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     private final LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(() -> tank);
 
     private final ContainerData data = new ContainerData() {
-        @Override
-        public int get(int index) {
+        @Override public int get(int index) {
             return switch (index) {
                 case 0 -> progress;
                 case 1 -> maxProgress;
@@ -168,16 +161,13 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                 default -> 0;
             };
         }
-
-        @Override
-        public void set(int index, int value) {
+        @Override public void set(int index, int value) {
             if (index == 0) progress = value;
             else if (index == 1) maxProgress = value;
             else if (index == 2) mana = value;
             else if (index == 10) status = value;
             else if (index == 11) spectrolusNextColor = DyeColor.byId(value).getId();
         }
-
         @Override public int getCount() { return 12; }
     };
 
@@ -347,8 +337,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         return switch (recipe.fuelMode()) {
             case NONE -> true;
             case INGREDIENT -> recipe.fuel().test(stack);
-            case FURNACE_FUEL -> getBurnTime(stack) > 0
-                    && !stack.getItem().hasCraftingRemainingItem();
+            case FURNACE_FUEL -> getBurnTime(stack) > 0 && !stack.getItem().hasCraftingRemainingItem();
             case EDIBLE -> getFoodProperties(stack) != null;
             case WOOL_CYCLE -> stack.is(getExpectedWoolItem());
             case SPECIAL_FLOWER -> isConsumableSpecialFlower(stack);
@@ -400,7 +389,6 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     private boolean canStoreRemainder(int sourceSlot, ItemStack consumed) {
         if (consumed.isEmpty() || !consumed.getItem().hasCraftingRemainingItem()) return true;
         if (items.getStackInSlot(sourceSlot).getCount() == 1) return true;
-
         ItemStack remainder = new ItemStack(consumed.getItem().getCraftingRemainingItem());
         for (int slot = FIRST_FUEL_SLOT; slot < FIRST_FUEL_SLOT + FUEL_SLOTS; slot++) {
             if (slot == sourceSlot) continue;
@@ -463,7 +451,6 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                     ? Math.max(1, recipe.mana() * 9) : recipe.mana();
             default -> recipe.mana();
         };
-
         int efficiency = getModuleLevel(GreenhouseModuleItem.Type.EFFICIENCY);
         long value = (long) base * (100 + efficiency * 25) / 100;
         return (int) Math.min(MANA_CAPACITY, Math.max(1L, value));
@@ -494,19 +481,13 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     private int getGourmaryllisMana(ItemStack food) {
         int value = getFoodValue(food);
         if (value <= 0) return 1;
-
         int previousIndex = findSameStack(gourmaryllisHistory, food);
         int maxStreak = GOURMARYLLIS_STREAK_MULTIPLIERS.length - 1;
         if (previousIndex < 0) previousIndex = maxStreak;
         int nextStreak = Math.min(gourmaryllisStreak + 1, previousIndex);
-
-        double multiplier;
-        if (previousIndex == 0) {
-            multiplier = 1.0D / Math.max(1, gourmaryllisRepeatCount + 1);
-        } else {
-            multiplier = GOURMARYLLIS_STREAK_MULTIPLIERS[
-                    Math.max(0, Math.min(maxStreak, nextStreak))];
-        }
+        double multiplier = previousIndex == 0
+                ? 1.0D / Math.max(1, gourmaryllisRepeatCount + 1)
+                : GOURMARYLLIS_STREAK_MULTIPLIERS[Math.max(0, Math.min(maxStreak, nextStreak))];
         return Math.max(1, (int) (value * value * 70.0D * multiplier));
     }
 
@@ -514,19 +495,11 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         int previousIndex = findSameStack(gourmaryllisHistory, food);
         int maxStreak = GOURMARYLLIS_STREAK_MULTIPLIERS.length - 1;
         if (previousIndex < 0) previousIndex = maxStreak;
-
         gourmaryllisStreak = Math.min(gourmaryllisStreak + 1, previousIndex);
-        if (previousIndex == 0) {
-            gourmaryllisRepeatCount++;
-        } else {
-            gourmaryllisRepeatCount = 1;
-        }
-
+        gourmaryllisRepeatCount = previousIndex == 0 ? gourmaryllisRepeatCount + 1 : 1;
         gourmaryllisHistory.removeIf(existing -> ItemStack.isSameItemSameTags(existing, food));
         gourmaryllisHistory.add(0, oneItem(food));
-        while (gourmaryllisHistory.size() > maxStreak) {
-            gourmaryllisHistory.remove(gourmaryllisHistory.size() - 1);
-        }
+        while (gourmaryllisHistory.size() > maxStreak) gourmaryllisHistory.remove(gourmaryllisHistory.size() - 1);
     }
 
     private int getRafflowsiaMana(ItemStack flower) {
@@ -547,12 +520,9 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                 ? Math.min(47, rafflowsiaStreak + 1)
                 : Math.min(rafflowsiaStreak + 1, previousIndex);
         rafflowsiaRepeatCount = previousIndex == 0 ? rafflowsiaRepeatCount + 1 : 1;
-
         rafflowsiaHistory.remove(id);
         rafflowsiaHistory.add(0, id);
-        while (rafflowsiaHistory.size() > 48) {
-            rafflowsiaHistory.remove(rafflowsiaHistory.size() - 1);
-        }
+        while (rafflowsiaHistory.size() > 48) rafflowsiaHistory.remove(rafflowsiaHistory.size() - 1);
     }
 
     private static int findSameStack(List<ItemStack> stacks, ItemStack target) {
@@ -569,8 +539,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
                     spectrolusNextColor >= DyeColor.BLACK.getId()
                             ? DyeColor.WHITE.getId() : DyeColor.byId(spectrolusNextColor + 1).getId();
             case SPECIAL_FLOWER -> recordRafflowsiaFlower(fuel);
-            default -> {
-            }
+            default -> { }
         }
     }
 
@@ -599,16 +568,12 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         int level = 0;
         for (int slot = FIRST_MODULE_SLOT; slot < FIRST_MODULE_SLOT + MODULE_SLOTS; slot++) {
             ItemStack stack = items.getStackInSlot(slot);
-            if (stack.getItem() instanceof GreenhouseModuleItem module && module.type() == type) {
-                level += module.level();
-            }
+            if (stack.getItem() instanceof GreenhouseModuleItem module && module.type() == type) level += module.level();
         }
         return Math.min(type.maximum(), level);
     }
 
-    private boolean hasModule(GreenhouseModuleItem.Type type) {
-        return getModuleLevel(type) > 0;
-    }
+    private boolean hasModule(GreenhouseModuleItem.Type type) { return getModuleLevel(type) > 0; }
 
     private boolean isSupportedFlowerItem(ItemStack stack) {
         if (stack.isEmpty()) return false;
@@ -727,8 +692,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         return new GreenhouseMenu(id, inventory, this, data);
     }
 
-    @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
+    @Override protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put("Inventory", items.serializeNBT());
         tag.put("Tank", tank.writeToNBT(new CompoundTag()));
@@ -745,9 +709,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         if (activeRecipeId != null) tag.putString("ActiveRecipe", activeRecipeId.toString());
 
         ListTag foods = new ListTag();
-        for (ItemStack food : gourmaryllisHistory) {
-            foods.add(food.save(new CompoundTag()));
-        }
+        for (ItemStack food : gourmaryllisHistory) foods.add(food.save(new CompoundTag()));
         tag.put("GourmaryllisFoods", foods);
 
         ListTag flowers = new ListTag();
@@ -759,8 +721,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         tag.put("RafflowsiaFlowers", flowers);
     }
 
-    @Override
-    public void load(@NotNull CompoundTag tag) {
+    @Override public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         items.deserializeNBT(tag.getCompound("Inventory"));
         tank.readFromNBT(tag.getCompound("Tank"));
@@ -793,8 +754,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         networkRegistered = false;
     }
 
-    @Override
-    public <T> @NotNull LazyOptional<T> getCapability(
+    @Override public <T> @NotNull LazyOptional<T> getCapability(
             @NotNull net.minecraftforge.common.capabilities.Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         if (cap == ForgeCapabilities.FLUID_HANDLER) return fluidCapability.cast();
@@ -807,8 +767,7 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
         fluidCapability.invalidate();
     }
 
-    @Override
-    public void setRemoved() {
+    @Override public void setRemoved() {
         if (networkRegistered && level != null) {
             BotaniaAPI.instance().getManaNetworkInstance().fireManaNetworkEvent(
                     this, ManaBlockType.POOL, ManaNetworkAction.REMOVE);
@@ -825,10 +784,9 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     @Override public boolean isOutputtingPower() { return true; }
     @Override public int getMaxMana() { return MANA_CAPACITY; }
     @Override public Optional<DyeColor> getColor() { return Optional.empty(); }
-    @Override public void setColor(Optional<DyeColor> color) {}
+    @Override public void setColor(Optional<DyeColor> color) { }
 
-    @Override
-    public void receiveMana(int amount) {
+    @Override public void receiveMana(int amount) {
         int updated = Math.max(0, Math.min(MANA_CAPACITY, mana + amount));
         if (updated != mana) {
             mana = updated;
@@ -840,16 +798,12 @@ public final class GreenhouseBlockEntity extends BlockEntity implements MenuProv
     @Override public int getAvailableSpaceForMana() { return 0; }
     @Override public boolean areIncomingTranfersDone() { return true; }
 
-    @Override
-    public ManaSpark getAttachedSpark() {
+    @Override public ManaSpark getAttachedSpark() {
         if (level == null) return null;
         AABB area = new AABB(worldPosition.getX(), worldPosition.getY() + 1.0D, worldPosition.getZ(),
                 worldPosition.getX() + 1.0D, worldPosition.getY() + 2.0D, worldPosition.getZ() + 1.0D);
-        List<Entity> entities = level.getEntitiesOfClass(Entity.class, area,
-                entity -> entity instanceof ManaSpark);
-        for (Entity entity : entities) {
-            if (entity instanceof ManaSpark spark) return spark;
-        }
+        List<Entity> entities = level.getEntitiesOfClass(Entity.class, area, entity -> entity instanceof ManaSpark);
+        for (Entity entity : entities) if (entity instanceof ManaSpark spark) return spark;
         return null;
     }
 }
