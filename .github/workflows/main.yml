@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: metatech-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -28,12 +32,67 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Build
+      - name: Build unified mod
         run: gradle build --no-daemon --stacktrace
 
-      - name: Upload mod JAR
+      - name: Validate assembler inventory bytecode
+        shell: bash
+        run: |
+          JAR=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
+          test -n "$JAR"
+          javap -classpath "$JAR" -c -p ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity > build/assembler-bytecode.txt
+          grep -Eq 'bipush[[:space:]]+83' build/assembler-bytecode.txt
+          echo "Confirmed molecular assembler inventory contains 83 slots (0-82)."
+
+      - name: Validate packaged resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import zipfile
+
+          jars = [path for path in glob.glob("build/libs/*.jar")
+                  if not path.endswith(("-sources.jar", "-javadoc.jar"))]
+          if len(jars) != 1:
+              raise SystemExit(f"Expected one distributable JAR, found: {jars}")
+
+          required = {
+              "META-INF/mods.toml",
+              "ru/rfvv/metatechreborn/blockentity/MolecularAssemblerBlockEntity.class",
+              "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2Provider.class",
+              "assets/metatech_reborn/textures/gui/molecular_assembler_9x9.png",
+              "assets/metatech_reborn/blockstates/luck_converter.json",
+              "assets/metatech_reborn/blockstates/advanced_luck_converter.json",
+              "assets/metatech_reborn/models/item/energy_food_tier_4.json",
+              "assets/metatech_reborn/models/item/luck_module_12.json",
+              "data/metatech_reborn/recipes/luck_converter.json",
+              "data/metatech_reborn/recipes/advanced_luck_converter.json",
+              "data/minecraft/tags/blocks/mineable/pickaxe.json",
+          }
+
+          with zipfile.ZipFile(jars[0]) as archive:
+              names = set(archive.namelist())
+              missing = sorted(required - names)
+              if missing:
+                  raise SystemExit("Missing required JAR entries:\n" + "\n".join(missing))
+
+              json_count = 0
+              for name in sorted(names):
+                  if not name.endswith(".json"):
+                      continue
+                  try:
+                      json.loads(archive.read(name).decode("utf-8"))
+                  except Exception as error:
+                      raise SystemExit(f"Invalid JSON {name}: {error}") from error
+                  json_count += 1
+
+          print(f"Validated {json_count} JSON files in {jars[0]}")
+          PY
+
+      - name: Upload unified MetaTech JAR
         uses: actions/upload-artifact@v4
         with:
-          name: MetaTech-Reborn-${{ github.sha }}
+          name: MetaTech-Reborn-unified-${{ github.sha }}
           path: build/libs/*.jar
           if-no-files-found: error

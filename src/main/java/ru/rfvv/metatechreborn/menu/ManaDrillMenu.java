@@ -20,7 +20,7 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
 
     public ManaDrillMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory, (ManaDrillBlockEntity) inventory.player.level()
-                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(8));
+                .getBlockEntity(buffer.readBlockPos()), new SimpleContainerData(9));
     }
 
     public ManaDrillMenu(int id, Inventory inventory, ManaDrillBlockEntity blockEntity, ContainerData data) {
@@ -43,8 +43,11 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
         }
 
         int playerY = 137;
-        for (int row = 0; row < 3; row++) for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column + row * 9 + 9, 62 + column * 18, playerY + row * 18));
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                addSlot(new Slot(inventory, column + row * 9 + 9,
+                        62 + column * 18, playerY + row * 18));
+            }
         }
         for (int column = 0; column < 9; column++) {
             addSlot(new Slot(inventory, column, 62 + column * 18, playerY + 58));
@@ -81,9 +84,12 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
     public int getLootingLevel() { return data.get(5); }
     public int getGenerationLevel() { return data.get(6); }
     public boolean isStructureFormed() { return data.get(7) != 0; }
+    public int getStatus() { return data.get(8); }
+
     public int getProgressPixels(int width) {
         return getMaxProgress() <= 0 ? 0 : Math.min(width, getProgress() * width / getMaxProgress());
     }
+
     public int getManaPixels(int height) {
         return getManaCapacity() <= 0 ? 0 : Math.min(height, getMana() * height / getManaCapacity());
     }

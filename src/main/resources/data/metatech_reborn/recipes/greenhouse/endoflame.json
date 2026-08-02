@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:endoflame" },
+  "fuel": { "tag": "minecraft:coals" },
+  "mana": 1200,
+  "time": 200,
+  "consume_fuel": true
+}

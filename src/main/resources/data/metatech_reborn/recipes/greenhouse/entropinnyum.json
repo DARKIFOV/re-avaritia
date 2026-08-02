@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:entropinnyum" },
+  "fuel": { "item": "minecraft:tnt" },
+  "mana": 6500,
+  "time": 200,
+  "consume_fuel": true
+}
