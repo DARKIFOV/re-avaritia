@@ -116,3 +116,5 @@ tasks.named('jar', Jar).configure {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     finalizedBy 'reobfJar'
 }
+
+apply from: 'gradle/restored-assets.gradle'
