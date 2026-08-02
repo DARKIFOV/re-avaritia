@@ -35,7 +35,7 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
             for (int column = 0; column < 3; column++) {
                 int slot = column + row * 3;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
-                        10 + column * 28, 22 + row * 28));
+                        12 + column * 30, 30 + row * 30));
             }
         }
 
@@ -43,7 +43,7 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
             for (int column = 0; column < 8; column++) {
                 int slot = NeutroniumCombinerBlockEntity.FIRST_OUTPUT_SLOT + column + row * 8;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
-                        108 + column * 18, 20 + row * 18) {
+                        126 + column * 18, 28 + row * 18) {
                     @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
                 });
             }
@@ -51,13 +51,13 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
 
         for (int column = 0; column < NeutroniumCombinerBlockEntity.UPGRADE_SLOTS; column++) {
             int slot = NeutroniumCombinerBlockEntity.FIRST_UPGRADE_SLOT + column;
-            addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 10 + column * 22, 116));
+            addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 12 + column * 22, 130));
         }
         addSlot(new SlotItemHandler(blockEntity.getItems(),
-                NeutroniumCombinerBlockEntity.ENERGY_SLOT, 98, 116));
+                NeutroniumCombinerBlockEntity.ENERGY_SLOT, 104, 130));
 
-        int inventoryX = 62;
-        int inventoryY = 157;
+        int inventoryX = 91;
+        int inventoryY = 196;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(playerInventory, column + row * 9 + 9,
