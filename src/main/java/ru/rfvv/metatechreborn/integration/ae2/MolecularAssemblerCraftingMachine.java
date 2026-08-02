@@ -40,14 +40,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * AE2 bridge for the native MetaTech 9x9 assembler.
- *
- * The block is both a crafting provider (its internal pattern bank is visible to
- * the ME network) and a crafting machine (an adjacent Pattern Provider may still
- * push a plan directly). Output insertion uses a machine action source, allowing
- * AE2 security and audit logic to identify the responsible assembler.
- */
+/** AE2 crafting provider/machine bridge for the native MetaTech 9x9 assembler. */
 public final class MolecularAssemblerCraftingMachine implements ICraftingMachine,
         ICraftingProvider, IInWorldGridNodeHost, IActionHost,
         IGridNodeListener<MolecularAssemblerBlockEntity> {
@@ -118,7 +111,6 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         }
     }
 
-    /** Insert as much as possible into connected ME storage. */
     public static int insertIntoNetwork(MolecularAssemblerBlockEntity host, ItemStack stack) {
         if (stack.isEmpty()) return 0;
         MolecularAssemblerCraftingMachine integration = INSTANCES.get(host);
@@ -135,12 +127,8 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
     public static <T> @Nullable LazyOptional<T> getCapability(
             MolecularAssemblerBlockEntity host, Capability<T> requested) {
         MolecularAssemblerCraftingMachine integration = get(host);
-        if (requested == Capabilities.CRAFTING_MACHINE) {
-            return integration.craftingMachineCapability.cast();
-        }
-        if (requested == Capabilities.IN_WORLD_GRID_NODE_HOST) {
-            return integration.nodeHostCapability.cast();
-        }
+        if (requested == Capabilities.CRAFTING_MACHINE) return integration.craftingMachineCapability.cast();
+        if (requested == Capabilities.IN_WORLD_GRID_NODE_HOST) return integration.nodeHostCapability.cast();
         return null;
     }
 
@@ -149,7 +137,13 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         return new PatternContainerGroup(
                 AEItemKey.of(ModItems.MOLECULAR_ASSEMBLER_9X9.get()),
                 Component.translatable("container.metatech_reborn.molecular_assembler_9x9"),
-                List.of(Component.translatable("gui.metatech_reborn.ae2_native_patterns"))
+                List.of(
+                        Component.translatable("gui.metatech_reborn.ae2_native_patterns"),
+                        Component.translatable("gui.metatech_reborn.assembler.queue",
+                                host.getQueuedJobCount(), 64),
+                        Component.translatable("gui.metatech_reborn.assembler.speed_count",
+                                host.getSpeedCardCount(), MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS)
+                )
         );
     }
 
@@ -158,10 +152,7 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         return pushPattern(pattern, inputHolder);
     }
 
-    @Override
-    public boolean acceptsPlans() {
-        return host.canAcceptAe2Plan();
-    }
+    @Override public boolean acceptsPlans() { return host.canAcceptAe2Plan(); }
 
     @Override
     public List<IPatternDetails> getAvailablePatterns() {
@@ -185,7 +176,6 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
             return placement != null && host.acceptDecodedAe2Pattern(extreme.pattern(), placement);
         }
 
-        // Compatibility path for an adjacent AE2 Pattern Provider.
         List<ItemStack> supplied = flattenInputs(inputHolder);
         if (supplied == null) return false;
         for (GenericStack output : patternDetails.getOutputs()) {
@@ -214,8 +204,7 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
                 selectedAmount += entry.getLongValue();
             }
             if (selectedKey == null || selectedAmount != expectedInputs[inputIndex].getMultiplier()) return null;
-            ItemStack placed = selectedKey.toStack((int) selectedAmount);
-            placement.set(pattern.getGridSlotForInput(inputIndex), placed);
+            placement.set(pattern.getGridSlotForInput(inputIndex), selectedKey.toStack((int) selectedAmount));
         }
         return placement;
     }
@@ -236,38 +225,13 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         return supplied;
     }
 
-    @Override
-    public boolean isBusy() {
-        return host.isAe2Busy();
-    }
-
-    @Override
-    public @Nullable IGridNode getGridNode(Direction dir) {
-        return managedNode.getNode();
-    }
-
-    @Override
-    public @Nullable IGridNode getActionableNode() {
-        return managedNode.getNode();
-    }
-
-    @Override
-    public AECableType getCableConnectionType(Direction dir) {
-        return AECableType.SMART;
-    }
-
-    @Override
-    public void onSaveChanges(MolecularAssemblerBlockEntity nodeOwner, IGridNode node) {
-        nodeOwner.setChanged();
-    }
-
-    @Override
-    public void onGridChanged(MolecularAssemblerBlockEntity nodeOwner, IGridNode node) {
-        nodeOwner.setChanged();
-    }
-
-    @Override
-    public void onStateChanged(MolecularAssemblerBlockEntity nodeOwner, IGridNode node, State state) {
-        nodeOwner.setChanged();
+    @Override public boolean isBusy() { return host.isAe2Busy(); }
+    @Override public @Nullable IGridNode getGridNode(Direction dir) { return managedNode.getNode(); }
+    @Override public @Nullable IGridNode getActionableNode() { return managedNode.getNode(); }
+    @Override public AECableType getCableConnectionType(Direction dir) { return AECableType.SMART; }
+    @Override public void onSaveChanges(MolecularAssemblerBlockEntity owner, IGridNode node) { owner.setChanged(); }
+    @Override public void onGridChanged(MolecularAssemblerBlockEntity owner, IGridNode node) { owner.setChanged(); }
+    @Override public void onStateChanged(MolecularAssemblerBlockEntity owner, IGridNode node, State state) {
+        owner.setChanged();
     }
 }
