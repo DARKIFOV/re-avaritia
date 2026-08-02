@@ -12,6 +12,7 @@ import appeng.api.networking.IGridNodeListener;
 import appeng.api.networking.IInWorldGridNodeHost;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
@@ -44,11 +45,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * The block is both a crafting provider (its internal pattern bank is visible to
  * the ME network) and a crafting machine (an adjacent Pattern Provider may still
- * push a plan directly). The integration lives in this optional class so a world
- * can load without AE2 installed.
+ * push a plan directly). Output insertion uses a machine action source, allowing
+ * AE2 security and audit logic to identify the responsible assembler.
  */
 public final class MolecularAssemblerCraftingMachine implements ICraftingMachine,
-        ICraftingProvider, IInWorldGridNodeHost,
+        ICraftingProvider, IInWorldGridNodeHost, IActionHost,
         IGridNodeListener<MolecularAssemblerBlockEntity> {
     private static final Map<MolecularAssemblerBlockEntity, MolecularAssemblerCraftingMachine> INSTANCES =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -117,7 +118,7 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         }
     }
 
-    /** Insert as much as possible into the connected ME storage. */
+    /** Insert as much as possible into connected ME storage. */
     public static int insertIntoNetwork(MolecularAssemblerBlockEntity host, ItemStack stack) {
         if (stack.isEmpty()) return 0;
         MolecularAssemblerCraftingMachine integration = INSTANCES.get(host);
@@ -127,7 +128,7 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         var grid = integration.managedNode.getGrid();
         if (grid == null) return 0;
         long inserted = grid.getStorageService().getInventory().insert(
-                key, stack.getCount(), Actionable.MODULATE, IActionSource.empty());
+                key, stack.getCount(), Actionable.MODULATE, IActionSource.ofMachine(integration));
         return (int) Math.min(Integer.MAX_VALUE, inserted);
     }
 
@@ -242,6 +243,11 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
 
     @Override
     public @Nullable IGridNode getGridNode(Direction dir) {
+        return managedNode.getNode();
+    }
+
+    @Override
+    public @Nullable IGridNode getActionableNode() {
         return managedNode.getNode();
     }
 
