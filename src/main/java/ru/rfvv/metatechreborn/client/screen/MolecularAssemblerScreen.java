@@ -126,8 +126,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                         ? "gui.metatech_reborn.pattern_capacity.full"
                         : "gui.metatech_reborn.pattern_capacity.base"),
                 266, 163, 0xBBD5E7, false);
-        graphics.drawString(font,
-                Component.translatable("gui.metatech_reborn.pattern_capacity.math"),
+        graphics.drawString(font, Component.literal("9 + 27 = 36"),
                 266, 175, 0x78D9F4, false);
     }
 
@@ -137,9 +136,9 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             case MolecularAssemblerBlockEntity.STATUS_NO_ENERGY -> "gui.metatech_reborn.assembler.status.energy";
             case MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.assembler.status.output";
             case MolecularAssemblerBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.assembler.status.running";
-            case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> "gui.metatech_reborn.assembler.status.ae2_ready";
-            case MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK ->
-                    "gui.metatech_reborn.assembler.status.returning";
+            case MolecularAssemblerBlockEntity.STATUS_AE2_READY,
+                 MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK ->
+                    "gui.metatech_reborn.assembler.status.ae2_ready";
             default -> "gui.metatech_reborn.assembler.status.idle";
         };
     }
