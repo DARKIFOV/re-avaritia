@@ -121,6 +121,7 @@ tasks.named('jar', Jar).configure {
 // generator uses int-typed closures, so apply a normalized in-memory copy.
 def restoredAssetsSource = file('gradle/restored-assets.gradle').getText('UTF-8')
         .replace('def color = { int rgb ->', 'def color = { rgb ->')
+        .replace('new Color(rgb, true)', 'new Color(((Number) rgb).intValue(), true)')
         .replace('def drawFrame = { g, int outer, int middle, int inner ->',
                  'def drawFrame = { g, outer, middle, inner ->')
         .replace('def drawDigit = { g, int digit, int x, int y, int scale, int argb ->',
