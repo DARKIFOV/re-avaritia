@@ -132,3 +132,4 @@ def restoredAssetsPatched = layout.buildDirectory.file('generated/restored-asset
 restoredAssetsPatched.parentFile.mkdirs()
 restoredAssetsPatched.setText(restoredAssetsSource, 'UTF-8')
 apply from: restoredAssetsPatched
+apply from: 'gradle/assembler-localization.gradle'
