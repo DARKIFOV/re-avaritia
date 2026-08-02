@@ -21,16 +21,15 @@ import appeng.api.util.AECableType;
 import appeng.capabilities.Capabilities;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import net.minecraft.core.Direction;
+import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
-import ru.rfvv.metatechreborn.item.EncodedExtremePatternItem;
 import ru.rfvv.metatechreborn.registry.ModItems;
 
 import java.util.ArrayList;
@@ -118,15 +117,7 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         }
     }
 
-    public static boolean isNetworkOnline(MolecularAssemblerBlockEntity host) {
-        MolecularAssemblerCraftingMachine integration = INSTANCES.get(host);
-        return integration != null && integration.managedNode.isOnline();
-    }
-
-    /**
-     * Insert as much as possible into the connected ME storage. The caller keeps
-     * the remainder in its persistent return buffer.
-     */
+    /** Insert as much as possible into the connected ME storage. */
     public static int insertIntoNetwork(MolecularAssemblerBlockEntity host, ItemStack stack) {
         if (stack.isEmpty()) return 0;
         MolecularAssemblerCraftingMachine integration = INSTANCES.get(host);
@@ -187,17 +178,13 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         if (!host.canAcceptAe2Plan()) return false;
 
         if (patternDetails instanceof ExtremePatternDetails extreme) {
-            boolean installed = false;
-            for (IPatternDetails available : getAvailablePatterns()) {
-                if (available.equals(extreme)) {
-                    installed = true;
-                    break;
-                }
-            }
-            return installed && host.acceptAe2Pattern(extreme, inputHolder);
+            boolean installed = getAvailablePatterns().stream().anyMatch(extreme::equals);
+            if (!installed) return false;
+            NonNullList<ItemStack> placement = createAtomicPlacement(extreme, inputHolder);
+            return placement != null && host.acceptDecodedAe2Pattern(extreme.pattern(), placement);
         }
 
-        // Compatibility path for a conventional adjacent AE2 Pattern Provider.
+        // Compatibility path for an adjacent AE2 Pattern Provider.
         List<ItemStack> supplied = flattenInputs(inputHolder);
         if (supplied == null) return false;
         for (GenericStack output : patternDetails.getOutputs()) {
@@ -206,6 +193,30 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
             if (host.acceptExternalPatternBatch(supplied, requested, output.amount())) return true;
         }
         return false;
+    }
+
+    private @Nullable NonNullList<ItemStack> createAtomicPlacement(
+            ExtremePatternDetails pattern, KeyCounter[] inputHolder) {
+        IPatternDetails.IInput[] expectedInputs = pattern.getInputs();
+        if (inputHolder.length != expectedInputs.length || host.getLevel() == null) return null;
+
+        NonNullList<ItemStack> placement = NonNullList.withSize(
+                MolecularAssemblerBlockEntity.GRID_SLOTS, ItemStack.EMPTY);
+        for (int inputIndex = 0; inputIndex < inputHolder.length; inputIndex++) {
+            AEItemKey selectedKey = null;
+            long selectedAmount = 0;
+            for (Object2LongMap.Entry<AEKey> entry : inputHolder[inputIndex]) {
+                if (!(entry.getKey() instanceof AEItemKey itemKey) || entry.getLongValue() <= 0) return null;
+                if (!expectedInputs[inputIndex].isValid(itemKey, host.getLevel())) return null;
+                if (selectedKey != null && !selectedKey.equals(itemKey)) return null;
+                selectedKey = itemKey;
+                selectedAmount += entry.getLongValue();
+            }
+            if (selectedKey == null || selectedAmount != expectedInputs[inputIndex].getMultiplier()) return null;
+            ItemStack placed = selectedKey.toStack((int) selectedAmount);
+            placement.set(pattern.getGridSlotForInput(inputIndex), placed);
+        }
+        return placement;
     }
 
     private static @Nullable List<ItemStack> flattenInputs(KeyCounter[] inputHolder) {
