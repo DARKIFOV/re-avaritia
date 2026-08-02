@@ -2,7 +2,7 @@ from pathlib import Path
 import base64
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT / "src/main/resources/assets/metatech_reborn/textures/item"
+TARGET = ROOT / "build/generated/metatech_assets/assets/metatech_reborn/textures/item"
 
 TEXTURES = {
     "mana_drill_generation_upgrade.png": "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAwUlEQVR4nGNgoBAwMjAwMAiIyf0nR/OHV48YWWCcWcu2MKxbs4YojUEhIQxpUT4MDAwMDHAD1q1ZwzBDawZRBmQg2cOCLilei8r/kfqPgWM2E5z/shlVHsMAZI0MDAwMDA3TGH4wZDEwMDCgGAQDmCLooCELrzRhA2AgTJnhx25F4gz4MZOLaHNxhgGDCQ+EVhLHawDxXqCVARheeNnMwPDx1TeEwKv7xBnw7sUzhgyGDKJsfffiGZxNcWYiRx8KAADoNy6uERyPzQAAAABJRU5ErkJggg==",
