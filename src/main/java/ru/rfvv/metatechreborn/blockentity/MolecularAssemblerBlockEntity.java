@@ -3,6 +3,7 @@ package ru.rfvv.metatechreborn.blockentity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -54,6 +55,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int BASE_PATTERN_SLOTS = 9;
     public static final int MAX_PATTERN_SLOTS = 36;
     public static final int EXTRA_PATTERN_SLOTS = MAX_PATTERN_SLOTS - BASE_PATTERN_SLOTS;
+    public static final int AE2_SPEED_CARD_SLOTS = 4;
 
     public static final int STATUS_IDLE = 0;
     public static final int STATUS_NO_RECIPE = 1;
@@ -113,6 +115,18 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     };
 
+    private final ItemStackHandler ae2SpeedCards = new ItemStackHandler(AE2_SPEED_CARD_SLOTS) {
+        @Override protected void onContentsChanged(int slot) {
+            progress = 0;
+            maxProgress = 0;
+            setChanged();
+        }
+        @Override public int getSlotLimit(int slot) { return 1; }
+        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return isAe2SpeedCard(stack);
+        }
+    };
+
     private final IItemHandler recipeGrid = new IItemHandler() {
         @Override public int getSlots() { return GRID_SLOTS; }
         @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
@@ -168,6 +182,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 case 5 -> getActivePatternSlots();
                 case 6 -> getInstalledPatternCount();
                 case 7 -> status;
+                case 8 -> getAe2SpeedCardCount();
                 default -> 0;
             };
         }
@@ -179,7 +194,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             else if (index == 7) status = value;
         }
 
-        @Override public int getCount() { return 8; }
+        @Override public int getCount() { return 9; }
     };
 
     public MolecularAssemblerBlockEntity(BlockPos pos, BlockState state) {
@@ -211,13 +226,13 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         MachineRecipeMatch active = match.get();
         if (lockedRecipeId == null) lockRecipe(active);
 
-        maxProgress = Math.max(1, active.craftTime());
+        maxProgress = adjustedCraftTime(active.craftTime());
         if (!canOutput(active.result())) {
             setStatus(STATUS_OUTPUT_FULL);
             return;
         }
 
-        int energyPerTick = Math.max(0, active.energyPerTick());
+        int energyPerTick = adjustedEnergyPerTick(active.energyPerTick());
         if (energy.getEnergyStored() < energyPerTick) {
             setStatus(STATUS_NO_ENERGY);
             return;
@@ -238,6 +253,17 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 setChanged();
             }
         }
+    }
+
+    private int adjustedCraftTime(int baseTime) {
+        int multiplier = 1 + getAe2SpeedCardCount();
+        return Math.max(1, (Math.max(1, baseTime) + multiplier - 1) / multiplier);
+    }
+
+    private int adjustedEnergyPerTick(int baseEnergy) {
+        if (baseEnergy <= 0) return 0;
+        long adjusted = (long) baseEnergy * (1 + getAe2SpeedCardCount());
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(1L, adjusted));
     }
 
     private void chargeFromEnergyItem() {
@@ -344,6 +370,20 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (EncodedExtremePatternItem.read(patternItems.getStackInSlot(slot)).isPresent()) count++;
         }
         return count;
+    }
+
+    public int getAe2SpeedCardCount() {
+        int count = 0;
+        for (int slot = 0; slot < AE2_SPEED_CARD_SLOTS; slot++) {
+            if (isAe2SpeedCard(ae2SpeedCards.getStackInSlot(slot))) count++;
+        }
+        return count;
+    }
+
+    public static boolean isAe2SpeedCard(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return "ae2".equals(id.getNamespace()) && "speed_card".equals(id.getPath());
     }
 
     public boolean canAcceptAe2Plan() {
@@ -510,7 +550,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
 
         progress = 0;
-        maxProgress = match.craftTime();
+        maxProgress = adjustedCraftTime(match.craftTime());
         setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
         setChanged();
     }
@@ -583,12 +623,17 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
         ItemStack upgrade = patternUpgradeItems.getStackInSlot(0);
         if (!upgrade.isEmpty()) drops.add(upgrade.copy());
+        for (int slot = 0; slot < AE2_SPEED_CARD_SLOTS; slot++) {
+            ItemStack card = ae2SpeedCards.getStackInSlot(slot);
+            if (!card.isEmpty()) drops.add(card.copy());
+        }
         return drops;
     }
 
     public ItemStackHandler getItems() { return items; }
     public ItemStackHandler getPatternItems() { return patternItems; }
     public ItemStackHandler getPatternUpgradeItems() { return patternUpgradeItems; }
+    public ItemStackHandler getAe2SpeedCards() { return ae2SpeedCards; }
     public ContainerData getData() { return data; }
 
     @Override public @NotNull Component getDisplayName() {
@@ -607,6 +652,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         tag.put("Inventory", items.serializeNBT());
         tag.put("Patterns", patternItems.serializeNBT());
         tag.put("PatternUpgrade", patternUpgradeItems.serializeNBT());
+        tag.put("Ae2SpeedCards", ae2SpeedCards.serializeNBT());
         tag.putInt("Energy", energy.getEnergyStored());
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
@@ -637,6 +683,9 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (tag.contains("Patterns", Tag.TAG_COMPOUND)) patternItems.deserializeNBT(tag.getCompound("Patterns"));
         if (tag.contains("PatternUpgrade", Tag.TAG_COMPOUND)) {
             patternUpgradeItems.deserializeNBT(tag.getCompound("PatternUpgrade"));
+        }
+        if (tag.contains("Ae2SpeedCards", Tag.TAG_COMPOUND)) {
+            ae2SpeedCards.deserializeNBT(tag.getCompound("Ae2SpeedCards"));
         }
         energy.setEnergyStored(tag.getInt("Energy"));
         progress = tag.getInt("Progress");
