@@ -62,7 +62,12 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
                         274 + column * 18, 22 + row * 18));
             }
         }
-        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 274, 105));
+        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 274, 105) {
+            @Override
+            public boolean mayPickup(@NotNull Player player) {
+                return canRemovePatternUpgrade();
+            }
+        });
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
@@ -77,6 +82,14 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         }
 
         addDataSlots(data);
+    }
+
+    private boolean canRemovePatternUpgrade() {
+        for (int slot = MolecularAssemblerBlockEntity.BASE_PATTERN_SLOTS;
+             slot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; slot++) {
+            if (!blockEntity.getPatternItems().getStackInSlot(slot).isEmpty()) return false;
+        }
+        return true;
     }
 
     @Override
@@ -98,7 +111,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     @Override
     public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        if (!slot.hasItem() || !slot.mayPickup(player)) return ItemStack.EMPTY;
 
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
