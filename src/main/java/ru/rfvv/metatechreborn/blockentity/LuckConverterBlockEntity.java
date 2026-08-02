@@ -6,6 +6,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -19,6 +20,7 @@ import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SmeltingRecipe;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -230,8 +232,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
     private ItemStack smelt(ItemStack input) {
         if (level == null) return input.copy();
-        SimpleContainer container = new SimpleContainer(input.copy());
-        Optional<? extends net.minecraft.world.item.crafting.Recipe<SimpleContainer>> recipe =
+        Container container = new SimpleContainer(input.copy());
+        Optional<SmeltingRecipe> recipe =
                 level.getRecipeManager().getRecipeFor(RecipeType.SMELTING, container, level);
         if (recipe.isEmpty()) return input.copy();
         ItemStack output = recipe.get().getResultItem(level.registryAccess()).copy();
