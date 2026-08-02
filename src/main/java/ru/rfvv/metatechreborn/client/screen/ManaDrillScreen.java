@@ -3,23 +3,18 @@ package ru.rfvv.metatechreborn.client.screen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
-import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 import ru.rfvv.metatechreborn.menu.ManaDrillMenu;
 
 public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu> {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(
-            MetaTechReborn.MOD_ID, "textures/gui/mana_drill.png");
-
     public ManaDrillScreen(ManaDrillMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 286;
-        imageHeight = 224;
-        inventoryLabelX = 62;
-        inventoryLabelY = 126;
+        imageWidth = 324;
+        imageHeight = 270;
+        inventoryLabelX = 81;
+        inventoryLabelY = 170;
     }
 
     @Override public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -28,32 +23,55 @@ public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu
         renderTooltip(graphics, mouseX, mouseY);
     }
 
-    @Override protected void renderBg(@NotNull GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, 512, 512);
+    @Override protected void renderBg(@NotNull GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        MetaTechGui.background(g, leftPos, topPos, imageWidth, imageHeight);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 20, 112, 132);
+        MetaTechGui.panel(g, leftPos + 124, topPos + 20, 194, 132);
+        MetaTechGui.panel(g, leftPos + 77, topPos + 176, 170, 88);
 
-        int manaPixels = menu.getManaPixels(54);
-        graphics.fill(leftPos + 11, topPos + 72 - manaPixels,
-                leftPos + 15, topPos + 73, 0xFF42D7F5);
+        MetaTechGui.slot(g, leftPos + 20, topPos + 34, 0xFF63E6BE);
+        MetaTechGui.slot(g, leftPos + 20, topPos + 64, 0xFF48BFE3);
+        MetaTechGui.slot(g, leftPos + 44, topPos + 64, 0xFF7A5DE8);
+        MetaTechGui.slot(g, leftPos + 68, topPos + 64, 0xFFFFA43A);
+        MetaTechGui.grid(g, leftPos + 132, topPos + 30, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 182, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 240, 9, 1, 0xFF73879A);
 
-        int progressPixels = menu.getProgressPixels(72);
-        graphics.fill(leftPos + 18, topPos + 78,
-                leftPos + 18 + progressPixels, topPos + 82, 0xFFB26CFF);
+        int manaPixels = menu.getManaPixels(62);
+        g.fill(leftPos + 104, topPos + 32, leftPos + 112, topPos + 96, 0xFF03090D);
+        g.fill(leftPos + 105, topPos + 95 - manaPixels,
+                leftPos + 111, topPos + 95, MetaTechGui.CYAN);
 
-        graphics.fill(leftPos + 18, topPos + 96, leftPos + 25, topPos + 103,
+        int progressPixels = menu.getProgressPixels(180);
+        g.fill(leftPos + 132, topPos + 96, leftPos + 314, topPos + 106, 0xFF03090D);
+        g.fill(leftPos + 133, topPos + 97, leftPos + 133 + progressPixels,
+                topPos + 105, MetaTechGui.PURPLE);
+        g.fill(leftPos + 132, topPos + 116, leftPos + 140, topPos + 124,
                 statusColor(menu.getStatus()));
     }
 
-    @Override protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 8, 5, 0xEAF8FF, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.mana",
+    @Override protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
+        g.drawString(font, title, 10, 8, 0xEAF8FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.module"),
+                12, 22, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.upgrades"),
+                12, 54, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.outputs"),
+                128, 22, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.mana",
                         menu.getMana(), menu.getManaCapacity()),
-                102, 6, 0x6EE7F9, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.levels",
+                12, 96, 0x6EE7F9, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.mana_drill.levels",
                         menu.getSpeedLevel(), menu.getLootingLevel(), menu.getGenerationLevel()),
-                8, 108, 0xD8E6F3, false);
-        graphics.drawString(font, Component.translatable(statusKey(menu.getStatus())),
-                30, 95, statusColor(menu.getStatus()), false);
+                12, 108, 0xD8E6F3, false);
+        MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(menu.getStatus())),
+                144, 114, 166, statusColor(menu.getStatus()), 2);
+        MetaTechGui.drawWrapped(g, font,
+                Component.translatable(menu.isStructureFormed()
+                        ? "gui.metatech_reborn.structure_formed"
+                        : "gui.metatech_reborn.structure_missing"),
+                12, 128, 100, menu.isStructureFormed() ? 0x55E58A : 0xFF7382, 2);
+        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
     }
 
     private static String statusKey(int status) {
