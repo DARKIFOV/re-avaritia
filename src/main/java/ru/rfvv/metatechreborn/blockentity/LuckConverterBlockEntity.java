@@ -68,15 +68,24 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
     private int status;
 
     private final ItemStackHandler items = new ItemStackHandler(TOTAL_SLOTS) {
-        @Override protected void onContentsChanged(int slot) { setChanged(); }
+        @Override
+        protected void onContentsChanged(int slot) {
+            if (slot < MAX_INPUTS || slot == MODULE_SLOT || slot >= FIRST_UPGRADE) {
+                progress = 0;
+                maxProgress = 0;
+            }
+            setChanged();
+        }
 
-        @Override public int getSlotLimit(int slot) {
+        @Override
+        public int getSlotLimit(int slot) {
             if (slot == MODULE_SLOT || slot == ENERGY_SLOT) return 1;
             if (slot >= FIRST_UPGRADE && slot < ENERGY_SLOT) return 8;
             return 64;
         }
 
-        @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             if (slot < MAX_INPUTS) return stack.getItem() instanceof BlockItem;
             if (slot >= FIRST_OUTPUT && slot < MODULE_SLOT) return true;
             if (slot == MODULE_SLOT) {
@@ -128,6 +137,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
                 case 6 -> isAdvanced() ? 1 : 0;
                 case 7 -> operationsPerInput();
                 case 8 -> energyPerTick();
+                case 9 -> speedReductionPercent();
                 default -> 0;
             };
         }
@@ -136,7 +146,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
             else if (index == 1) maxProgress = value;
             else if (index == 5) status = value;
         }
-        @Override public int getCount() { return 9; }
+        @Override public int getCount() { return 10; }
     };
 
     public LuckConverterBlockEntity(BlockPos pos, BlockState state) {
@@ -280,15 +290,44 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
     private int luckLevel() {
         ItemStack stack = items.getStackInSlot(MODULE_SLOT);
         if (stack.getItem() instanceof LuckModuleItem module) return module.fortuneLevel();
-        if (stack.getItem() instanceof PickaxeItem) return EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, stack);
+        if (stack.getItem() instanceof PickaxeItem) {
+            return EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, stack);
+        }
         return 0;
     }
 
-    private int operationLength() {
-        int base = isAdvanced() ? CommonConfig.ADVANCED_LUCK_CONVERTER_TIME.get()
+    private int baseOperationLength() {
+        return isAdvanced() ? CommonConfig.ADVANCED_LUCK_CONVERTER_TIME.get()
                 : CommonConfig.LUCK_CONVERTER_TIME.get();
-        int speed = upgradeCount(LuckConverterUpgradeItem.Type.SPEED);
-        return Math.max(5, base * 100 / (100 + speed * 25));
+    }
+
+    private int operationLength() {
+        int reduction = speedReductionPercent();
+        if (reduction >= 100) return 1;
+        int percentLeft = Math.max(1, 100 - reduction);
+        return Math.max(1, (baseOperationLength() * percentLeft + 99) / 100);
+    }
+
+    private LuckConverterUpgradeItem.Type activeSpeedUpgrade() {
+        LuckConverterUpgradeItem.Type active = null;
+        for (int slot = FIRST_UPGRADE; slot < ENERGY_SLOT; slot++) {
+            ItemStack stack = items.getStackInSlot(slot);
+            if (!(stack.getItem() instanceof LuckConverterUpgradeItem upgrade)) continue;
+            LuckConverterUpgradeItem.Type type = upgrade.type();
+            if (!type.isSpeedUpgrade()) continue;
+            if (active == null || type.speedReductionPercent() > active.speedReductionPercent()) active = type;
+        }
+        return active;
+    }
+
+    private int speedReductionPercent() {
+        LuckConverterUpgradeItem.Type active = activeSpeedUpgrade();
+        return active == null ? 0 : active.speedReductionPercent();
+    }
+
+    private int speedEnergyPercent() {
+        LuckConverterUpgradeItem.Type active = activeSpeedUpgrade();
+        return active == null ? 100 : active.energyPercent();
     }
 
     private int operationsPerInput() {
@@ -300,8 +339,9 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         int base = CommonConfig.LUCK_CONVERTER_ENERGY_PER_TICK.get();
         int efficiency = upgradeCount(LuckConverterUpgradeItem.Type.EFFICIENCY);
         int operations = operationsPerInput();
-        int percent = Math.max(20, 100 - efficiency * 10);
-        return Math.max(1, base * operations * percent / 100);
+        int efficiencyPercent = Math.max(20, 100 - efficiency * 10);
+        long adjusted = (long) base * operations * efficiencyPercent * speedEnergyPercent();
+        return Math.max(1, (int) Math.min(Integer.MAX_VALUE, (adjusted + 9_999L) / 10_000L));
     }
 
     private int upgradeCount(LuckConverterUpgradeItem.Type type) {
@@ -331,10 +371,14 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
     private boolean canInsertAll(List<ItemStack> stacks) {
         ItemStackHandler copy = new ItemStackHandler(outputSlots());
-        for (int i = 0; i < outputSlots(); i++) copy.setStackInSlot(i, items.getStackInSlot(FIRST_OUTPUT + i).copy());
+        for (int i = 0; i < outputSlots(); i++) {
+            copy.setStackInSlot(i, items.getStackInSlot(FIRST_OUTPUT + i).copy());
+        }
         for (ItemStack stack : stacks) {
             ItemStack remaining = stack.copy();
-            for (int i = 0; i < outputSlots() && !remaining.isEmpty(); i++) remaining = copy.insertItem(i, remaining, false);
+            for (int i = 0; i < outputSlots() && !remaining.isEmpty(); i++) {
+                remaining = copy.insertItem(i, remaining, false);
+            }
             if (!remaining.isEmpty()) return false;
         }
         return true;
@@ -388,18 +432,21 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         return drops;
     }
 
-    @Override public @NotNull Component getDisplayName() {
+    @Override
+    public @NotNull Component getDisplayName() {
         return Component.translatable(isAdvanced()
                 ? "container.metatech_reborn.advanced_luck_converter"
                 : "container.metatech_reborn.luck_converter");
     }
 
-    @Override public @Nullable AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory,
-                                                                 @NotNull Player player) {
+    @Override
+    public @Nullable AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory,
+                                                       @NotNull Player player) {
         return new LuckConverterMenu(id, inventory, this, data);
     }
 
-    @Override protected void saveAdditional(@NotNull CompoundTag tag) {
+    @Override
+    protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put("Inventory", items.serializeNBT());
         tag.putInt("Energy", energy.getEnergyStored());
@@ -408,7 +455,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         tag.putInt("Status", status);
     }
 
-    @Override public void load(@NotNull CompoundTag tag) {
+    @Override
+    public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         items.deserializeNBT(tag.getCompound("Inventory"));
         energy.setEnergyStored(tag.getInt("Energy"));
@@ -417,14 +465,16 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         status = tag.getInt("Status");
     }
 
-    @Override public <T> @NotNull LazyOptional<T> getCapability(
+    @Override
+    public <T> @NotNull LazyOptional<T> getCapability(
             @NotNull net.minecraftforge.common.capabilities.Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         if (cap == ForgeCapabilities.ENERGY) return energyCapability.cast();
         return super.getCapability(cap, side);
     }
 
-    @Override public void invalidateCaps() {
+    @Override
+    public void invalidateCaps() {
         super.invalidateCaps();
         itemCapability.invalidate();
         energyCapability.invalidate();
