@@ -3,23 +3,18 @@ package ru.rfvv.metatechreborn.client.screen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
-import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.blockentity.NeutroniumCombinerBlockEntity;
 import ru.rfvv.metatechreborn.menu.NeutroniumCombinerMenu;
 
 public final class NeutroniumCombinerScreen extends AbstractContainerScreen<NeutroniumCombinerMenu> {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(
-            MetaTechReborn.MOD_ID, "textures/gui/neutronium_combiner.png");
-
     public NeutroniumCombinerScreen(NeutroniumCombinerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 286;
-        imageHeight = 238;
-        inventoryLabelX = 62;
-        inventoryLabelY = 146;
+        imageWidth = 344;
+        imageHeight = 282;
+        inventoryLabelX = 91;
+        inventoryLabelY = 184;
     }
 
     @Override
@@ -30,25 +25,39 @@ public final class NeutroniumCombinerScreen extends AbstractContainerScreen<Neut
     }
 
     @Override
-    protected void renderBg(@NotNull GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, 512, 512);
+    protected void renderBg(@NotNull GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        MetaTechGui.background(g, leftPos, topPos, imageWidth, imageHeight);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 20, 112, 104);
+        MetaTechGui.panel(g, leftPos + 120, topPos + 20, 218, 104);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 126, 112, 48);
+        MetaTechGui.panel(g, leftPos + 120, topPos + 126, 218, 48);
+        MetaTechGui.panel(g, leftPos + 87, topPos + 190, 170, 86);
 
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {
                 int input = column + row * 3;
-                int x = leftPos + 10 + column * 28;
-                int y = topPos + 22 + row * 28;
+                int x = leftPos + 12 + column * 30;
+                int y = topPos + 30 + row * 30;
+                MetaTechGui.slot(g, x, y, 0xFF48BFE3);
                 int pixels = menu.getProgressPixels(input, 16);
-                graphics.fill(x + 1, y + 20, x + 1 + pixels, y + 22, 0xFF42D7F5);
-                graphics.fill(x + 20, y + 1, x + 23, y + 4, statusColor(menu.getStatus(input)));
+                g.fill(x, y + 18, x + 16, y + 21, 0xFF03090D);
+                g.fill(x, y + 18, x + pixels, y + 21, MetaTechGui.CYAN);
+                g.fill(x + 18, y, x + 22, y + 4, statusColor(menu.getStatus(input)));
             }
         }
 
-        int energyPixels = menu.getEnergyPixels(82);
-        graphics.fill(leftPos + 95, topPos + 103 - energyPixels,
-                leftPos + 101, topPos + 104, 0xFFFFC857);
-        graphics.fill(leftPos + 97, topPos + 115, leftPos + 117, topPos + 135, 0xFF07171D);
-        graphics.fill(leftPos + 98, topPos + 116, leftPos + 116, topPos + 134, 0xFF29434B);
+        MetaTechGui.grid(g, leftPos + 126, topPos + 28, 8, 5, 0xFF73879A);
+        for (int column = 0; column < NeutroniumCombinerBlockEntity.UPGRADE_SLOTS; column++) {
+            MetaTechGui.slot(g, leftPos + 12 + column * 22, topPos + 130, 0xFFFFA43A);
+        }
+        MetaTechGui.slot(g, leftPos + 104, topPos + 130, 0xFFFFC857);
+        MetaTechGui.grid(g, leftPos + 91, topPos + 196, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 91, topPos + 254, 9, 1, 0xFF73879A);
+
+        int energyPixels = menu.getEnergyPixels(38);
+        g.fill(leftPos + 326, topPos + 132, leftPos + 334, topPos + 172, 0xFF03090D);
+        g.fill(leftPos + 327, topPos + 171 - energyPixels,
+                leftPos + 333, topPos + 171, MetaTechGui.GOLD);
     }
 
     private static int statusColor(int status) {
@@ -62,15 +71,23 @@ public final class NeutroniumCombinerScreen extends AbstractContainerScreen<Neut
     }
 
     @Override
-    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 8, 5, 0xEAF8FF, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
-        graphics.drawString(font,
-                Component.literal(menu.getEnergyStored() + " / " + menu.getEnergyCapacity() + " FE"),
-                120, 116, 0xF4D27A, false);
-        graphics.drawString(font,
+    protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
+        g.drawString(font, title, 10, 8, 0xEAF8FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.neutron.collectors"),
+                10, 22, 0x9CCBFF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.neutron.outputs"),
+                124, 22, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.neutron.stack_hint"),
+                10, 116, 0x6ED7FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.neutron.upgrades"),
+                10, 128, 0xBBD5E7, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.neutron.energy",
+                        menu.getEnergyStored(), menu.getEnergyCapacity()),
+                124, 132, 0xF4D27A, false);
+        MetaTechGui.drawWrapped(g, font,
                 Component.translatable("gui.metatech_reborn.neutron_upgrades",
                         menu.getSpeedUpgrades(), menu.getEfficiencyUpgrades(), menu.getOutputUpgrades()),
-                106, 130, 0x9CCBFF, false);
+                124, 146, 190, 0x9CCBFF, 2);
+        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
     }
 }
