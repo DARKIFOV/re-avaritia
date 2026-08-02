@@ -13,10 +13,10 @@ import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
 public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMenu> {
     public GreenhouseScreen(GreenhouseMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 304;
-        imageHeight = 238;
-        inventoryLabelX = 70;
-        inventoryLabelY = 135;
+        imageWidth = 324;
+        imageHeight = 282;
+        inventoryLabelX = 81;
+        inventoryLabelY = 182;
     }
 
     @Override
@@ -27,76 +27,66 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
     }
 
     @Override
-    protected void renderBg(@NotNull GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xF010232A);
-        graphics.fill(leftPos + 5, topPos + 5, leftPos + imageWidth - 5, topPos + 128, 0xFF183941);
-        graphics.fill(leftPos + 61, topPos + 139, leftPos + 243, topPos + 234, 0xFF142B31);
+    protected void renderBg(@NotNull GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        MetaTechGui.background(g, leftPos, topPos, imageWidth, imageHeight);
+        MetaTechGui.panel(g, leftPos + 6, topPos + 20, 306, 148);
+        MetaTechGui.panel(g, leftPos + 77, topPos + 188, 170, 88);
 
-        drawSlot(graphics, 18, 32);
-        for (int column = 0; column < 3; column++) drawSlot(graphics, 18 + column * 24, 64);
-        for (int row = 0; row < 2; row++) {
-            for (int column = 0; column < 3; column++) drawSlot(graphics, 122 + column * 18, 32 + row * 18);
+        MetaTechGui.slot(g, leftPos + 20, topPos + 34, 0xFF63E6BE);
+        for (int column = 0; column < 3; column++) {
+            MetaTechGui.slot(g, leftPos + 20 + column * 24, topPos + 76, 0xFF7A5DE8);
         }
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) drawSlot(graphics, 70 + column * 18, 146 + row * 18);
-        }
-        for (int column = 0; column < 9; column++) drawSlot(graphics, 70 + column * 18, 204);
+        MetaTechGui.grid(g, leftPos + 132, topPos + 34, 3, 2, 0xFFFFA43A);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 194, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 252, 9, 1, 0xFF73879A);
 
-        graphics.fill(leftPos + 104, topPos + 78, leftPos + 224, topPos + 88, 0xFF07171D);
-        int progress = menu.getProgressPixels(118);
-        graphics.fill(leftPos + 105, topPos + 79, leftPos + 105 + progress, topPos + 87, 0xFF63E6BE);
+        g.fill(leftPos + 112, topPos + 92, leftPos + 244, topPos + 102, 0xFF03090D);
+        int progress = menu.getProgressPixels(130);
+        g.fill(leftPos + 113, topPos + 93, leftPos + 113 + progress, topPos + 101, 0xFF63E6BE);
 
-        drawVerticalBar(graphics, 272, 29, 10, 76, menu.getManaPixels(74), 0xFF49C6FF);
-        drawVerticalBar(graphics, 287, 29, 10, 76, menu.getFluidPixels(74), 0xFF3A8DFF);
+        drawVerticalBar(g, 286, 34, 10, 80, menu.getManaPixels(78), 0xFF49C6FF);
+        drawVerticalBar(g, 303, 34, 10, 80, menu.getFluidPixels(78), 0xFF3A8DFF);
     }
 
-    private void drawVerticalBar(GuiGraphics graphics, int x, int y, int width, int height,
+    private void drawVerticalBar(GuiGraphics g, int x, int y, int width, int height,
                                  int filled, int color) {
-        graphics.fill(leftPos + x, topPos + y, leftPos + x + width, topPos + y + height, 0xFF07171D);
-        graphics.fill(leftPos + x + 1, topPos + y + height - 1 - filled,
+        g.fill(leftPos + x, topPos + y, leftPos + x + width, topPos + y + height, 0xFF03090D);
+        g.fill(leftPos + x + 1, topPos + y + height - 1 - filled,
                 leftPos + x + width - 1, topPos + y + height - 1, color);
     }
 
-    private void drawSlot(GuiGraphics graphics, int x, int y) {
-        int left = leftPos + x - 1;
-        int top = topPos + y - 1;
-        graphics.fill(left, top, left + 18, top + 18, 0xFF061519);
-        graphics.fill(left + 1, top + 1, left + 17, top + 17, 0xFF284A50);
-    }
-
     @Override
-    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 8, 7, 0xE8FFF8, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.flower"),
-                8, 20, 0xB7DAD4, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.modules"),
-                8, 52, 0xB7DAD4, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fuel"),
-                116, 20, 0xB7DAD4, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xB7DAD4, false);
+    protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
+        g.drawString(font, title, 10, 8, 0xE8FFF8, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.flower"),
+                12, 22, 0xB7DAD4, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.flower_stack"),
+                12, 56, 0x67D9FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.modules"),
+                12, 66, 0xB7DAD4, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fuel"),
+                126, 22, 0xB7DAD4, false);
+        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xB7DAD4, false);
 
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.mana_short",
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.mana_short",
                         menu.getMana(), menu.getManaCapacity()),
-                104, 48, 0x67D9FF, false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fluid_short",
+                112, 54, 0x67D9FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fluid_short",
                         menu.getFluidAmount(), menu.getFluidCapacity()),
-                104, 59, 0x79AFFF, false);
-        graphics.drawString(font, modeComponent(),
-                104, 93, 0xFFD56A, false);
-        graphics.drawString(font, Component.translatable(statusTranslationKey(menu.getStatus())),
-                104, 105, statusColor(menu.getStatus()), false);
-        graphics.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.levels_short",
+                112, 66, 0x79AFFF, false);
+        g.drawString(font, modeComponent(), 112, 108, 0xFFD56A, false);
+        MetaTechGui.drawWrapped(g, font, Component.translatable(statusTranslationKey(menu.getStatus())),
+                112, 120, 164, statusColor(menu.getStatus()), 2);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.levels_short",
                         menu.getSpeedLevel(), menu.getEfficiencyLevel(), menu.getEconomyLevel()),
-                8, 116, 0xD9F4ED, false);
-        graphics.drawString(font, Component.literal("M"), 273, 17, 0x67D9FF, false);
-        graphics.drawString(font, Component.literal("F"), 288, 17, 0x79AFFF, false);
+                12, 150, 0xD9F4ED, false);
+        g.drawString(font, Component.literal("M"), 287, 22, 0x67D9FF, false);
+        g.drawString(font, Component.literal("F"), 304, 22, 0x79AFFF, false);
     }
 
     private Component modeComponent() {
         ItemStack flower = menu.getSlot(GreenhouseBlockEntity.FLOWER_SLOT).getItem();
-        if (flower.isEmpty()) {
-            return Component.translatable("gui.metatech_reborn.greenhouse.mode.idle");
-        }
+        if (flower.isEmpty()) return Component.translatable("gui.metatech_reborn.greenhouse.mode.idle");
         Component flowerName = flower.getHoverName();
         if (menu.getModeId() == 6) {
             DyeColor color = DyeColor.byId(menu.getSpectrolusNextColor());
