@@ -11,33 +11,43 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-/** Upgrades accepted by the six original upgrade slots of both luck converters. */
+/** Upgrades accepted by the six upgrade slots of both luck converters. */
 public final class LuckConverterUpgradeItem extends Item {
     public enum Type {
-        SPEED("speed", 8),
-        EFFICIENCY("efficiency", 8),
-        OPERATIONS("operations", 4),
-        DOUBLE("double", 1),
-        SMELT("smelt", 1),
-        AUTO_EJECT("auto_eject", 1);
+        SPEED_30("speed_30", 1, 30, 130),
+        SPEED_70("speed_70", 1, 70, 250),
+        SPEED_INSTANT("speed_instant", 1, 100, 500),
+        EFFICIENCY("efficiency", 8, 0, 100),
+        OPERATIONS("operations", 4, 0, 100),
+        DOUBLE("double", 1, 0, 100),
+        SMELT("smelt", 1, 0, 100),
+        AUTO_EJECT("auto_eject", 1, 0, 100);
 
         private final String key;
         private final int maximum;
+        private final int speedReductionPercent;
+        private final int energyPercent;
 
-        Type(String key, int maximum) {
+        Type(String key, int maximum, int speedReductionPercent, int energyPercent) {
             this.key = key;
             this.maximum = maximum;
+            this.speedReductionPercent = speedReductionPercent;
+            this.energyPercent = energyPercent;
         }
 
         public String key() { return key; }
         public int maximum() { return maximum; }
+        public int speedReductionPercent() { return speedReductionPercent; }
+        public int energyPercent() { return energyPercent; }
+        public boolean isSpeedUpgrade() { return speedReductionPercent > 0; }
+        public boolean isInstant() { return this == SPEED_INSTANT; }
     }
 
     private final Type type;
 
     public LuckConverterUpgradeItem(Type type) {
         super(new Item.Properties().stacksTo(type.maximum())
-                .rarity(type.maximum() == 1 ? Rarity.RARE : Rarity.UNCOMMON));
+                .rarity(type.isInstant() ? Rarity.EPIC : type.maximum() == 1 ? Rarity.RARE : Rarity.UNCOMMON));
         this.type = type;
     }
 
@@ -51,9 +61,17 @@ public final class LuckConverterUpgradeItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade." + type.key())
-                .withStyle(ChatFormatting.AQUA));
-        tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.count",
-                        stack.getCount(), type.maximum())
-                .withStyle(ChatFormatting.GRAY));
+                .withStyle(type.isInstant() ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.AQUA));
+        if (type.isSpeedUpgrade()) {
+            tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.speed_energy",
+                            type.energyPercent())
+                    .withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.speed_priority")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        } else {
+            tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.count",
+                            stack.getCount(), type.maximum())
+                    .withStyle(ChatFormatting.GRAY));
+        }
     }
 }
