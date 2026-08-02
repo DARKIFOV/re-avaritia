@@ -137,7 +137,7 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
                 case 6 -> isAdvanced() ? 1 : 0;
                 case 7 -> operationsPerInput();
                 case 8 -> energyPerTick();
-                case 9 -> speedReductionPercent();
+                case 9 -> speedBonusPercent();
                 default -> 0;
             };
         }
@@ -153,13 +153,15 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         super(ModBlockEntities.LUCK_CONVERTER.get(), pos, state);
     }
 
-    public static void serverTick(Level level, BlockPos pos, BlockState state, LuckConverterBlockEntity entity) {
+    public static void serverTick(Level level, BlockPos pos, BlockState state,
+                                  LuckConverterBlockEntity entity) {
         entity.tickServer(level);
     }
 
     private void tickServer(Level level) {
         chargeFromItem();
-        if (level.getGameTime() % 10L == 0L && hasUpgrade(LuckConverterUpgradeItem.Type.AUTO_EJECT)) {
+        if (level.getGameTime() % 10L == 0L
+                && hasUpgrade(LuckConverterUpgradeItem.Type.AUTO_EJECT)) {
             autoEject(level);
         }
 
@@ -199,7 +201,9 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
             return;
         }
 
-        for (PendingInput input : work) items.extractItem(input.slot(), input.amount(), false);
+        for (PendingInput input : work) {
+            items.extractItem(input.slot(), input.amount(), false);
+        }
         for (ItemStack stack : results) insertOutput(stack, false);
         progress = 0;
         status = STATUS_IDLE;
@@ -228,7 +232,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
             BlockItem blockItem = (BlockItem) input.stack().getItem();
             BlockState state = blockItem.getBlock().defaultBlockState();
             for (int operation = 0; operation < input.amount(); operation++) {
-                List<ItemStack> drops = Block.getDrops(state, serverLevel, worldPosition, null, null, tool);
+                List<ItemStack> drops = Block.getDrops(
+                        state, serverLevel, worldPosition, null, null, tool);
                 if (drops.isEmpty()) drops = List.of(new ItemStack(blockItem));
                 for (ItemStack drop : drops) {
                     ItemStack converted = smelt ? smelt(drop) : drop.copy();
@@ -257,7 +262,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         ItemStack remaining = addition.copy();
         for (ItemStack existing : list) {
             if (!ItemStack.isSameItemSameTags(existing, remaining)) continue;
-            int move = Math.min(existing.getMaxStackSize() - existing.getCount(), remaining.getCount());
+            int move = Math.min(existing.getMaxStackSize() - existing.getCount(),
+                    remaining.getCount());
             existing.grow(move);
             remaining.shrink(move);
             if (remaining.isEmpty()) return;
@@ -291,7 +297,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         ItemStack stack = items.getStackInSlot(MODULE_SLOT);
         if (stack.getItem() instanceof LuckModuleItem module) return module.fortuneLevel();
         if (stack.getItem() instanceof PickaxeItem) {
-            return EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, stack);
+            return EnchantmentHelper.getItemEnchantmentLevel(
+                    Enchantments.BLOCK_FORTUNE, stack);
         }
         return 0;
     }
@@ -302,10 +309,10 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
     }
 
     private int operationLength() {
-        int reduction = speedReductionPercent();
-        if (reduction >= 100) return 1;
-        int percentLeft = Math.max(1, 100 - reduction);
-        return Math.max(1, (baseOperationLength() * percentLeft + 99) / 100);
+        int bonus = speedBonusPercent();
+        if (bonus >= 100) return 1;
+        int speedPercent = 100 + Math.max(0, bonus);
+        return Math.max(1, (baseOperationLength() * 100 + speedPercent - 1) / speedPercent);
     }
 
     private LuckConverterUpgradeItem.Type activeSpeedUpgrade() {
@@ -315,19 +322,16 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
             if (!(stack.getItem() instanceof LuckConverterUpgradeItem upgrade)) continue;
             LuckConverterUpgradeItem.Type type = upgrade.type();
             if (!type.isSpeedUpgrade()) continue;
-            if (active == null || type.speedReductionPercent() > active.speedReductionPercent()) active = type;
+            if (active == null || type.speedBonusPercent() > active.speedBonusPercent()) {
+                active = type;
+            }
         }
         return active;
     }
 
-    private int speedReductionPercent() {
+    private int speedBonusPercent() {
         LuckConverterUpgradeItem.Type active = activeSpeedUpgrade();
-        return active == null ? 0 : active.speedReductionPercent();
-    }
-
-    private int speedEnergyPercent() {
-        LuckConverterUpgradeItem.Type active = activeSpeedUpgrade();
-        return active == null ? 100 : active.energyPercent();
+        return active == null ? 0 : active.speedBonusPercent();
     }
 
     private int operationsPerInput() {
@@ -340,22 +344,26 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         int efficiency = upgradeCount(LuckConverterUpgradeItem.Type.EFFICIENCY);
         int operations = operationsPerInput();
         int efficiencyPercent = Math.max(20, 100 - efficiency * 10);
-        long adjusted = (long) base * operations * efficiencyPercent * speedEnergyPercent();
-        return Math.max(1, (int) Math.min(Integer.MAX_VALUE, (adjusted + 9_999L) / 10_000L));
+        long adjusted = (long) base * operations * efficiencyPercent;
+        return Math.max(1, (int) Math.min(Integer.MAX_VALUE,
+                (adjusted + 99L) / 100L));
     }
 
     private int upgradeCount(LuckConverterUpgradeItem.Type type) {
         int count = 0;
         for (int slot = FIRST_UPGRADE; slot < ENERGY_SLOT; slot++) {
             ItemStack stack = items.getStackInSlot(slot);
-            if (stack.getItem() instanceof LuckConverterUpgradeItem upgrade && upgrade.type() == type) {
+            if (stack.getItem() instanceof LuckConverterUpgradeItem upgrade
+                    && upgrade.type() == type) {
                 count += stack.getCount();
             }
         }
         return Math.min(type.maximum(), count);
     }
 
-    private boolean hasUpgrade(LuckConverterUpgradeItem.Type type) { return upgradeCount(type) > 0; }
+    private boolean hasUpgrade(LuckConverterUpgradeItem.Type type) {
+        return upgradeCount(type) > 0;
+    }
 
     private void chargeFromItem() {
         ItemStack stack = items.getStackInSlot(ENERGY_SLOT);
@@ -386,7 +394,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
     private ItemStack insertOutput(ItemStack stack, boolean simulate) {
         ItemStack remaining = stack.copy();
-        for (int slot = FIRST_OUTPUT; slot < FIRST_OUTPUT + outputSlots() && !remaining.isEmpty(); slot++) {
+        for (int slot = FIRST_OUTPUT;
+             slot < FIRST_OUTPUT + outputSlots() && !remaining.isEmpty(); slot++) {
             remaining = items.insertItem(slot, remaining, simulate);
         }
         return remaining;
@@ -396,14 +405,17 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         for (Direction direction : Direction.values()) {
             BlockEntity neighbor = level.getBlockEntity(worldPosition.relative(direction));
             if (neighbor == null) continue;
-            Optional<IItemHandler> target = neighbor.getCapability(ForgeCapabilities.ITEM_HANDLER,
-                    direction.getOpposite()).resolve();
+            Optional<IItemHandler> target = neighbor.getCapability(
+                    ForgeCapabilities.ITEM_HANDLER, direction.getOpposite()).resolve();
             if (target.isEmpty()) continue;
             for (int slot = FIRST_OUTPUT; slot < FIRST_OUTPUT + outputSlots(); slot++) {
                 ItemStack stack = items.getStackInSlot(slot);
                 if (stack.isEmpty()) continue;
-                ItemStack remainder = ItemHandlerHelper.insertItemStacked(target.get(), stack.copy(), false);
-                if (remainder.getCount() != stack.getCount()) items.setStackInSlot(slot, remainder);
+                ItemStack remainder = ItemHandlerHelper.insertItemStacked(
+                        target.get(), stack.copy(), false);
+                if (remainder.getCount() != stack.getCount()) {
+                    items.setStackInSlot(slot, remainder);
+                }
             }
         }
     }
@@ -417,7 +429,9 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
         }
     }
 
-    public boolean isAdvanced() { return getBlockState().is(ModBlocks.ADVANCED_LUCK_CONVERTER.get()); }
+    public boolean isAdvanced() {
+        return getBlockState().is(ModBlocks.ADVANCED_LUCK_CONVERTER.get());
+    }
     public int inputSlots() { return isAdvanced() ? 72 : 30; }
     public int outputSlots() { return isAdvanced() ? 60 : 30; }
     public ItemStackHandler getItems() { return items; }
@@ -467,7 +481,8 @@ public final class LuckConverterBlockEntity extends BlockEntity implements MenuP
 
     @Override
     public <T> @NotNull LazyOptional<T> getCapability(
-            @NotNull net.minecraftforge.common.capabilities.Capability<T> cap, @Nullable Direction side) {
+            @NotNull net.minecraftforge.common.capabilities.Capability<T> cap,
+            @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         if (cap == ForgeCapabilities.ENERGY) return energyCapability.cast();
         return super.getCapability(cap, side);
