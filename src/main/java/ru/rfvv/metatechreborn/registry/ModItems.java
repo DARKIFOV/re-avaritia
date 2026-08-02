@@ -81,8 +81,13 @@ public final class ModItems {
     public static final RegistryObject<Item> LUCK_MODULE_11 = luckModule("luck_module_11", 40);
     public static final RegistryObject<Item> LUCK_MODULE_12 = luckModule("luck_module_12", 50);
 
+    /** Existing ID kept for world compatibility; it is now the 30% speed card. */
     public static final RegistryObject<Item> LUCK_SPEED_UPGRADE = luckUpgrade(
-            "luck_speed_upgrade", LuckConverterUpgradeItem.Type.SPEED);
+            "luck_speed_upgrade", LuckConverterUpgradeItem.Type.SPEED_30);
+    public static final RegistryObject<Item> LUCK_SPEED_UPGRADE_70 = luckUpgrade(
+            "luck_speed_upgrade_70", LuckConverterUpgradeItem.Type.SPEED_70);
+    public static final RegistryObject<Item> LUCK_SPEED_UPGRADE_INSTANT = luckUpgrade(
+            "luck_speed_upgrade_instant", LuckConverterUpgradeItem.Type.SPEED_INSTANT);
     public static final RegistryObject<Item> LUCK_EFFICIENCY_UPGRADE = luckUpgrade(
             "luck_efficiency_upgrade", LuckConverterUpgradeItem.Type.EFFICIENCY);
     public static final RegistryObject<Item> LUCK_OPERATIONS_UPGRADE = luckUpgrade(
@@ -160,20 +165,25 @@ public final class ModItems {
             RegistryObject<net.minecraft.world.level.block.Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
+
     private static RegistryObject<Item> upgrade(String name, ManaDrillUpgradeItem.Type type, int level) {
         return ITEMS.register(name, () -> new ManaDrillUpgradeItem(type, level));
     }
+
     private static RegistryObject<Item> greenhouseModule(String name, GreenhouseModuleItem.Type type, int level) {
         return ITEMS.register(name, () -> new GreenhouseModuleItem(type, level));
     }
+
     private static RegistryObject<Item> energyFood(String name, int nutrition, float saturation, int duration,
             int cost, int capacity, int transfer, int tier) {
         return ITEMS.register(name, () -> new EnergyFoodItem(nutrition, saturation, duration,
                 cost, capacity, transfer, tier));
     }
+
     private static RegistryObject<Item> luckModule(String name, int level) {
         return ITEMS.register(name, () -> new LuckModuleItem(level));
     }
+
     private static RegistryObject<Item> luckUpgrade(String name, LuckConverterUpgradeItem.Type type) {
         return ITEMS.register(name, () -> new LuckConverterUpgradeItem(type));
     }
@@ -182,18 +192,23 @@ public final class ModItems {
         return List.of(NEUTRON_COMBINER_SPEED_UPGRADE, NEUTRON_COMBINER_EFFICIENCY_UPGRADE,
                 NEUTRON_COMBINER_OUTPUT_UPGRADE);
     }
+
     public static List<RegistryObject<Item>> energyFoodItems() {
         return List.of(ENERGY_FOOD_TIER_1, ENERGY_FOOD_TIER_2, ENERGY_FOOD_TIER_3, ENERGY_FOOD_TIER_4);
     }
+
     public static List<RegistryObject<Item>> luckModuleItems() {
         return List.of(LUCK_MODULE_1, LUCK_MODULE_2, LUCK_MODULE_3, LUCK_MODULE_4, LUCK_MODULE_5,
                 LUCK_MODULE_6, LUCK_MODULE_7, LUCK_MODULE_8, LUCK_MODULE_9, LUCK_MODULE_10,
                 LUCK_MODULE_11, LUCK_MODULE_12);
     }
+
     public static List<RegistryObject<Item>> luckUpgradeItems() {
-        return List.of(LUCK_SPEED_UPGRADE, LUCK_EFFICIENCY_UPGRADE, LUCK_OPERATIONS_UPGRADE,
+        return List.of(LUCK_SPEED_UPGRADE, LUCK_SPEED_UPGRADE_70, LUCK_SPEED_UPGRADE_INSTANT,
+                LUCK_EFFICIENCY_UPGRADE, LUCK_OPERATIONS_UPGRADE,
                 LUCK_DOUBLE_UPGRADE, LUCK_SMELT_UPGRADE, LUCK_AUTO_EJECT_UPGRADE);
     }
+
     public static List<RegistryObject<Item>> manaDrillUpgradeItems() {
         return List.of(MANA_DRILL_SPEED_UPGRADE, MANA_DRILL_SPEED_UPGRADE_2, MANA_DRILL_SPEED_UPGRADE_3,
                 MANA_DRILL_SPEED_UPGRADE_4, MANA_DRILL_SPEED_UPGRADE_5,
@@ -202,12 +217,14 @@ public final class ModItems {
                 MANA_DRILL_LOOTING_UPGRADE_7, MANA_DRILL_LOOTING_UPGRADE_8, MANA_DRILL_LOOTING_UPGRADE_9,
                 MANA_DRILL_GENERATION_UPGRADE, MANA_DRILL_GENERATION_UPGRADE_2, MANA_DRILL_GENERATION_UPGRADE_3);
     }
+
     public static List<RegistryObject<Item>> greenhouseModuleItems() {
         return List.of(GREENHOUSE_ECONOMY_MODULE_1, GREENHOUSE_ECONOMY_MODULE_2, GREENHOUSE_ECONOMY_MODULE_3,
                 GREENHOUSE_EFFICIENCY_MODULE_1, GREENHOUSE_EFFICIENCY_MODULE_2, GREENHOUSE_EFFICIENCY_MODULE_3,
                 GREENHOUSE_SPEED_MODULE_1, GREENHOUSE_SPEED_MODULE_2, GREENHOUSE_SPEED_MODULE_3,
                 GREENHOUSE_INFINITE_DAY_MODULE, GREENHOUSE_INFINITE_NIGHT_MODULE, GREENHOUSE_INFINITE_LAVA_MODULE);
     }
+
     public static List<RegistryObject<Item>> nativePatternItems() {
         return List.of(BLANK_EXTREME_PATTERN, ENCODED_EXTREME_PATTERN, PATTERN_CAPACITY_UPGRADE);
     }
