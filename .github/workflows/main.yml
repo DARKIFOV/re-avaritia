@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: metatech-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -28,12 +32,174 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Build
+      - name: Build unified mod
         run: gradle build --no-daemon --stacktrace
 
-      - name: Upload mod JAR
+      - name: Validate assembler inventory bytecode
+        shell: bash
+        run: |
+          JAR=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
+          test -n "$JAR"
+          javap -classpath "$JAR" -c -p ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity > build/assembler-bytecode.txt
+          grep -Eq 'bipush[[:space:]]+83' build/assembler-bytecode.txt
+          grep -q 'getAe2SpeedCardCount' build/assembler-bytecode.txt
+          echo "Confirmed 83-slot assembler inventory and AE2 speed-card support."
+
+      - name: Validate unique AE2 event listeners
+        shell: bash
+        run: |
+          JAR=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
+          test -n "$JAR"
+          jar tf "$JAR" > build/jar-entries.txt
+          grep -q 'MolecularAssemblerAe2ConnectionFix\$ConnectionEvents.class' build/jar-entries.txt
+          if grep -q 'MolecularAssemblerAe2ConnectionFix\$Events.class' build/jar-entries.txt; then
+            echo 'Legacy colliding AE2 listener class is still packaged.' >&2
+            exit 1
+          fi
+          echo "Confirmed unique AE2 connection event listener class."
+
+      - name: Validate packaged resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import struct
+          import zipfile
+          import zlib
+
+          jars = [path for path in glob.glob("build/libs/*.jar")
+                  if not path.endswith(("-sources.jar", "-javadoc.jar"))]
+          if len(jars) != 1:
+              raise SystemExit(f"Expected one distributable JAR, found: {jars}")
+
+          required = {
+              "META-INF/mods.toml",
+              "ru/rfvv/metatechreborn/blockentity/MolecularAssemblerBlockEntity.class",
+              "ru/rfvv/metatechreborn/block/ManaDrillNozzleBlock.class",
+              "ru/rfvv/metatechreborn/client/screen/MetaTechGui.class",
+              "ru/rfvv/metatechreborn/client/screen/LuckConverterScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/GreenhouseScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/ManaDrillScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/MolecularAssemblerScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/NeutroniumCombinerScreen.class",
+              "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2Provider.class",
+              "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2ConnectionFix$ConnectionEvents.class",
+              "assets/metatech_reborn/models/block/molecular_assembler_9x9.json",
+              "assets/metatech_reborn/textures/block/molecular_assembler_glass.png",
+              "assets/metatech_reborn/textures/block/greenhouse_mana_port.png",
+              "assets/metatech_reborn/textures/block/greenhouse_side.png",
+              "assets/metatech_reborn/textures/item/greenhouse_infinite_day_module.png",
+              "assets/metatech_reborn/textures/item/greenhouse_infinite_lava_module.png",
+              "assets/metatech_reborn/blockstates/mana_drill_nozzle.json",
+              "assets/metatech_reborn/models/block/mana_drill_nozzle.json",
+              "assets/metatech_reborn/lang/ru_ru.json",
+              "assets/metatech_reborn/lang/en_us.json",
+              "assets/metatech_reborn/blockstates/luck_converter.json",
+              "assets/metatech_reborn/blockstates/advanced_luck_converter.json",
+              "assets/metatech_reborn/models/item/energy_food_tier_4.json",
+              "assets/metatech_reborn/models/item/luck_module_12.json",
+              "assets/metatech_reborn/models/item/luck_speed_upgrade_70.json",
+              "assets/metatech_reborn/models/item/luck_speed_upgrade_instant.json",
+              "assets/metatech_reborn/textures/item/luck_speed_upgrade_70.png",
+              "assets/metatech_reborn/textures/item/luck_speed_upgrade_instant.png",
+              "data/metatech_reborn/recipes/luck_converter.json",
+              "data/metatech_reborn/recipes/advanced_luck_converter.json",
+              "data/metatech_reborn/recipes/luck_speed_upgrade_70.json",
+              "data/metatech_reborn/recipes/luck_speed_upgrade_instant.json",
+              "data/minecraft/tags/blocks/mineable/pickaxe.json",
+          }
+
+          def validate_png(name, data):
+              if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise SystemExit(f"Invalid PNG signature {name}")
+              offset = 8
+              saw_ihdr = False
+              saw_iend = False
+              while offset < len(data):
+                  if offset + 12 > len(data):
+                      raise SystemExit(f"Truncated PNG chunk header {name}")
+                  length = struct.unpack(">I", data[offset:offset + 4])[0]
+                  chunk_type = data[offset + 4:offset + 8]
+                  payload_start = offset + 8
+                  payload_end = payload_start + length
+                  crc_end = payload_end + 4
+                  if crc_end > len(data):
+                      raise SystemExit(f"Truncated PNG chunk {chunk_type!r} in {name}")
+                  expected_crc = struct.unpack(">I", data[payload_end:crc_end])[0]
+                  actual_crc = zlib.crc32(chunk_type)
+                  actual_crc = zlib.crc32(data[payload_start:payload_end], actual_crc) & 0xFFFFFFFF
+                  if actual_crc != expected_crc:
+                      raise SystemExit(
+                          f"PNG CRC mismatch {name} chunk {chunk_type.decode('latin-1')}: "
+                          f"expected {expected_crc:08x}, got {actual_crc:08x}")
+                  if chunk_type == b"IHDR":
+                      if saw_ihdr or length != 13:
+                          raise SystemExit(f"Invalid IHDR chunk in {name}")
+                      width, height = struct.unpack(">II", data[payload_start:payload_start + 8])
+                      if width <= 0 or height <= 0:
+                          raise SystemExit(f"Invalid PNG dimensions {name}: {width}x{height}")
+                      saw_ihdr = True
+                  if chunk_type == b"IEND":
+                      saw_iend = True
+                      offset = crc_end
+                      break
+                  offset = crc_end
+              if not saw_ihdr or not saw_iend or offset != len(data):
+                  raise SystemExit(f"Incomplete PNG structure {name}")
+
+          with zipfile.ZipFile(jars[0]) as archive:
+              names = set(archive.namelist())
+              missing = sorted(required - names)
+              if missing:
+                  raise SystemExit("Missing required JAR entries:\n" + "\n".join(missing))
+
+              json_count = 0
+              for name in sorted(names):
+                  if not name.endswith(".json"):
+                      continue
+                  try:
+                      json.loads(archive.read(name).decode("utf-8"))
+                  except Exception as error:
+                      raise SystemExit(f"Invalid JSON {name}: {error}") from error
+                  json_count += 1
+
+              png_count = 0
+              for name in sorted(names):
+                  if not name.endswith(".png"):
+                      continue
+                  validate_png(name, archive.read(name))
+                  png_count += 1
+
+              model = json.loads(archive.read(
+                  "assets/metatech_reborn/models/block/molecular_assembler_9x9.json"
+              ).decode("utf-8"))
+              if "elements" not in model or len(model["elements"]) < 15:
+                  raise SystemExit("Transparent assembler model does not contain the expected frame/glass/core geometry")
+
+              ru = json.loads(archive.read(
+                  "assets/metatech_reborn/lang/ru_ru.json").decode("utf-8"))
+              en = json.loads(archive.read(
+                  "assets/metatech_reborn/lang/en_us.json").decode("utf-8"))
+              gui_keys = {
+                  "gui.metatech_reborn.tooltip.progress_ticks",
+                  "gui.metatech_reborn.luck_converter.tooltip.speed",
+                  "gui.metatech_reborn.greenhouse.tooltip.mana",
+                  "gui.metatech_reborn.mana_drill.tooltip.upgrades",
+                  "gui.metatech_reborn.assembler.tooltip.unlock",
+                  "gui.metatech_reborn.neutron.tooltip.process",
+                  "gui.metatech_reborn.luck_converter.speed.instant",
+              }
+              for key in sorted(gui_keys):
+                  if key not in ru or key not in en:
+                      raise SystemExit(f"Missing GUI translation key: {key}")
+
+          print(f"Validated {json_count} JSON files, {png_count} PNG files with CRC, GUI translations and required resources in {jars[0]}")
+          PY
+
+      - name: Upload unified MetaTech JAR
         uses: actions/upload-artifact@v4
         with:
-          name: MetaTech-Reborn-${{ github.sha }}
+          name: MetaTech-Reborn-unified-${{ github.sha }}
           path: build/libs/*.jar
           if-no-files-found: error

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GPG",
+    "CMC",
+    "IRI"
+  ],
+  "key": {
+    "G": { "item": "minecraft:glass" },
+    "P": { "item": "minecraft:ender_pearl" },
+    "C": { "item": "minecraft:copper_block" },
+    "M": { "item": "botania:mana_diamond" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:redstone_block" }
+  },
+  "result": { "item": "metatech_reborn:greenhouse" }
+}
