@@ -34,8 +34,8 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         int columns = advanced ? 12 : 10;
         int inputRows = advanced ? 6 : 3;
         int outputRows = advanced ? 5 : 3;
-        int inputY = 20;
-        int outputY = advanced ? 134 : 84;
+        int inputY = 28;
+        int outputY = advanced ? 146 : 92;
         for (int row = 0; row < inputRows; row++) {
             for (int column = 0; column < columns; column++) {
                 int handlerSlot = column + row * columns;
@@ -51,18 +51,17 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
             }
         }
 
-        int sideX = advanced ? 238 : 194;
-        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.MODULE_SLOT, sideX, 116));
+        int sideX = advanced ? 270 : 214;
+        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.MODULE_SLOT, sideX, 156));
         for (int i = 0; i < LuckConverterBlockEntity.UPGRADE_SLOTS; i++) {
             addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.FIRST_UPGRADE + i,
-                    sideX, 8 + i * 18));
+                    sideX, 28 + i * 20));
         }
-        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.ENERGY_SLOT,
-                sideX, advanced ? 154 : 140));
+        addSlot(new SlotItemHandler(blockEntity.getItems(), LuckConverterBlockEntity.ENERGY_SLOT, sideX, 180));
         this.machineMenuSlots = slots.size();
 
-        int playerX = advanced ? 37 : 28;
-        int playerY = advanced ? 254 : 176;
+        int playerX = advanced ? 70 : 52;
+        int playerY = advanced ? 318 : 218;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9, playerX + column * 18, playerY + row * 18));
