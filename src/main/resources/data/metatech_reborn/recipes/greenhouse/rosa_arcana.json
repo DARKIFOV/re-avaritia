@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:rosa_arcana" },
+  "fuel": { "item": "minecraft:experience_bottle" },
+  "mana": 550,
+  "time": 40,
+  "consume_fuel": true
+}
