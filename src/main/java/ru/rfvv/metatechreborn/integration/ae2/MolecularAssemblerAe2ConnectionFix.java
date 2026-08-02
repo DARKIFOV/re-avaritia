@@ -31,10 +31,14 @@ public final class MolecularAssemblerAe2ConnectionFix {
     public static void register() {
         if (registered) return;
         registered = true;
-        MinecraftForge.EVENT_BUS.register(new Events());
+        // The event handler class name must be unique in this package. Forge/EventBus
+        // generates dynamic invokers from the simple listener class name; using another
+        // nested class named "Events" caused a ClassCastException with the provider's
+        // own Events listener during LevelTickEvent dispatch.
+        MinecraftForge.EVENT_BUS.register(new ConnectionEvents());
     }
 
-    private static final class Events {
+    private static final class ConnectionEvents {
         @SubscribeEvent
         public void attachCapabilities(AttachCapabilitiesEvent<BlockEntity> event) {
             if (!(event.getObject() instanceof MolecularAssemblerBlockEntity assembler)) return;
