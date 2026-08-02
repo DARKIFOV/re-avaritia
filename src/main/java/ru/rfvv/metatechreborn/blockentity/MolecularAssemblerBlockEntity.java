@@ -44,6 +44,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Extreme 9x9 molecular assembler.
+ *
+ * Manual jobs use the visible output slot. AE2 jobs use a separate persistent
+ * return buffer, so a restart, chunk unload or temporarily full ME network cannot
+ * duplicate or delete the crafted result.
+ */
 public final class MolecularAssemblerBlockEntity extends BlockEntity implements MenuProvider {
     public static final int GRID_SIZE = 9;
     public static final int GRID_SLOTS = GRID_SIZE * GRID_SIZE;
@@ -52,8 +59,11 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int TOTAL_SLOTS = ENERGY_SLOT + 1;
 
     public static final int BASE_PATTERN_SLOTS = 9;
-    public static final int MAX_PATTERN_SLOTS = 36;
+    public static final int MAX_PATTERN_SLOTS = 28;
+    /** Keeps old 36-slot development saves recoverable by breaking the block. */
+    public static final int PATTERN_STORAGE_SLOTS = 36;
     public static final int EXTRA_PATTERN_SLOTS = MAX_PATTERN_SLOTS - BASE_PATTERN_SLOTS;
+    private static final int NETWORK_RETURN_SLOTS = 18;
 
     public static final int STATUS_IDLE = 0;
     public static final int STATUS_NO_RECIPE = 1;
@@ -61,6 +71,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int STATUS_OUTPUT_FULL = 3;
     public static final int STATUS_RUNNING = 4;
     public static final int STATUS_AE2_READY = 5;
+    public static final int STATUS_RETURNING_TO_NETWORK = 6;
 
     private boolean suppressInventoryCallbacks;
     private int progress;
@@ -69,6 +80,9 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private ResourceLocation lockedRecipeId;
     private MachineRecipeMatch.Source lockedRecipeSource;
     private ItemStack lockedResult = ItemStack.EMPTY;
+    private boolean templateLocked;
+    private boolean ae2JobActive;
+
     private final NonNullList<ItemStack> lockedTemplate =
             NonNullList.withSize(GRID_SLOTS, ItemStack.EMPTY);
 
@@ -93,9 +107,15 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     };
 
-    private final ItemStackHandler patternItems = new ItemStackHandler(MAX_PATTERN_SLOTS) {
-        @Override protected void onContentsChanged(int slot) { setChanged(); }
+    private final ItemStackHandler patternItems = new ItemStackHandler(PATTERN_STORAGE_SLOTS) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+            requestAe2PatternUpdate();
+        }
+
         @Override public int getSlotLimit(int slot) { return 1; }
+
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return slot < getActivePatternSlots()
@@ -105,12 +125,28 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     };
 
     private final ItemStackHandler patternUpgradeItems = new ItemStackHandler(1) {
-        @Override protected void onContentsChanged(int slot) { setChanged(); }
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+            requestAe2PatternUpdate();
+        }
+
         @Override public int getSlotLimit(int slot) { return 1; }
+
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return stack.getItem() instanceof PatternCapacityUpgradeItem;
         }
+
+        @Override
+        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (!canRemovePatternUpgrade()) return ItemStack.EMPTY;
+            return super.extractItem(slot, amount, simulate);
+        }
+    };
+
+    private final ItemStackHandler networkReturnBuffer = new ItemStackHandler(NETWORK_RETURN_SLOTS) {
+        @Override protected void onContentsChanged(int slot) { setChanged(); }
     };
 
     private final IItemHandler recipeGrid = new IItemHandler() {
@@ -128,19 +164,23 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     };
 
+    /** External automation may insert ingredients, but never extract the recipe grid. */
     private final IItemHandler externalItems = new IItemHandler() {
         @Override public int getSlots() { return TOTAL_SLOTS; }
         @Override public @NotNull ItemStack getStackInSlot(int slot) { return items.getStackInSlot(slot); }
+
         @Override
         public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
             if (slot == OUTPUT_SLOT) return stack;
             return items.insertItem(slot, stack, simulate);
         }
+
         @Override
         public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
             if (slot == OUTPUT_SLOT || slot == ENERGY_SLOT) return items.extractItem(slot, amount, simulate);
             return ItemStack.EMPTY;
         }
+
         @Override public int getSlotLimit(int slot) { return items.getSlotLimit(slot); }
         @Override public boolean isItemValid(int slot, @NotNull ItemStack stack) {
             return items.isItemValid(slot, stack);
@@ -164,7 +204,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 case 1 -> maxProgress;
                 case 2 -> energy.getEnergyStored();
                 case 3 -> energy.getMaxEnergyStored();
-                case 4 -> lockedRecipeId == null ? 0 : 1;
+                case 4 -> templateLocked ? 1 : 0;
                 case 5 -> getActivePatternSlots();
                 case 6 -> getInstalledPatternCount();
                 case 7 -> status;
@@ -193,6 +233,13 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
     private void tickServer(Level level) {
         chargeFromEnergyItem();
+        flushNetworkReturnBuffer();
+
+        if (hasPendingNetworkReturns()) {
+            setStatus(STATUS_RETURNING_TO_NETWORK);
+            return;
+        }
+
         if (CommonConfig.AUTO_EJECT_OUTPUT.get() && level.getGameTime() % 5L == 0L) {
             autoEjectOutput(level);
         }
@@ -209,10 +256,20 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
 
         MachineRecipeMatch active = match.get();
+        if (ae2JobActive && !lockedResult.isEmpty()
+                && !ItemStack.isSameItemSameTags(active.result(), lockedResult)) {
+            resetProgressOnly();
+            setStatus(STATUS_NO_RECIPE);
+            return;
+        }
         if (lockedRecipeId == null) lockRecipe(active);
 
         maxProgress = Math.max(1, active.craftTime());
-        if (!canOutput(active.result())) {
+        if (!ae2JobActive && !canOutput(active.result())) {
+            setStatus(STATUS_OUTPUT_FULL);
+            return;
+        }
+        if (ae2JobActive && !canQueueNetworkOutputs(active)) {
             setStatus(STATUS_OUTPUT_FULL);
             return;
         }
@@ -230,7 +287,9 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
         if (progress >= maxProgress) {
             Optional<MachineRecipeMatch> validated = findLockedMatch(level);
-            if (validated.isPresent() && canOutput(validated.get().result())) {
+            if (validated.isPresent()
+                    && (!ae2JobActive && canOutput(validated.get().result())
+                    || ae2JobActive && canQueueNetworkOutputs(validated.get()))) {
                 completeCraft(level, validated.get());
             } else {
                 progress = 0;
@@ -308,7 +367,13 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private void lockRecipe(MachineRecipeMatch match) {
         lockedRecipeId = match.id();
         lockedRecipeSource = match.source();
-        lockedResult = match.result().copy();
+        if (lockedResult.isEmpty()) lockedResult = match.result().copy();
+        if (!templateLocked) copyGridToLockedTemplate();
+        templateLocked = true;
+        setChanged();
+    }
+
+    private void copyGridToLockedTemplate() {
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
             ItemStack stack = items.getStackInSlot(slot);
             if (stack.isEmpty()) {
@@ -319,13 +384,18 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 lockedTemplate.set(slot, template);
             }
         }
-        setChanged();
     }
 
     public void clearRecipeLock() {
+        if (isAe2Busy()) return;
+        clearRecipeLockInternal();
+    }
+
+    private void clearRecipeLockInternal() {
         lockedRecipeId = null;
         lockedRecipeSource = null;
         lockedResult = ItemStack.EMPTY;
+        templateLocked = false;
         progress = 0;
         maxProgress = 0;
         for (int slot = 0; slot < GRID_SLOTS; slot++) lockedTemplate.set(slot, ItemStack.EMPTY);
@@ -346,10 +416,23 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return count;
     }
 
+    public boolean hasOccupiedExtraPatternSlots() {
+        for (int slot = BASE_PATTERN_SLOTS; slot < PATTERN_STORAGE_SLOTS; slot++) {
+            if (!patternItems.getStackInSlot(slot).isEmpty()) return true;
+        }
+        return false;
+    }
+
+    public boolean canRemovePatternUpgrade() {
+        return !hasOccupiedExtraPatternSlots();
+    }
+
     public boolean canAcceptAe2Plan() {
-        if (progress != 0 || !isGridEmpty()) return false;
-        ItemStack output = items.getStackInSlot(OUTPUT_SLOT);
-        return output.isEmpty() || output.getCount() < output.getMaxStackSize();
+        return progress == 0 && !ae2JobActive && isGridEmpty() && !hasPendingNetworkReturns();
+    }
+
+    public boolean isAe2Busy() {
+        return ae2JobActive || hasPendingNetworkReturns();
     }
 
     private boolean isGridEmpty() {
@@ -363,6 +446,33 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         return lockedResult.copy();
     }
 
+    /** Receives an already validated, complete AE2 input placement atomically. */
+    public boolean acceptDecodedAe2Pattern(ExtremePatternData pattern,
+                                           NonNullList<ItemStack> placement) {
+        if (!canAcceptAe2Plan() || placement.size() != GRID_SLOTS) return false;
+        if (pattern.output().isEmpty()) return false;
+
+        for (int slot = 0; slot < GRID_SLOTS; slot++) {
+            ItemStack expected = pattern.inputs().get(slot);
+            ItemStack supplied = placement.get(slot);
+            if (expected.isEmpty() != supplied.isEmpty()) return false;
+            if (!expected.isEmpty() && !ItemStack.isSameItemSameTags(expected, supplied)) return false;
+        }
+
+        applyPlacement(placement);
+        lockedRecipeId = null;
+        lockedRecipeSource = null;
+        lockedResult = pattern.output().copy();
+        templateLocked = true;
+        ae2JobActive = true;
+        for (int slot = 0; slot < GRID_SLOTS; slot++) {
+            lockedTemplate.set(slot, pattern.inputs().get(slot).copy());
+        }
+        setStatus(STATUS_RUNNING);
+        setChanged();
+        return true;
+    }
+
     public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks,
                                               ItemStack requestedOutput,
                                               long requestedAmount) {
@@ -373,53 +483,27 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (decoded.isEmpty()) continue;
             ExtremePatternData pattern = decoded.get();
             if (!ItemStack.isSameItemSameTags(pattern.output(), requestedOutput)
-                    || requestedAmount < pattern.output().getCount()
-                    || !canOutput(pattern.output())) continue;
+                    || requestedAmount < pattern.output().getCount()) continue;
 
-            Optional<NonNullList<ItemStack>> placement = createPatternPlacement(pattern, suppliedStacks);
+            Optional<NonNullList<ItemStack>> placement = createPlacement(pattern.inputs(), suppliedStacks);
             if (placement.isEmpty()) continue;
-
-            clearRecipeLock();
-            applyPlacement(placement.get());
-            lockedResult = pattern.output().copy();
-            for (int gridSlot = 0; gridSlot < GRID_SLOTS; gridSlot++) {
-                lockedTemplate.set(gridSlot, pattern.inputs().get(gridSlot).copy());
-            }
-            setStatus(STATUS_RUNNING);
-            setChanged();
-            return true;
-        }
-
-        if (lockedRecipeId != null && !lockedResult.isEmpty()
-                && ItemStack.isSameItemSameTags(lockedResult, requestedOutput)
-                && requestedAmount >= lockedResult.getCount()
-                && canOutput(lockedResult)) {
-            Optional<NonNullList<ItemStack>> placement = createLockedPlacement(suppliedStacks);
-            if (placement.isPresent()) {
-                applyPlacement(placement.get());
-                return true;
-            }
+            return acceptDecodedAe2Pattern(pattern, placement.get());
         }
         return false;
     }
 
     public boolean acceptExternalPatternBatch(List<ItemStack> suppliedStacks) {
-        if (!canAcceptAe2Plan() || lockedRecipeId == null || lockedResult.isEmpty() || !canOutput(lockedResult)) {
-            return false;
-        }
-        Optional<NonNullList<ItemStack>> placement = createLockedPlacement(suppliedStacks);
+        if (!canAcceptAe2Plan() || !templateLocked || lockedResult.isEmpty()) return false;
+        Optional<NonNullList<ItemStack>> placement = createPlacement(lockedTemplate, suppliedStacks);
         if (placement.isEmpty()) return false;
-        applyPlacement(placement.get());
-        return true;
+        ExtremePatternData pattern = new ExtremePatternData(copyLockedTemplate(), lockedResult);
+        return acceptDecodedAe2Pattern(pattern, placement.get());
     }
 
-    private Optional<NonNullList<ItemStack>> createPatternPlacement(ExtremePatternData pattern,
-                                                                    List<ItemStack> suppliedStacks) {
-        return createPlacement(pattern.inputs(), suppliedStacks);
-    }
-
-    private Optional<NonNullList<ItemStack>> createLockedPlacement(List<ItemStack> suppliedStacks) {
-        return createPlacement(lockedTemplate, suppliedStacks);
+    private NonNullList<ItemStack> copyLockedTemplate() {
+        NonNullList<ItemStack> copy = NonNullList.withSize(GRID_SLOTS, ItemStack.EMPTY);
+        for (int slot = 0; slot < GRID_SLOTS; slot++) copy.set(slot, lockedTemplate.get(slot).copy());
+        return copy;
     }
 
     private Optional<NonNullList<ItemStack>> createPlacement(List<ItemStack> template,
@@ -460,7 +544,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     private void applyPlacement(NonNullList<ItemStack> placement) {
         suppressInventoryCallbacks = true;
         try {
-            for (int slot = 0; slot < GRID_SLOTS; slot++) items.setStackInSlot(slot, placement.get(slot));
+            for (int slot = 0; slot < GRID_SLOTS; slot++) items.setStackInSlot(slot, placement.get(slot).copy());
         } finally {
             suppressInventoryCallbacks = false;
         }
@@ -470,7 +554,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
 
     private boolean canInsertIntoGridSlot(int slot, ItemStack stack) {
         if (slot < 0 || slot >= GRID_SLOTS) return false;
-        if (lockedRecipeId == null) return true;
+        if (!templateLocked) return !ae2JobActive;
         ItemStack template = lockedTemplate.get(slot);
         return !template.isEmpty() && ItemStack.isSameItemSameTags(template, stack);
     }
@@ -482,6 +566,22 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 && output.getCount() + result.getCount() <= output.getMaxStackSize();
     }
 
+    private boolean canQueueNetworkOutputs(MachineRecipeMatch match) {
+        ItemStackHandler simulated = copyNetworkReturnBuffer();
+        for (ItemStack remainder : match.remainingItems()) {
+            if (!insertIntoHandler(simulated, remainder.copy(), false).isEmpty()) return false;
+        }
+        return insertIntoHandler(simulated, match.result().copy(), false).isEmpty();
+    }
+
+    private ItemStackHandler copyNetworkReturnBuffer() {
+        ItemStackHandler copy = new ItemStackHandler(NETWORK_RETURN_SLOTS);
+        for (int slot = 0; slot < NETWORK_RETURN_SLOTS; slot++) {
+            copy.setStackInSlot(slot, networkReturnBuffer.getStackInSlot(slot).copy());
+        }
+        return copy;
+    }
+
     private void completeCraft(Level level, MachineRecipeMatch match) {
         suppressInventoryCallbacks = true;
         try {
@@ -490,29 +590,47 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             }
 
             NonNullList<ItemStack> remaining = match.remainingItems();
-            for (int slot = 0; slot < Math.min(GRID_SLOTS, remaining.size()); slot++) {
-                ItemStack remainder = remaining.get(slot).copy();
-                if (remainder.isEmpty()) continue;
-
-                ItemStack current = items.getStackInSlot(slot);
-                if (current.isEmpty()) {
-                    items.setStackInSlot(slot, remainder);
-                } else {
-                    ItemStack notInserted = insertIntoOutput(remainder);
-                    if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
+            if (ae2JobActive) {
+                for (ItemStack remainder : remaining) {
+                    if (!remainder.isEmpty()) insertIntoHandler(networkReturnBuffer, remainder.copy(), false);
                 }
-            }
+                insertIntoHandler(networkReturnBuffer, match.result().copy(), false);
+            } else {
+                for (int slot = 0; slot < Math.min(GRID_SLOTS, remaining.size()); slot++) {
+                    ItemStack remainder = remaining.get(slot).copy();
+                    if (remainder.isEmpty()) continue;
+                    ItemStack current = items.getStackInSlot(slot);
+                    if (current.isEmpty()) {
+                        items.setStackInSlot(slot, remainder);
+                    } else {
+                        ItemStack notInserted = insertIntoOutput(remainder);
+                        if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
+                    }
+                }
 
-            ItemStack notInserted = insertIntoOutput(match.result().copy());
-            if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
+                ItemStack notInserted = insertIntoOutput(match.result().copy());
+                if (!notInserted.isEmpty()) popItem(level, worldPosition, notInserted);
+            }
         } finally {
             suppressInventoryCallbacks = false;
         }
 
         progress = 0;
         maxProgress = match.craftTime();
-        setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
+        if (ae2JobActive) {
+            setStatus(STATUS_RETURNING_TO_NETWORK);
+        } else {
+            setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
+        }
         setChanged();
+    }
+
+    private static ItemStack insertIntoHandler(ItemStackHandler handler, ItemStack stack, boolean simulate) {
+        ItemStack remaining = stack;
+        for (int slot = 0; slot < handler.getSlots() && !remaining.isEmpty(); slot++) {
+            remaining = handler.insertItem(slot, remaining, simulate);
+        }
+        return remaining;
     }
 
     private ItemStack insertIntoOutput(ItemStack stack) {
@@ -530,6 +648,41 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         ItemStack remainder = stack.copy();
         remainder.shrink(transferable);
         return remainder;
+    }
+
+    private void flushNetworkReturnBuffer() {
+        if (!ModList.get().isLoaded("ae2")) return;
+        boolean changed = false;
+        for (int slot = 0; slot < NETWORK_RETURN_SLOTS; slot++) {
+            ItemStack stack = networkReturnBuffer.getStackInSlot(slot);
+            if (stack.isEmpty()) continue;
+            int inserted;
+            try {
+                inserted = MolecularAssemblerCraftingMachine.insertIntoNetwork(this, stack);
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Failed returning molecular assembler output to AE2", error);
+                return;
+            }
+            if (inserted > 0) {
+                networkReturnBuffer.extractItem(slot, inserted, false);
+                changed = true;
+            }
+        }
+
+        if (!hasPendingNetworkReturns() && ae2JobActive) {
+            ae2JobActive = false;
+            clearRecipeLockInternal();
+            setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
+            changed = true;
+        }
+        if (changed) setChanged();
+    }
+
+    private boolean hasPendingNetworkReturns() {
+        for (int slot = 0; slot < NETWORK_RETURN_SLOTS; slot++) {
+            if (!networkReturnBuffer.getStackInSlot(slot).isEmpty()) return true;
+        }
+        return false;
     }
 
     private void autoEjectOutput(Level level) {
@@ -556,6 +709,15 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
     }
 
+    private void requestAe2PatternUpdate() {
+        if (level == null || level.isClientSide || !ModList.get().isLoaded("ae2")) return;
+        try {
+            MolecularAssemblerCraftingMachine.requestPatternUpdate(this);
+        } catch (LinkageError | RuntimeException error) {
+            MetaTechReborn.LOGGER.error("Unable to refresh AE2 molecular assembler patterns", error);
+        }
+    }
+
     private void setStatus(int newStatus) {
         if (status != newStatus) {
             status = newStatus;
@@ -577,12 +739,16 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             ItemStack stack = items.getStackInSlot(slot);
             if (!stack.isEmpty()) drops.add(stack.copy());
         }
-        for (int slot = 0; slot < MAX_PATTERN_SLOTS; slot++) {
+        for (int slot = 0; slot < PATTERN_STORAGE_SLOTS; slot++) {
             ItemStack stack = patternItems.getStackInSlot(slot);
             if (!stack.isEmpty()) drops.add(stack.copy());
         }
         ItemStack upgrade = patternUpgradeItems.getStackInSlot(0);
         if (!upgrade.isEmpty()) drops.add(upgrade.copy());
+        for (int slot = 0; slot < NETWORK_RETURN_SLOTS; slot++) {
+            ItemStack stack = networkReturnBuffer.getStackInSlot(slot);
+            if (!stack.isEmpty()) drops.add(stack.copy());
+        }
         return drops;
     }
 
@@ -602,21 +768,48 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     }
 
     @Override
+    public void clearRemoved() {
+        super.clearRemoved();
+        if (ModList.get().isLoaded("ae2")) {
+            try {
+                MolecularAssemblerCraftingMachine.clearRemoved(this);
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Unable to initialize AE2 node for molecular assembler", error);
+            }
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        if (ModList.get().isLoaded("ae2")) {
+            try {
+                MolecularAssemblerCraftingMachine.remove(this);
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Unable to remove AE2 node for molecular assembler", error);
+            }
+        }
+        super.setRemoved();
+    }
+
+    @Override
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put("Inventory", items.serializeNBT());
         tag.put("Patterns", patternItems.serializeNBT());
         tag.put("PatternUpgrade", patternUpgradeItems.serializeNBT());
+        tag.put("NetworkReturns", networkReturnBuffer.serializeNBT());
         tag.putInt("Energy", energy.getEnergyStored());
         tag.putInt("Progress", progress);
         tag.putInt("MaxProgress", maxProgress);
         tag.putInt("Status", status);
+        tag.putBoolean("TemplateLocked", templateLocked);
+        tag.putBoolean("Ae2JobActive", ae2JobActive);
 
         if (lockedRecipeId != null && lockedRecipeSource != null) {
             tag.putString("LockedRecipe", lockedRecipeId.toString());
             tag.putString("LockedSource", lockedRecipeSource.name());
-            if (!lockedResult.isEmpty()) tag.put("LockedResult", lockedResult.save(new CompoundTag()));
         }
+        if (!lockedResult.isEmpty()) tag.put("LockedResult", lockedResult.save(new CompoundTag()));
 
         ListTag templateTag = new ListTag();
         for (int slot = 0; slot < GRID_SLOTS; slot++) {
@@ -624,10 +817,20 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (stack.isEmpty()) continue;
             CompoundTag entry = new CompoundTag();
             entry.putByte("Slot", (byte) slot);
-            stack.save(entry);
+            entry.put("Stack", stack.save(new CompoundTag()));
             templateTag.add(entry);
         }
         tag.put("LockedTemplate", templateTag);
+
+        if (ModList.get().isLoaded("ae2")) {
+            try {
+                CompoundTag nodeTag = new CompoundTag();
+                MolecularAssemblerCraftingMachine.saveNode(this, nodeTag);
+                if (!nodeTag.isEmpty()) tag.put("Ae2Node", nodeTag);
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Unable to save molecular assembler AE2 node", error);
+            }
+        }
     }
 
     @Override
@@ -638,10 +841,15 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (tag.contains("PatternUpgrade", Tag.TAG_COMPOUND)) {
             patternUpgradeItems.deserializeNBT(tag.getCompound("PatternUpgrade"));
         }
+        if (tag.contains("NetworkReturns", Tag.TAG_COMPOUND)) {
+            networkReturnBuffer.deserializeNBT(tag.getCompound("NetworkReturns"));
+        }
         energy.setEnergyStored(tag.getInt("Energy"));
         progress = tag.getInt("Progress");
         maxProgress = tag.getInt("MaxProgress");
         status = tag.getInt("Status");
+        templateLocked = tag.getBoolean("TemplateLocked");
+        ae2JobActive = tag.getBoolean("Ae2JobActive");
 
         lockedRecipeId = null;
         lockedRecipeSource = null;
@@ -664,7 +872,17 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         for (int index = 0; index < templateTag.size(); index++) {
             CompoundTag entry = templateTag.getCompound(index);
             int slot = entry.getByte("Slot") & 255;
-            if (slot < GRID_SLOTS) lockedTemplate.set(slot, ItemStack.of(entry));
+            if (slot < GRID_SLOTS && entry.contains("Stack", Tag.TAG_COMPOUND)) {
+                lockedTemplate.set(slot, ItemStack.of(entry.getCompound("Stack")));
+            }
+        }
+
+        if (ModList.get().isLoaded("ae2") && tag.contains("Ae2Node", Tag.TAG_COMPOUND)) {
+            try {
+                MolecularAssemblerCraftingMachine.loadNode(this, tag.getCompound("Ae2Node"));
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Unable to load molecular assembler AE2 node", error);
+            }
         }
     }
 
@@ -674,8 +892,12 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (cap == ForgeCapabilities.ITEM_HANDLER) return itemCapability.cast();
         if (cap == ForgeCapabilities.ENERGY) return energyCapability.cast();
         if (ModList.get().isLoaded("ae2")) {
-            LazyOptional<T> ae2Capability = MolecularAssemblerCraftingMachine.getCapability(this, cap);
-            if (ae2Capability != null) return ae2Capability;
+            try {
+                LazyOptional<T> ae2Capability = MolecularAssemblerCraftingMachine.getCapability(this, cap);
+                if (ae2Capability != null) return ae2Capability;
+            } catch (LinkageError | RuntimeException error) {
+                MetaTechReborn.LOGGER.error("Unable to expose molecular assembler AE2 capability", error);
+            }
         }
         return super.getCapability(cap, side);
     }
@@ -685,7 +907,6 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         super.invalidateCaps();
         itemCapability.invalidate();
         energyCapability.invalidate();
-        if (ModList.get().isLoaded("ae2")) MolecularAssemblerCraftingMachine.invalidate(this);
     }
 
     private static void popItem(Level level, BlockPos pos, ItemStack stack) {
