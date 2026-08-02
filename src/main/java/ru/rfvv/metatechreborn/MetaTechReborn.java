@@ -4,12 +4,14 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import ru.rfvv.metatechreborn.config.CommonConfig;
+import ru.rfvv.metatechreborn.integration.ae2.MolecularAssemblerAe2Provider;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 import ru.rfvv.metatechreborn.registry.ModBlocks;
 import ru.rfvv.metatechreborn.registry.ModItems;
@@ -32,6 +34,7 @@ public final class MetaTechReborn {
         ModRecipes.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
+        if (ModList.get().isLoaded("ae2")) MolecularAssemblerAe2Provider.register();
     }
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
