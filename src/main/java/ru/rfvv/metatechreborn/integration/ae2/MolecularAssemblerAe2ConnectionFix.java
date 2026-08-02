@@ -2,7 +2,6 @@ package ru.rfvv.metatechreborn.integration.ae2;
 
 import appeng.api.networking.GridHelper;
 import appeng.api.networking.IGridNode;
-import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.capabilities.Capabilities;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -22,7 +21,7 @@ import java.util.WeakHashMap;
 /**
  * Compatibility pass for AE2 cables that were already placed before the assembler's
  * attached grid-node capability became available. Normal AE2 discovery still works;
- * this only creates the missing adjacent connection and forces a pattern refresh.
+ * this only creates the missing adjacent connection.
  */
 public final class MolecularAssemblerAe2ConnectionFix {
     private static final Set<MolecularAssemblerBlockEntity> HOSTS =
@@ -79,7 +78,6 @@ public final class MolecularAssemblerAe2ConnectionFix {
                 } catch (IllegalStateException ignored) {
                     // Already connected, or AE2 completed the connection during this tick.
                 }
-                ICraftingProvider.requestUpdate(ownNode);
             });
         }
     }
