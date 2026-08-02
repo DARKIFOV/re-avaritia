@@ -12,6 +12,7 @@ import ru.rfvv.metatechreborn.block.ExtremePatternEncoderBlock;
 import ru.rfvv.metatechreborn.block.GreenhouseBlock;
 import ru.rfvv.metatechreborn.block.LuckConverterBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
+import ru.rfvv.metatechreborn.block.ManaDrillNozzleBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
 import ru.rfvv.metatechreborn.block.NeutroniumCombinerBlock;
 
@@ -42,7 +43,7 @@ public final class ModBlocks {
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEACON)
                     .strength(6.0F, 15.0F).lightLevel(state -> 10).requiresCorrectToolForDrops()));
     public static final RegistryObject<Block> MANA_DRILL_NOZZLE = BLOCKS.register("mana_drill_nozzle",
-            () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+            () -> new ManaDrillNozzleBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(6.0F, 15.0F).lightLevel(state -> 7).requiresCorrectToolForDrops()));
     public static final RegistryObject<Block> GREENHOUSE = BLOCKS.register("greenhouse",
             () -> new GreenhouseBlock(BlockBehaviour.Properties.copy(Blocks.COPPER_BLOCK)
