@@ -53,8 +53,8 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         int panelRight = leftPos + imageWidth;
         graphics.fill(panelLeft, topPos, panelRight, topPos + imageHeight, 0xFF10242C);
         graphics.fill(panelLeft + 2, topPos + 2, panelRight - 2, topPos + imageHeight - 2, 0xFF17343E);
-        graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 96, 0xFF0B1D24);
-        graphics.fill(panelLeft + 9, topPos + 99, panelRight - 9, topPos + 142, 0xFF0B1D24);
+        graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 134, 0xFF0B1D24);
+        graphics.fill(panelLeft + 9, topPos + 136, panelRight - 9, topPos + 190, 0xFF0B1D24);
 
         for (int slot = 0; slot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; slot++) {
             int column = slot % MolecularAssemblerMenu.PATTERN_COLUMNS;
@@ -71,7 +71,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             }
         }
 
-        drawSlot(graphics, 281, 105, true);
+        drawSlot(graphics, 281, 139, true);
         drawSlot(graphics, 191, 74, true);
         drawSlot(graphics, 218, 74, true);
 
@@ -120,12 +120,15 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         graphics.drawString(font,
                 Component.translatable("gui.metatech_reborn.pattern_count",
                         menu.getInstalledPatternCount(), menu.getActivePatternSlots()),
-                306, 107, 0x9CCBFF, false);
+                306, 141, 0x9CCBFF, false);
         graphics.drawString(font,
                 Component.translatable(menu.getActivePatternSlots() == MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS
                         ? "gui.metatech_reborn.pattern_capacity.full"
                         : "gui.metatech_reborn.pattern_capacity.base"),
-                266, 127, 0xBBD5E7, false);
+                266, 163, 0xBBD5E7, false);
+        graphics.drawString(font,
+                Component.translatable("gui.metatech_reborn.pattern_capacity.math"),
+                266, 175, 0x78D9F4, false);
     }
 
     private static String statusKey(int status) {
