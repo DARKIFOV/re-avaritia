@@ -19,6 +19,8 @@ import ru.rfvv.metatechreborn.registry.ModMenus;
 
 public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public static final int UNLOCK_BUTTON_ID = 0;
+    public static final int PATTERN_COLUMNS = 7;
+    public static final int PATTERN_ROWS = 4;
     public static final int PATTERN_MENU_START = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
     public static final int PATTERN_UPGRADE_MENU_SLOT =
             PATTERN_MENU_START + MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS;
@@ -55,14 +57,13 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.ENERGY_SLOT,
                 218, 74));
 
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 9; column++) {
-                int patternSlot = column + row * 9;
-                addSlot(new SlotItemHandler(blockEntity.getPatternItems(), patternSlot,
-                        274 + column * 18, 22 + row * 18));
-            }
+        for (int patternSlot = 0; patternSlot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; patternSlot++) {
+            int column = patternSlot % PATTERN_COLUMNS;
+            int row = patternSlot / PATTERN_COLUMNS;
+            addSlot(new PatternBankSlot(blockEntity, patternSlot,
+                    281 + column * 18, 22 + row * 18));
         }
-        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 274, 105));
+        addSlot(new PatternUpgradeSlot(blockEntity, 281, 105));
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
@@ -140,4 +141,44 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public int getActivePatternSlots() { return data.get(5); }
     public int getInstalledPatternCount() { return data.get(6); }
     public int getStatus() { return data.get(7); }
+
+    private static final class PatternBankSlot extends SlotItemHandler {
+        private final MolecularAssemblerBlockEntity assembler;
+        private final int patternSlot;
+
+        private PatternBankSlot(MolecularAssemblerBlockEntity assembler, int patternSlot, int x, int y) {
+            super(assembler.getPatternItems(), patternSlot, x, y);
+            this.assembler = assembler;
+            this.patternSlot = patternSlot;
+        }
+
+        @Override
+        public boolean isActive() {
+            return patternSlot < assembler.getActivePatternSlots();
+        }
+
+        @Override
+        public boolean mayPlace(@NotNull ItemStack stack) {
+            return isActive() && super.mayPlace(stack);
+        }
+
+        @Override
+        public boolean mayPickup(@NotNull Player player) {
+            return isActive() && super.mayPickup(player);
+        }
+    }
+
+    private static final class PatternUpgradeSlot extends SlotItemHandler {
+        private final MolecularAssemblerBlockEntity assembler;
+
+        private PatternUpgradeSlot(MolecularAssemblerBlockEntity assembler, int x, int y) {
+            super(assembler.getPatternUpgradeItems(), 0, x, y);
+            this.assembler = assembler;
+        }
+
+        @Override
+        public boolean mayPickup(@NotNull Player player) {
+            return assembler.canRemovePatternUpgrade() && super.mayPickup(player);
+        }
+    }
 }
