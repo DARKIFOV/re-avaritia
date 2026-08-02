@@ -1,5 +1,6 @@
 package ru.rfvv.metatechreborn.menu;
 
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -26,7 +27,7 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
     public ExtremePatternEncoderMenu(int id, Inventory inventory, FriendlyByteBuf buffer) {
         this(id, inventory,
                 (ExtremePatternEncoderBlockEntity) inventory.player.level().getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(2));
+                new SimpleContainerData(3));
     }
 
     public ExtremePatternEncoderMenu(int id, Inventory inventory,
@@ -39,7 +40,14 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
             for (int column = 0; column < 9; column++) {
                 int slot = column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
-                        10 + column * 18, 26 + row * 18));
+                        10 + column * 18, 26 + row * 18) {
+                    @Override public boolean mayPlace(@NotNull ItemStack stack) {
+                        return !ExtremePatternEncoderMenu.this.isGhostGrid() && super.mayPlace(stack);
+                    }
+                    @Override public boolean mayPickup(@NotNull Player player) {
+                        return !ExtremePatternEncoderMenu.this.isGhostGrid() && super.mayPickup(player);
+                    }
+                });
             }
         }
 
@@ -78,9 +86,13 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
         return false;
     }
 
+    public void applyGhostRecipe(Player player, NonNullList<ItemStack> grid) {
+        blockEntity.setGhostGrid(grid, player);
+    }
+
     @Override public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        if (!slot.hasItem() || !slot.mayPickup(player)) return ItemStack.EMPTY;
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
 
@@ -101,4 +113,5 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
 
     public int getStatus() { return data.get(0); }
     public boolean hasValidRecipe() { return data.get(1) != 0; }
+    public boolean isGhostGrid() { return data.get(2) != 0; }
 }
