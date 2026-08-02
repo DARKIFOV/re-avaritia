@@ -15,7 +15,27 @@ import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.registry.ModRecipes;
 
+import java.util.Locale;
+
 public final class GreenhouseRecipe implements Recipe<Container> {
+    public enum FuelMode {
+        NONE,
+        INGREDIENT,
+        FURNACE_FUEL,
+        EDIBLE,
+        WOOL_CYCLE,
+        SPECIAL_FLOWER;
+
+        public static FuelMode byName(String name) {
+            if (name == null || name.isBlank()) return NONE;
+            try {
+                return valueOf(name.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ignored) {
+                throw new IllegalArgumentException("Unknown greenhouse fuel_mode: " + name);
+            }
+        }
+    }
+
     private final ResourceLocation id;
     private final Ingredient flower;
     private final Ingredient fuel;
@@ -26,10 +46,19 @@ public final class GreenhouseRecipe implements Recipe<Container> {
     private final boolean consumeFuel;
     private final boolean dayOnly;
     private final boolean nightOnly;
+    private final FuelMode fuelMode;
 
     public GreenhouseRecipe(ResourceLocation id, Ingredient flower, Ingredient fuel,
                             Fluid fluid, int fluidAmount, int mana, int time,
                             boolean consumeFuel, boolean dayOnly, boolean nightOnly) {
+        this(id, flower, fuel, fluid, fluidAmount, mana, time, consumeFuel, dayOnly, nightOnly,
+                fuel.isEmpty() ? FuelMode.NONE : FuelMode.INGREDIENT);
+    }
+
+    public GreenhouseRecipe(ResourceLocation id, Ingredient flower, Ingredient fuel,
+                            Fluid fluid, int fluidAmount, int mana, int time,
+                            boolean consumeFuel, boolean dayOnly, boolean nightOnly,
+                            FuelMode fuelMode) {
         this.id = id;
         this.flower = flower;
         this.fuel = fuel;
@@ -40,6 +69,7 @@ public final class GreenhouseRecipe implements Recipe<Container> {
         this.consumeFuel = consumeFuel;
         this.dayOnly = dayOnly;
         this.nightOnly = nightOnly;
+        this.fuelMode = fuelMode == null ? FuelMode.NONE : fuelMode;
     }
 
     public boolean matchesFlower(ItemStack stack) {
@@ -47,11 +77,11 @@ public final class GreenhouseRecipe implements Recipe<Container> {
     }
 
     public boolean matchesFuel(ItemStack stack) {
-        return !requiresFuel() || fuel.test(stack);
+        return fuelMode == FuelMode.NONE || (fuelMode == FuelMode.INGREDIENT && fuel.test(stack));
     }
 
     public boolean requiresFuel() {
-        return !fuel.isEmpty();
+        return fuelMode != FuelMode.NONE;
     }
 
     public boolean requiresFluid() {
@@ -67,13 +97,15 @@ public final class GreenhouseRecipe implements Recipe<Container> {
     public boolean consumeFuel() { return consumeFuel; }
     public boolean dayOnly() { return dayOnly; }
     public boolean nightOnly() { return nightOnly; }
+    public FuelMode fuelMode() { return fuelMode; }
 
     @Override
     public boolean matches(@NotNull Container container, @NotNull Level level) {
         if (container.isEmpty() || !matchesFlower(container.getItem(0))) return false;
         if (!requiresFuel()) return true;
         for (int slot = 1; slot < container.getContainerSize(); slot++) {
-            if (matchesFuel(container.getItem(slot))) return true;
+            ItemStack candidate = container.getItem(slot);
+            if (fuelMode == FuelMode.INGREDIENT ? fuel.test(candidate) : !candidate.isEmpty()) return true;
         }
         return false;
     }
@@ -97,7 +129,7 @@ public final class GreenhouseRecipe implements Recipe<Container> {
     public @NotNull NonNullList<Ingredient> getIngredients() {
         NonNullList<Ingredient> result = NonNullList.create();
         result.add(flower);
-        if (requiresFuel()) result.add(fuel);
+        if (!fuel.isEmpty()) result.add(fuel);
         return result;
     }
 
