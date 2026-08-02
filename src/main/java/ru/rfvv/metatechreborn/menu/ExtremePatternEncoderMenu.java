@@ -4,6 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
@@ -37,7 +38,7 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
         for (int row = 0; row < 9; row++) {
             for (int column = 0; column < 9; column++) {
                 int slot = column + row * 9;
-                addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
+                addSlot(new GhostPatternSlot(blockEntity, slot,
                         8 + column * 18, 15 + row * 18));
             }
         }
@@ -62,6 +63,27 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
         addDataSlots(data);
     }
 
+    @Override
+    public void clicked(int slotId, int button, @NotNull ClickType clickType, @NotNull Player player) {
+        if (slotId >= 0 && slotId < ExtremePatternEncoderBlockEntity.GRID_SLOTS) {
+            if (clickType == ClickType.PICKUP) {
+                ItemStack carried = getCarried();
+                blockEntity.setGhostStack(slotId, carried);
+            } else if (clickType == ClickType.SWAP && button >= 0 && button < 9) {
+                blockEntity.setGhostStack(slotId, player.getInventory().getItem(button));
+            } else if (clickType == ClickType.CLONE && player.getAbilities().instabuild) {
+                ItemStack template = blockEntity.getItems().getStackInSlot(slotId).copy();
+                if (!template.isEmpty()) {
+                    template.setCount(template.getMaxStackSize());
+                    setCarried(template);
+                }
+            }
+            broadcastChanges();
+            return;
+        }
+        super.clicked(slotId, button, clickType, player);
+    }
+
     @Override public boolean stillValid(@NotNull Player player) {
         return stillValid(net.minecraft.world.inventory.ContainerLevelAccess.create(
                         blockEntity.getLevel(), blockEntity.getBlockPos()),
@@ -71,7 +93,7 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
     @Override public boolean clickMenuButton(@NotNull Player player, int id) {
         if (id == ENCODE_BUTTON_ID) return blockEntity.encode();
         if (id == CLEAR_BUTTON_ID) {
-            blockEntity.clearGrid(player);
+            blockEntity.clearGhostGrid();
             return true;
         }
         return false;
@@ -84,12 +106,15 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
         ItemStack copy = original.copy();
         int machineSlots = ExtremePatternEncoderBlockEntity.TOTAL_SLOTS;
 
+        if (index < ExtremePatternEncoderBlockEntity.GRID_SLOTS) {
+            return ItemStack.EMPTY;
+        }
         if (index < machineSlots) {
             if (!moveItemStackTo(original, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
         } else if (original.is(ModItems.BLANK_EXTREME_PATTERN.get())) {
             if (!moveItemStackTo(original, ExtremePatternEncoderBlockEntity.BLANK_SLOT,
                     ExtremePatternEncoderBlockEntity.BLANK_SLOT + 1, false)) return ItemStack.EMPTY;
-        } else if (!moveItemStackTo(original, 0, ExtremePatternEncoderBlockEntity.GRID_SLOTS, false)) {
+        } else {
             return ItemStack.EMPTY;
         }
 
@@ -101,4 +126,13 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
 
     public int getStatus() { return data.get(0); }
     public boolean hasValidRecipe() { return data.get(1) != 0; }
+
+    private static final class GhostPatternSlot extends SlotItemHandler {
+        private GhostPatternSlot(ExtremePatternEncoderBlockEntity encoder, int slot, int x, int y) {
+            super(encoder.getItems(), slot, x, y);
+        }
+
+        @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
+        @Override public boolean mayPickup(@NotNull Player player) { return false; }
+    }
 }
