@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.MetaTechReborn;
-import ru.rfvv.metatechreborn.menu.ExtremePatternEncoderMenu;
 import ru.rfvv.metatechreborn.registry.ModItems;
 import ru.rfvv.metatechreborn.registry.ModMenus;
 import ru.rfvv.metatechreborn.registry.ModRecipes;
@@ -60,26 +59,24 @@ public final class MetaTechJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipeTransferHandlers(IRecipeTransferRegistration registration) {
         registration.addRecipeTransferHandler(
-                ExtremePatternEncoderMenu.class,
-                ModMenus.EXTREME_PATTERN_ENCODER.get(),
-                MolecularAssemblerRecipeCategory.TYPE,
-                0,
-                81,
-                ExtremePatternEncoderMenu.PLAYER_INVENTORY_START,
-                36);
+                new ExtremePatternEncoderTransferHandler<>(
+                        ModMenus.EXTREME_PATTERN_ENCODER.get(),
+                        MolecularAssemblerRecipeCategory.TYPE,
+                        registration.getTransferHelper(),
+                        ExtremePatternEncoderRecipeGrids::fromMolecular),
+                MolecularAssemblerRecipeCategory.TYPE);
 
         if (!ModList.get().isLoaded("avaritia")) return;
         try {
             registration.addRecipeTransferHandler(
-                    ExtremePatternEncoderMenu.class,
-                    ModMenus.EXTREME_PATTERN_ENCODER.get(),
-                    ExtremeCraftingTableCategory.RECIPE_TYPE,
-                    0,
-                    81,
-                    ExtremePatternEncoderMenu.PLAYER_INVENTORY_START,
-                    36);
+                    new ExtremePatternEncoderTransferHandler<>(
+                            ModMenus.EXTREME_PATTERN_ENCODER.get(),
+                            ExtremeCraftingTableCategory.RECIPE_TYPE,
+                            registration.getTransferHelper(),
+                            ExtremePatternEncoderRecipeGrids::fromAvaritia),
+                    ExtremeCraftingTableCategory.RECIPE_TYPE);
         } catch (LinkageError | RuntimeException error) {
-            MetaTechReborn.LOGGER.error("Unable to register Re-Avaritia JEI transfer for the 9x9 encoder", error);
+            MetaTechReborn.LOGGER.error("Unable to register Re-Avaritia ghost transfer for the 9x9 encoder", error);
         }
     }
 }
