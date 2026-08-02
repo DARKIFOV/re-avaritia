@@ -39,7 +39,7 @@ side="BOTH"
 
 [[dependencies.${mod_id}]]
 modId="ae2"
-mandatory=false
+mandatory=true
 versionRange="[15,)"
 ordering="AFTER"
 side="BOTH"
