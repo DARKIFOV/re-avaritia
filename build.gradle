@@ -61,11 +61,14 @@ tasks.register('extractBundledAssets', Copy) {
 }
 
 tasks.register('applySourceHotfixes') {
-    inputs.file file('tools/apply_068_hotfixes.py')
+    inputs.files file('tools/apply_068_hotfixes.py'), file('tools/install_068_textures.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
             commandLine 'python3', 'tools/apply_068_hotfixes.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_068_textures.py'
         }
     }
 }
@@ -78,6 +81,7 @@ sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
     dependsOn tasks.named('extractBundledAssets')
+    dependsOn tasks.named('applySourceHotfixes')
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
