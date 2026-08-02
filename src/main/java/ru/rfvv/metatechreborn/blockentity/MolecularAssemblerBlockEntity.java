@@ -301,7 +301,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         }
         if (lockedRecipeId == null) lockRecipe(active);
 
-        maxProgress = Math.max(1, active.craftTime());
+        maxProgress = MolecularAssemblerJobQueue.adjustedCraftTime(
+                active.craftTime(), getSpeedCardCount());
         if (!ae2JobActive && !canOutput(active.result())) {
             setStatus(STATUS_OUTPUT_FULL);
             return;
@@ -311,7 +312,8 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             return;
         }
 
-        int energyPerTick = Math.max(0, active.energyPerTick());
+        int energyPerTick = MolecularAssemblerJobQueue.scaledPower(
+                active.energyPerTick(), getSpeedCardCount());
         if (!consumeAssemblerEnergy(energyPerTick)) {
             setStatus(STATUS_NO_ENERGY);
             return;
