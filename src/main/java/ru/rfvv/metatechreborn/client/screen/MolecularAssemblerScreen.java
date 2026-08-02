@@ -54,7 +54,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         graphics.fill(panelLeft, topPos, panelRight, topPos + imageHeight, 0xFF10242C);
         graphics.fill(panelLeft + 2, topPos + 2, panelRight - 2, topPos + imageHeight - 2, 0xFF17343E);
         graphics.fill(panelLeft + 9, topPos + 16, panelRight - 9, topPos + 134, 0xFF0B1D24);
-        graphics.fill(panelLeft + 9, topPos + 136, panelRight - 9, topPos + 190, 0xFF0B1D24);
+        graphics.fill(panelLeft + 9, topPos + 136, panelRight - 9, topPos + 206, 0xFF0B1D24);
 
         for (int slot = 0; slot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; slot++) {
             int column = slot % MolecularAssemblerMenu.PATTERN_COLUMNS;
@@ -71,7 +71,10 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             }
         }
 
-        drawSlot(graphics, 281, 139, true);
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS; slot++) {
+            drawSlot(graphics, 400, 22 + slot * 18, true);
+        }
+        drawSlot(graphics, 400, 116, true);
         drawSlot(graphics, 191, 74, true);
         drawSlot(graphics, 218, 74, true);
 
@@ -117,17 +120,27 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
 
         graphics.drawString(font, Component.translatable("gui.metatech_reborn.pattern_bank"),
                 266, 6, 0xEAF8FF, false);
+        graphics.drawString(font, Component.translatable("gui.metatech_reborn.assembler.speed_cards"),
+                393, 6, 0xEAF8FF, false);
         graphics.drawString(font,
                 Component.translatable("gui.metatech_reborn.pattern_count",
                         menu.getInstalledPatternCount(), menu.getActivePatternSlots()),
-                306, 141, 0x9CCBFF, false);
+                266, 141, 0x9CCBFF, false);
+        graphics.drawString(font,
+                Component.translatable("gui.metatech_reborn.assembler.queue",
+                        menu.getQueuedJobCount(), 64),
+                266, 153, 0xB68CFF, false);
+        graphics.drawString(font,
+                Component.translatable("gui.metatech_reborn.assembler.speed_count",
+                        menu.getSpeedCardCount(), MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS),
+                266, 165, 0x7FE7FF, false);
         graphics.drawString(font,
                 Component.translatable(menu.getActivePatternSlots() == MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS
                         ? "gui.metatech_reborn.pattern_capacity.full"
                         : "gui.metatech_reborn.pattern_capacity.base"),
-                266, 163, 0xBBD5E7, false);
+                266, 177, 0xBBD5E7, false);
         graphics.drawString(font, Component.literal("9 + 27 = 36"),
-                266, 175, 0x78D9F4, false);
+                266, 189, 0x78D9F4, false);
     }
 
     private static String statusKey(int status) {
@@ -136,9 +149,9 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             case MolecularAssemblerBlockEntity.STATUS_NO_ENERGY -> "gui.metatech_reborn.assembler.status.energy";
             case MolecularAssemblerBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.assembler.status.output";
             case MolecularAssemblerBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.assembler.status.running";
-            case MolecularAssemblerBlockEntity.STATUS_AE2_READY,
-                 MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK ->
-                    "gui.metatech_reborn.assembler.status.ae2_ready";
+            case MolecularAssemblerBlockEntity.STATUS_AE2_READY -> "gui.metatech_reborn.assembler.status.ae2_ready";
+            case MolecularAssemblerBlockEntity.STATUS_RETURNING_TO_NETWORK ->
+                    "gui.metatech_reborn.assembler.status.returning";
             default -> "gui.metatech_reborn.assembler.status.idle";
         };
     }
