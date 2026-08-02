@@ -21,6 +21,7 @@ public final class NeutroniumCombinerScreen extends AbstractContainerScreen<Neut
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderMachineTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -89,5 +90,48 @@ public final class NeutroniumCombinerScreen extends AbstractContainerScreen<Neut
                         menu.getSpeedUpgrades(), menu.getEfficiencyUpgrades(), menu.getOutputUpgrades()),
                 124, 146, 190, 0x9CCBFF, 2);
         g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
+    }
+
+    private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 3; column++) {
+                int input = column + row * 3;
+                int x = 12 + column * 30;
+                int y = 30 + row * 30;
+                if (isInside(mouseX, mouseY, x, y, 22, 22)) {
+                    g.renderTooltip(font, Component.translatable(
+                            "gui.metatech_reborn.neutron.tooltip.process",
+                            input + 1, menu.getProgress(input), menu.getMaxProgress(input),
+                            Component.translatable(statusKey(menu.getStatus(input)))),
+                            mouseX, mouseY);
+                    return;
+                }
+            }
+        }
+        if (isInside(mouseX, mouseY, 326, 132, 8, 40)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.energy",
+                    menu.getEnergyStored(), menu.getEnergyCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 12, 130, 84, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.neutron.tooltip.upgrades",
+                    menu.getSpeedUpgrades(), menu.getEfficiencyUpgrades(), menu.getOutputUpgrades()),
+                    mouseX, mouseY);
+        }
+    }
+
+    private boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= leftPos + x && mouseX < leftPos + x + width
+                && mouseY >= topPos + y && mouseY < topPos + y + height;
+    }
+
+    private static String statusKey(int status) {
+        return switch (status) {
+            case NeutroniumCombinerBlockEntity.STATUS_RUNNING -> "gui.metatech_reborn.neutron.status.running";
+            case NeutroniumCombinerBlockEntity.STATUS_NO_RECIPE -> "gui.metatech_reborn.neutron.status.recipe";
+            case NeutroniumCombinerBlockEntity.STATUS_NO_ENERGY -> "gui.metatech_reborn.neutron.status.energy";
+            case NeutroniumCombinerBlockEntity.STATUS_OUTPUT_FULL -> "gui.metatech_reborn.neutron.status.output";
+            default -> "gui.metatech_reborn.neutron.status.idle";
+        };
     }
 }
