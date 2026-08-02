@@ -52,26 +52,15 @@ def encodedBaseAssetsDir = file('tools/generated_assets_clean_v057')
 def generatedBaseAssetsZip = layout.buildDirectory.file('generated/metatech_base_assets.zip')
 def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
 def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_assets.zip')
-def encodedV059AssetsDir = file('tools/generated_assets_v059')
-def generatedV059AssetsZip = layout.buildDirectory.file('generated/metatech_v059_assets.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
 def decodeChunkedBase64 = { File directory, File target, String label ->
     def chunks = fileTree(directory) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
     if (chunks.isEmpty()) throw new GradleException("No ${label} chunks found in ${directory}")
-
     def encoded = new StringBuilder()
     chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-
-    // Some historical generated-asset chunks contain premature '=' padding at a
-    // file boundary. Padding is never meaningful in the middle of one Base64
-    // stream, so normalize it and recreate only the final padding.
-    String normalized = encoded.toString().replace("=", "")
-    int remainder = normalized.length() % 4
-    if (remainder != 0) normalized += "=" * (4 - remainder)
-
     target.parentFile.mkdirs()
-    target.bytes = normalized.decodeBase64()
+    target.bytes = encoded.toString().decodeBase64()
 }
 
 tasks.register('decodeBaseAssets') {
@@ -87,14 +76,6 @@ tasks.register('decodeDrillAssets') {
     outputs.file generatedDrillAssetsZip
     doLast {
         decodeChunkedBase64(encodedDrillAssetsDir, generatedDrillAssetsZip.get().asFile, 'mana drill texture')
-    }
-}
-
-tasks.register('decodeV059Assets') {
-    inputs.dir encodedV059AssetsDir
-    outputs.file generatedV059AssetsZip
-    doLast {
-        decodeChunkedBase64(encodedV059AssetsDir, generatedV059AssetsZip.get().asFile, '0.5.9 asset')
     }
 }
 
@@ -114,17 +95,10 @@ tasks.register('extractDrillReworkAssets', Copy) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
-tasks.register('extractV059Assets', Copy) {
-    dependsOn tasks.named('extractDrillReworkAssets'), tasks.named('decodeV059Assets')
-    from { zipTree(generatedV059AssetsZip.get().asFile) }
-    into generatedAssetsDir
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-
 sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
-    dependsOn tasks.named('extractV059Assets')
+    dependsOn tasks.named('extractDrillReworkAssets')
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
