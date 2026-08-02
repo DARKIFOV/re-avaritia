@@ -17,6 +17,14 @@ public final class GreenhouseRecipeSerializer implements RecipeSerializer<Greenh
     public @NotNull GreenhouseRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
         Ingredient flower = Ingredient.fromJson(json.get("flower"));
         Ingredient fuel = json.has("fuel") ? Ingredient.fromJson(json.get("fuel")) : Ingredient.EMPTY;
+        GreenhouseRecipe.FuelMode fuelMode = json.has("fuel_mode")
+                ? GreenhouseRecipe.FuelMode.byName(GsonHelper.getAsString(json, "fuel_mode"))
+                : fuel.isEmpty() ? GreenhouseRecipe.FuelMode.NONE : GreenhouseRecipe.FuelMode.INGREDIENT;
+
+        if (fuelMode == GreenhouseRecipe.FuelMode.INGREDIENT && fuel.isEmpty()) {
+            throw new IllegalArgumentException("Greenhouse ingredient fuel_mode requires a fuel ingredient: " + id);
+        }
+
         Fluid fluid = Fluids.EMPTY;
         int fluidAmount = 0;
         if (json.has("fluid")) {
@@ -29,12 +37,15 @@ public final class GreenhouseRecipeSerializer implements RecipeSerializer<Greenh
         }
         int mana = GsonHelper.getAsInt(json, "mana", 1000);
         int time = GsonHelper.getAsInt(json, "time", 200);
-        boolean consumeFuel = GsonHelper.getAsBoolean(json, "consume_fuel", !fuel.isEmpty());
+        boolean consumeFuel = GsonHelper.getAsBoolean(json, "consume_fuel",
+                fuelMode != GreenhouseRecipe.FuelMode.NONE);
         boolean dayOnly = GsonHelper.getAsBoolean(json, "day_only", false);
         boolean nightOnly = GsonHelper.getAsBoolean(json, "night_only", false);
-        if (dayOnly && nightOnly) throw new IllegalArgumentException("Greenhouse recipe cannot be day-only and night-only");
+        if (dayOnly && nightOnly) {
+            throw new IllegalArgumentException("Greenhouse recipe cannot be day-only and night-only");
+        }
         return new GreenhouseRecipe(id, flower, fuel, fluid, fluidAmount, mana, time,
-                consumeFuel, dayOnly, nightOnly);
+                consumeFuel, dayOnly, nightOnly, fuelMode);
     }
 
     @Override
@@ -48,8 +59,11 @@ public final class GreenhouseRecipeSerializer implements RecipeSerializer<Greenh
         boolean consumeFuel = buffer.readBoolean();
         boolean dayOnly = buffer.readBoolean();
         boolean nightOnly = buffer.readBoolean();
+        int fuelModeIndex = buffer.readVarInt();
+        GreenhouseRecipe.FuelMode fuelMode = GreenhouseRecipe.FuelMode.values()[
+                Math.max(0, Math.min(GreenhouseRecipe.FuelMode.values().length - 1, fuelModeIndex))];
         return new GreenhouseRecipe(id, flower, fuel, fluid, fluidAmount, mana, time,
-                consumeFuel, dayOnly, nightOnly);
+                consumeFuel, dayOnly, nightOnly, fuelMode);
     }
 
     @Override
@@ -63,5 +77,6 @@ public final class GreenhouseRecipeSerializer implements RecipeSerializer<Greenh
         buffer.writeBoolean(recipe.consumeFuel());
         buffer.writeBoolean(recipe.dayOnly());
         buffer.writeBoolean(recipe.nightOnly());
+        buffer.writeVarInt(recipe.fuelMode().ordinal());
     }
 }
