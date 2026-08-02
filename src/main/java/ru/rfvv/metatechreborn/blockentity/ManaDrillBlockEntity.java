@@ -91,7 +91,7 @@ public final class ManaDrillBlockEntity extends BlockEntity
                 case SPEED_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.SPEED);
                 case LOOTING_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.LOOTING);
                 case GENERATION_SLOT -> isUpgrade(stack, ManaDrillUpgradeItem.Type.GENERATION);
-                default -> false;
+                default -> slot >= FIRST_OUTPUT_SLOT && slot < TOTAL_SLOTS;
             };
         }
     };
