@@ -124,11 +124,47 @@ tasks.register('extractDrillReworkAssets', Copy) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
-tasks.register('extractV059Assets', Copy) {
+tasks.register('extractV059Assets') {
     dependsOn tasks.named('extractDrillReworkAssets'), tasks.named('decodeV059Assets')
-    from { zipTree(generatedV059AssetsZip.get().asFile) }
-    into generatedAssetsDir
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    inputs.file generatedV059AssetsZip
+    outputs.dir generatedAssetsDir
+    doLast {
+        def archive = generatedV059AssetsZip.get().asFile
+        def destination = generatedAssetsDir.get().asFile
+        destination.mkdirs()
+        def canonicalDestination = destination.canonicalFile.toPath()
+        int extracted = 0
+
+        archive.withInputStream { input ->
+            def zip = new java.util.zip.ZipInputStream(new BufferedInputStream(input))
+            try {
+                java.util.zip.ZipEntry entry
+                while ((entry = zip.nextEntry) != null) {
+                    def target = new File(destination, entry.name)
+                    def canonicalTarget = target.canonicalFile.toPath()
+                    if (!canonicalTarget.startsWith(canonicalDestination)) {
+                        throw new GradleException("Unsafe path in 0.5.9 assets: ${entry.name}")
+                    }
+                    if (entry.directory) {
+                        target.mkdirs()
+                    } else {
+                        target.parentFile.mkdirs()
+                        target.withOutputStream { output ->
+                            byte[] buffer = new byte[8192]
+                            int read
+                            while ((read = zip.read(buffer)) > 0) output.write(buffer, 0, read)
+                        }
+                        extracted++
+                    }
+                    zip.closeEntry()
+                }
+            } finally {
+                zip.close()
+            }
+        }
+        if (extracted == 0) throw new GradleException('No files extracted from 0.5.9 asset stream')
+        logger.lifecycle("Extracted ${extracted} files from recovered 0.5.9 asset stream")
+    }
 }
 
 sourceSets.main.resources.srcDir generatedAssetsDir
