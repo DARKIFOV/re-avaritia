@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import ru.rfvv.metatechreborn.config.CommonConfig;
 import ru.rfvv.metatechreborn.integration.ae2.MolecularAssemblerAe2ConnectionFix;
 import ru.rfvv.metatechreborn.integration.ae2.MolecularAssemblerAe2Provider;
+import ru.rfvv.metatechreborn.network.ModNetwork;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 import ru.rfvv.metatechreborn.registry.ModBlocks;
 import ru.rfvv.metatechreborn.registry.ModItems;
@@ -33,6 +34,7 @@ public final class MetaTechReborn {
         ModBlockEntities.register(modBus);
         ModMenus.register(modBus);
         ModRecipes.register(modBus);
+        ModNetwork.register();
         modBus.addListener(this::addCreativeTabContents);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
         if (ModList.get().isLoaded("ae2")) {
