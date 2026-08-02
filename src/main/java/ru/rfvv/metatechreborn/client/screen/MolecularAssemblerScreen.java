@@ -10,6 +10,8 @@ import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
 import ru.rfvv.metatechreborn.menu.MolecularAssemblerMenu;
 
 public final class MolecularAssemblerScreen extends AbstractContainerScreen<MolecularAssemblerMenu> {
+    private Button unlockButton;
+
     public MolecularAssemblerScreen(MolecularAssemblerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 484;
@@ -21,7 +23,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(Button.builder(
+        unlockButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.metatech_reborn.unlock_recipe"),
                         button -> {
                             if (minecraft != null && minecraft.gameMode != null) {
@@ -31,12 +33,30 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                         })
                 .bounds(leftPos + 186, topPos + 28, 100, 20)
                 .build());
+        updateUnlockButton();
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        updateUnlockButton();
+    }
+
+    private void updateUnlockButton() {
+        if (unlockButton != null) {
+            unlockButton.active = menu.isRecipeLocked();
+            unlockButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.translatable(menu.isRecipeLocked()
+                            ? "gui.metatech_reborn.assembler.tooltip.unlock"
+                            : "gui.metatech_reborn.assembler.tooltip.unlocked")));
+        }
     }
 
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderMachineTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -116,6 +136,34 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
         MetaTechGui.drawWrapped(g, font,
                 Component.translatable("gui.metatech_reborn.ae2_native_patterns"),
                 304, 158, 166, 0x9CCBFF, 2);
+    }
+
+    private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (isInside(mouseX, mouseY, 188, 103, 94, 10)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.progress_ticks",
+                    menu.getProgress(), menu.getMaxProgress()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 266, 62, 8, 58)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.tooltip.energy",
+                    menu.getEnergyStored(), menu.getEnergyCapacity()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 304, 28, 162, 72)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.assembler.tooltip.pattern_bank",
+                    menu.getInstalledPatternCount(), menu.getActivePatternSlots()), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 304, 110, 18, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.assembler.tooltip.capacity"), mouseX, mouseY);
+        } else if (isInside(mouseX, mouseY, 334, 110, 78, 18)) {
+            g.renderTooltip(font, Component.translatable(
+                    "gui.metatech_reborn.assembler.tooltip.speed_cards",
+                    menu.getAe2SpeedCards()), mouseX, mouseY);
+        }
+    }
+
+    private boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= leftPos + x && mouseX < leftPos + x + width
+                && mouseY >= topPos + y && mouseY < topPos + y + height;
     }
 
     private static String statusKey(int status) {
