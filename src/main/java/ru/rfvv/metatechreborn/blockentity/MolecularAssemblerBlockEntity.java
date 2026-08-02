@@ -49,7 +49,8 @@ import java.util.Optional;
  *
  * Manual jobs use the visible output slot. AE2 jobs use a separate persistent
  * return buffer, so a restart, chunk unload or temporarily full ME network cannot
- * duplicate or delete the crafted result.
+ * duplicate or delete the crafted result. Invalidated AE2 jobs return their input
+ * to that same buffer instead of trapping or deleting it.
  */
 public final class MolecularAssemblerBlockEntity extends BlockEntity implements MenuProvider {
     public static final int GRID_SIZE = 9;
@@ -58,12 +59,16 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
     public static final int ENERGY_SLOT = OUTPUT_SLOT + 1;
     public static final int TOTAL_SLOTS = ENERGY_SLOT + 1;
 
-    public static final int BASE_PATTERN_SLOTS = 9;
-    public static final int MAX_PATTERN_SLOTS = 28;
-    /** Keeps old 36-slot development saves recoverable by breaking the block. */
-    public static final int PATTERN_STORAGE_SLOTS = 36;
-    public static final int EXTRA_PATTERN_SLOTS = MAX_PATTERN_SLOTS - BASE_PATTERN_SLOTS;
-    private static final int NETWORK_RETURN_SLOTS = 18;
+    public static final int BASE_PATTERN_SLOTS = PatternCapacityUpgradeItem.BASE_SLOTS;
+    public static final int MAX_PATTERN_SLOTS = PatternCapacityUpgradeItem.TOTAL_SLOTS;
+    public static final int PATTERN_STORAGE_SLOTS = MAX_PATTERN_SLOTS;
+    public static final int EXTRA_PATTERN_SLOTS = PatternCapacityUpgradeItem.EXTRA_SLOTS;
+
+    /**
+     * Large enough to return 81 different grid inputs plus recipe containers,
+     * by-products and the crafted result without dropping anything.
+     */
+    private static final int NETWORK_RETURN_SLOTS = 128;
 
     public static final int STATUS_IDLE = 0;
     public static final int STATUS_NO_RECIPE = 1;
@@ -249,6 +254,10 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
                 : findLockedMatch(level);
 
         if (match.isEmpty() || match.get().result().isEmpty()) {
+            if (ae2JobActive) {
+                abortAe2JobToNetwork("recipe disappeared or no longer matches");
+                return;
+            }
             resetProgressOnly();
             setStatus(isGridEmpty() && getInstalledPatternCount() > 0 ? STATUS_AE2_READY
                     : isGridEmpty() ? STATUS_IDLE : STATUS_NO_RECIPE);
@@ -258,8 +267,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         MachineRecipeMatch active = match.get();
         if (ae2JobActive && !lockedResult.isEmpty()
                 && !ItemStack.isSameItemSameTags(active.result(), lockedResult)) {
-            resetProgressOnly();
-            setStatus(STATUS_NO_RECIPE);
+            abortAe2JobToNetwork("resolved output differs from the requested AE2 output");
             return;
         }
         if (lockedRecipeId == null) lockRecipe(active);
@@ -288,9 +296,11 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (progress >= maxProgress) {
             Optional<MachineRecipeMatch> validated = findLockedMatch(level);
             if (validated.isPresent()
-                    && (!ae2JobActive && canOutput(validated.get().result())
-                    || ae2JobActive && canQueueNetworkOutputs(validated.get()))) {
+                    && ((!ae2JobActive && canOutput(validated.get().result()))
+                    || (ae2JobActive && canQueueNetworkOutputs(validated.get())))) {
                 completeCraft(level, validated.get());
+            } else if (ae2JobActive) {
+                abortAe2JobToNetwork("recipe validation failed at completion");
             } else {
                 progress = 0;
                 setStatus(STATUS_NO_RECIPE);
@@ -483,7 +493,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
             if (decoded.isEmpty()) continue;
             ExtremePatternData pattern = decoded.get();
             if (!ItemStack.isSameItemSameTags(pattern.output(), requestedOutput)
-                    || requestedAmount < pattern.output().getCount()) continue;
+                    || requestedAmount != pattern.output().getCount()) continue;
 
             Optional<NonNullList<ItemStack>> placement = createPlacement(pattern.inputs(), suppliedStacks);
             if (placement.isEmpty()) continue;
@@ -496,7 +506,7 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         if (!canAcceptAe2Plan() || !templateLocked || lockedResult.isEmpty()) return false;
         Optional<NonNullList<ItemStack>> placement = createPlacement(lockedTemplate, suppliedStacks);
         if (placement.isEmpty()) return false;
-        ExtremePatternData pattern = new ExtremePatternData(copyLockedTemplate(), lockedResult);
+        ExtremePatternData pattern = new ExtremePatternData(copyLockedTemplate(), lockedResult.copy());
         return acceptDecodedAe2Pattern(pattern, placement.get());
     }
 
@@ -622,6 +632,37 @@ public final class MolecularAssemblerBlockEntity extends BlockEntity implements 
         } else {
             setStatus(getInstalledPatternCount() > 0 ? STATUS_AE2_READY : STATUS_IDLE);
         }
+        setChanged();
+    }
+
+    private void abortAe2JobToNetwork(String reason) {
+        if (!ae2JobActive) return;
+        MetaTechReborn.LOGGER.warn("Returning invalid molecular assembler AE2 job at {}: {}",
+                worldPosition, reason);
+
+        ItemStackHandler simulated = copyNetworkReturnBuffer();
+        for (int slot = 0; slot < GRID_SLOTS; slot++) {
+            ItemStack stack = items.getStackInSlot(slot);
+            if (!stack.isEmpty() && !insertIntoHandler(simulated, stack.copy(), false).isEmpty()) {
+                setStatus(STATUS_OUTPUT_FULL);
+                return;
+            }
+        }
+
+        suppressInventoryCallbacks = true;
+        try {
+            for (int slot = 0; slot < GRID_SLOTS; slot++) {
+                ItemStack stack = items.getStackInSlot(slot);
+                if (stack.isEmpty()) continue;
+                insertIntoHandler(networkReturnBuffer, stack.copy(), false);
+                items.setStackInSlot(slot, ItemStack.EMPTY);
+            }
+        } finally {
+            suppressInventoryCallbacks = false;
+        }
+        progress = 0;
+        maxProgress = 0;
+        setStatus(STATUS_RETURNING_TO_NETWORK);
         setChanged();
     }
 
