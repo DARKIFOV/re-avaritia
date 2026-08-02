@@ -4,6 +4,7 @@ import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.GridHelper;
+import appeng.api.networking.IGridConnection;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.IGridNodeListener;
 import appeng.api.networking.IInWorldGridNodeHost;
@@ -47,12 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Native AE2 node for the assembler's internal extreme-pattern bank.
- *
- * <p>The attachment is registered only when AE2 is loaded, so the core block entity remains
- * usable without AE2. Forge serializes this capability together with the block entity.</p>
- */
+/** Native AE2 node for the assembler's internal extreme-pattern bank. */
 public final class MolecularAssemblerAe2Provider implements
         ICapabilitySerializable<CompoundTag>, IInWorldGridNodeHost, ICraftingProvider, IActionHost {
     private static final ResourceLocation CAPABILITY_ID =
@@ -121,6 +117,7 @@ public final class MolecularAssemblerAe2Provider implements
         long gameTime = level.getGameTime();
         if (gameTime - lastPatternRefresh >= 20L) {
             lastPatternRefresh = gameTime;
+            ensureAdjacentConnections(level);
             refreshPatterns(true);
         }
         returnOutputToNetwork();
@@ -144,7 +141,39 @@ public final class MolecularAssemblerAe2Provider implements
             pendingNodeTag = null;
         }
         managedNode.create(level, host.getBlockPos());
-        refreshPatterns(false);
+        ensureAdjacentConnections(level);
+        refreshPatterns(true);
+    }
+
+    /**
+     * AE2 normally discovers the host capability and creates the in-world connection itself.
+     * Some Forge capability-dispatch combinations do not rescan an already placed cable when
+     * this capability is attached after block-entity construction. Explicitly connecting the
+     * managed node to an exposed adjacent cable makes old worlds and already placed cables work.
+     */
+    private void ensureAdjacentConnections(Level level) {
+        if (managedNode == null || !managedNode.isReady()) return;
+        IGridNode ownNode = managedNode.getNode();
+        for (Direction direction : Direction.values()) {
+            IGridNode adjacent = GridHelper.getExposedNode(
+                    level,
+                    host.getBlockPos().relative(direction),
+                    direction.getOpposite());
+            if (adjacent == null || adjacent == ownNode || isConnectedTo(ownNode, adjacent)) continue;
+            try {
+                GridHelper.createConnection(ownNode, adjacent);
+            } catch (IllegalStateException ignored) {
+                // A normal AE2 neighbour rescan may have connected the nodes in the same tick.
+            }
+        }
+        ownNode.updateState();
+    }
+
+    private static boolean isConnectedTo(IGridNode ownNode, IGridNode adjacent) {
+        for (IGridConnection connection : ownNode.getConnections()) {
+            if (connection.getOtherSide(ownNode) == adjacent) return true;
+        }
+        return false;
     }
 
     private void refreshPatterns(boolean notifyGrid) {
@@ -166,9 +195,10 @@ public final class MolecularAssemblerAe2Provider implements
             definitions.add(definition);
         }
 
-        if (definitions.equals(cachedDefinitions)) return;
-        cachedDefinitions = List.copyOf(definitions);
-        cachedPatterns = List.copyOf(patterns);
+        if (!definitions.equals(cachedDefinitions)) {
+            cachedDefinitions = List.copyOf(definitions);
+            cachedPatterns = List.copyOf(patterns);
+        }
         if (notifyGrid && managedNode != null && managedNode.isReady()) {
             ICraftingProvider.requestUpdate(managedNode);
         }
