@@ -117,4 +117,17 @@ tasks.named('jar', Jar).configure {
     finalizedBy 'reobfJar'
 }
 
-apply from: 'gradle/restored-assets.gradle'
+// Gradle 8 keeps ARGB literals above Integer.MAX_VALUE as Long. The readable
+// generator uses int-typed closures, so apply a normalized in-memory copy.
+def restoredAssetsSource = file('gradle/restored-assets.gradle').getText('UTF-8')
+        .replace('def color = { int rgb ->', 'def color = { rgb ->')
+        .replace('def drawFrame = { g, int outer, int middle, int inner ->',
+                 'def drawFrame = { g, outer, middle, inner ->')
+        .replace('def drawDigit = { g, int digit, int x, int y, int scale, int argb ->',
+                 'def drawDigit = { g, digit, x, y, scale, argb ->')
+        .replace('def drawNumber = { g, int number, int x, int y, int scale, int argb ->',
+                 'def drawNumber = { g, number, x, y, scale, argb ->')
+def restoredAssetsPatched = layout.buildDirectory.file('generated/restored-assets-patched.gradle').get().asFile
+restoredAssetsPatched.parentFile.mkdirs()
+restoredAssetsPatched.setText(restoredAssetsSource, 'UTF-8')
+apply from: restoredAssetsPatched
