@@ -88,10 +88,23 @@ tasks.register('decodeV059Assets') {
     doLast {
         def chunks = fileTree(encodedV059AssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
         if (chunks.isEmpty()) throw new GradleException("No 0.5.9 asset chunks found in ${encodedV059AssetsDir}")
+        def target = generatedV059AssetsZip.get().asFile
+        target.parentFile.mkdirs()
+
         def encoded = new StringBuilder()
         chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedV059AssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
+        try {
+            target.bytes = encoded.toString().decodeBase64()
+        } catch (RuntimeException concatenatedDecodeFailure) {
+            // Some generated revisions contain independently encoded chunks with padding.
+            // Decode those chunks one by one so an internal '=' cannot corrupt the archive.
+            target.withOutputStream { output ->
+                chunks.each { chunk ->
+                    def chunkText = chunk.getText('UTF-8').replaceAll('\\s+', '')
+                    output.write(chunkText.decodeBase64())
+                }
+            }
+        }
     }
 }
 
