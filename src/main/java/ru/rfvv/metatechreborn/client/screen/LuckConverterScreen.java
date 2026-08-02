@@ -11,10 +11,10 @@ import ru.rfvv.metatechreborn.menu.LuckConverterMenu;
 public final class LuckConverterScreen extends AbstractContainerScreen<LuckConverterMenu> {
     public LuckConverterScreen(LuckConverterMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = menu.isAdvanced() ? 262 : 230;
-        imageHeight = menu.isAdvanced() ? 336 : 258;
-        inventoryLabelX = menu.isAdvanced() ? 37 : 28;
-        inventoryLabelY = menu.isAdvanced() ? 243 : 165;
+        imageWidth = menu.isAdvanced() ? 302 : 266;
+        imageHeight = menu.isAdvanced() ? 400 : 302;
+        inventoryLabelX = menu.isAdvanced() ? 70 : 52;
+        inventoryLabelY = menu.isAdvanced() ? 306 : 206;
     }
 
     @Override public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -24,53 +24,66 @@ public final class LuckConverterScreen extends AbstractContainerScreen<LuckConve
     }
 
     @Override protected void renderBg(@NotNull GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        int x = leftPos, y = topPos;
-        g.fill(x, y, x + imageWidth, y + imageHeight, 0xFF07151C);
-        g.fill(x + 3, y + 3, x + imageWidth - 3, y + imageHeight - 3, 0xFF14232F);
-        g.fill(x + 6, y + 6, x + imageWidth - 6, y + imageHeight - 6, 0xFF101925);
+        int x = leftPos;
+        int y = topPos;
+        MetaTechGui.background(g, x, y, imageWidth, imageHeight);
 
         int columns = menu.isAdvanced() ? 12 : 10;
         int inputRows = menu.isAdvanced() ? 6 : 3;
         int outputRows = menu.isAdvanced() ? 5 : 3;
-        drawSlotGrid(g, x + 9, y + 19, columns, inputRows, 0xFF42CAE8);
-        drawSlotGrid(g, x + 9, y + (menu.isAdvanced() ? 133 : 83), columns, outputRows, 0xFF7356D8);
+        int outputY = menu.isAdvanced() ? 146 : 92;
+        int statusY = menu.isAdvanced() ? 244 : 154;
+        int playerX = menu.isAdvanced() ? 70 : 52;
+        int playerY = menu.isAdvanced() ? 318 : 218;
+        int sideX = menu.isAdvanced() ? 270 : 214;
+        int gridWidth = columns * 18;
 
-        int sideX = x + (menu.isAdvanced() ? 237 : 193);
-        for (int i = 0; i < 6; i++) drawSlot(g, sideX, y + 7 + i * 18, 0xFFFFA43A);
-        drawSlot(g, sideX, y + 115, 0xFF55E58A);
-        drawSlot(g, sideX, y + (menu.isAdvanced() ? 153 : 139), 0xFFFFCC45);
+        MetaTechGui.panel(g, x + 6, y + 20, gridWidth + 8, inputRows * 18 + 12);
+        MetaTechGui.panel(g, x + 6, y + outputY - 8, gridWidth + 8, outputRows * 18 + 12);
+        MetaTechGui.panel(g, x + 6, y + statusY, gridWidth + 8, 50);
+        MetaTechGui.panel(g, x + sideX - 8, y + 20, 34, 184);
+        MetaTechGui.panel(g, x + playerX - 4, y + playerY - 6, 170, 86);
+
+        MetaTechGui.grid(g, x + 10, y + 28, columns, inputRows, 0xFF42CAE8);
+        MetaTechGui.grid(g, x + 10, y + outputY, columns, outputRows, 0xFF7356D8);
+        for (int i = 0; i < 6; i++) MetaTechGui.slot(g, x + sideX, y + 28 + i * 20, 0xFFFFA43A);
+        MetaTechGui.slot(g, x + sideX, y + 156, 0xFF55E58A);
+        MetaTechGui.slot(g, x + sideX, y + 180, 0xFFFFCC45);
+        MetaTechGui.grid(g, x + playerX, y + playerY, 9, 3, 0xFF73879A);
+        MetaTechGui.grid(g, x + playerX, y + playerY + 58, 9, 1, 0xFF73879A);
 
         int barX = x + 10;
-        int barY = y + (menu.isAdvanced() ? 228 : 150);
-        int barWidth = menu.isAdvanced() ? 216 : 180;
-        g.fill(barX, barY, barX + barWidth, barY + 8, 0xFF050A0D);
-        g.fill(barX + 1, barY + 1, barX + 1 + menu.progressPixels(barWidth - 2), barY + 7, 0xFF42D7F5);
+        int barY = y + statusY + 37;
+        g.fill(barX, barY, barX + gridWidth, barY + 8, 0xFF03090D);
+        g.fill(barX + 1, barY + 1, barX + 1 + menu.progressPixels(gridWidth - 2), barY + 7, MetaTechGui.CYAN);
 
-        int energyHeight = menu.isAdvanced() ? 64 : 44;
+        int energyHeight = 80;
         int energyPixels = menu.energyPixels(energyHeight);
-        g.fill(sideX + 24, y + 8, sideX + 30, y + 8 + energyHeight, 0xFF050A0D);
-        g.fill(sideX + 25, y + 8 + energyHeight - energyPixels, sideX + 29, y + 8 + energyHeight, 0xFFFFC857);
-    }
-
-    private static void drawSlotGrid(GuiGraphics g, int x, int y, int columns, int rows, int accent) {
-        for (int row = 0; row < rows; row++) for (int col = 0; col < columns; col++) drawSlot(g, x + col * 18, y + row * 18, accent);
-    }
-
-    private static void drawSlot(GuiGraphics g, int x, int y, int accent) {
-        g.fill(x, y, x + 18, y + 18, 0xFF03090D);
-        g.fill(x + 1, y + 1, x + 17, y + 17, accent);
-        g.fill(x + 3, y + 3, x + 15, y + 15, 0xFF172431);
+        g.fill(x + sideX + 22, y + 28, x + sideX + 28, y + 28 + energyHeight, 0xFF03090D);
+        g.fill(x + sideX + 23, y + 28 + energyHeight - energyPixels,
+                x + sideX + 27, y + 28 + energyHeight, MetaTechGui.GOLD);
     }
 
     @Override protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
-        g.drawString(font, title, 8, 6, 0xEAF8FF, false);
+        int columns = menu.isAdvanced() ? 12 : 10;
+        int outputY = menu.isAdvanced() ? 146 : 92;
+        int statusY = menu.isAdvanced() ? 244 : 154;
+        int gridWidth = columns * 18;
+
+        g.drawString(font, title, 10, 8, 0xEAF8FF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.luck_converter.inputs"),
+                10, 20, 0x9CCBFF, false);
+        g.drawString(font, Component.translatable("gui.metatech_reborn.luck_converter.outputs"),
+                10, outputY - 8, 0xC0A8FF, false);
         g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBBD5E7, false);
-        int statusY = menu.isAdvanced() ? 238 : 160;
-        g.drawString(font, Component.translatable(statusKey(menu.getStatus())), 10, statusY, statusColor(menu.getStatus()), false);
+
+        MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(menu.getStatus())),
+                10, statusY + 5, gridWidth - 8, statusColor(menu.getStatus()), 2);
         g.drawString(font, Component.translatable("gui.metatech_reborn.luck_converter.stats",
-                menu.getLuckLevel(), menu.getOperations(), menu.getEnergyPerTick()), 10, statusY + 10, 0x9CD8FF, false);
+                        menu.getLuckLevel(), menu.getOperations(), menu.getEnergyPerTick()),
+                10, statusY + 23, 0x9CD8FF, false);
         g.drawString(font, Component.literal(menu.getEnergy() + " / " + menu.getEnergyCapacity() + " FE"),
-                10, statusY + 20, 0xF4D27A, false);
+                10, statusY + 33, 0xF4D27A, false);
     }
 
     private static String statusKey(int status) {
