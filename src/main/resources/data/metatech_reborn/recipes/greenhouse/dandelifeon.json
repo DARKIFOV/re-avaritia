@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:dandelifeon" },
+  "fuel": { "item": "botania:cell_block" },
+  "mana": 6000,
+  "time": 200,
+  "consume_fuel": true
+}

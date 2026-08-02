@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "metatech_reborn:luck_module_1"
+    },
+    {
+      "item": "minecraft:redstone_block"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "result": {
+    "item": "metatech_reborn:luck_efficiency_upgrade"
+  }
+}

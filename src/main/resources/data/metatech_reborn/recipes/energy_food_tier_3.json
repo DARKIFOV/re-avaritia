@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "metatech_reborn:energy_food_tier_2"
+    },
+    {
+      "item": "minecraft:golden_apple"
+    },
+    {
+      "item": "minecraft:diamond"
+    }
+  ],
+  "result": {
+    "item": "metatech_reborn:energy_food_tier_3"
+  }
+}

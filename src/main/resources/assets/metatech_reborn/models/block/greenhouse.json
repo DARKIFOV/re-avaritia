@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "metatech_reborn:block/greenhouse_bottom",
+    "up": "metatech_reborn:block/greenhouse_top",
+    "north": "metatech_reborn:block/greenhouse_front",
+    "south": "metatech_reborn:block/greenhouse_glass",
+    "west": "metatech_reborn:block/greenhouse_side",
+    "east": "metatech_reborn:block/greenhouse_mana_port",
+    "particle": "metatech_reborn:block/greenhouse_side"
+  }
+}

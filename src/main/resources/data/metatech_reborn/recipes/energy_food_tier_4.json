@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "metatech_reborn:energy_food_tier_3"
+    },
+    {
+      "item": "minecraft:nether_star"
+    },
+    {
+      "item": "minecraft:netherite_ingot"
+    }
+  ],
+  "result": {
+    "item": "metatech_reborn:energy_food_tier_4"
+  }
+}

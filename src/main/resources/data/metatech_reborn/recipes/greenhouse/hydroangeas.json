@@ -1,0 +1,9 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:hydroangeas" },
+  "fluid": "minecraft:water",
+  "fluid_amount": 250,
+  "mana": 400,
+  "time": 200,
+  "consume_fuel": false
+}

@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "metatech_reborn:luck_module_8"
+    },
+    {
+      "item": "minecraft:dragon_breath"
+    }
+  ],
+  "result": {
+    "item": "metatech_reborn:luck_module_9"
+  }
+}

@@ -1,15 +1,20 @@
 package ru.rfvv.metatechreborn.jei;
 
+import committee.nova.mods.avaritia.init.compat.jei.category.tables.ExtremeCraftingTableCategory;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.IRecipeTransferRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.menu.ExtremePatternEncoderMenu;
 import ru.rfvv.metatechreborn.registry.ModItems;
+import ru.rfvv.metatechreborn.registry.ModMenus;
 import ru.rfvv.metatechreborn.registry.ModRecipes;
 
 @JeiPlugin
@@ -26,7 +31,6 @@ public final class MetaTechJeiPlugin implements IModPlugin {
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(
                 new MolecularAssemblerRecipeCategory(registration.getJeiHelpers().getGuiHelper()),
-                new NeutroniumCombinerRecipeCategory(registration.getJeiHelpers().getGuiHelper()),
                 new ManaDrillRecipeCategory(registration.getJeiHelpers().getGuiHelper()));
     }
 
@@ -37,10 +41,6 @@ public final class MetaTechJeiPlugin implements IModPlugin {
                 MolecularAssemblerRecipeCategory.TYPE,
                 Minecraft.getInstance().level.getRecipeManager()
                         .getAllRecipesFor(ModRecipes.MOLECULAR_ASSEMBLING_TYPE.get()));
-        registration.addRecipes(
-                NeutroniumCombinerRecipeCategory.TYPE,
-                Minecraft.getInstance().level.getRecipeManager()
-                        .getAllRecipesFor(ModRecipes.NEUTRONIUM_COMBINING_TYPE.get()));
         registration.addRecipes(
                 ManaDrillRecipeCategory.TYPE,
                 Minecraft.getInstance().level.getRecipeManager()
@@ -53,10 +53,33 @@ public final class MetaTechJeiPlugin implements IModPlugin {
                 ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
                 MolecularAssemblerRecipeCategory.TYPE);
         registration.addRecipeCatalyst(
-                ModItems.NEUTRONIUM_COMBINER.get(),
-                NeutroniumCombinerRecipeCategory.TYPE);
-        registration.addRecipeCatalyst(
                 ModItems.MANA_DRILL.get(),
                 ManaDrillRecipeCategory.TYPE);
+    }
+
+    @Override
+    public void registerRecipeTransferHandlers(IRecipeTransferRegistration registration) {
+        registration.addRecipeTransferHandler(
+                ExtremePatternEncoderMenu.class,
+                ModMenus.EXTREME_PATTERN_ENCODER.get(),
+                MolecularAssemblerRecipeCategory.TYPE,
+                0,
+                81,
+                ExtremePatternEncoderMenu.PLAYER_INVENTORY_START,
+                36);
+
+        if (!ModList.get().isLoaded("avaritia")) return;
+        try {
+            registration.addRecipeTransferHandler(
+                    ExtremePatternEncoderMenu.class,
+                    ModMenus.EXTREME_PATTERN_ENCODER.get(),
+                    ExtremeCraftingTableCategory.RECIPE_TYPE,
+                    0,
+                    81,
+                    ExtremePatternEncoderMenu.PLAYER_INVENTORY_START,
+                    36);
+        } catch (LinkageError | RuntimeException error) {
+            MetaTechReborn.LOGGER.error("Unable to register Re-Avaritia JEI transfer for the 9x9 encoder", error);
+        }
     }
 }

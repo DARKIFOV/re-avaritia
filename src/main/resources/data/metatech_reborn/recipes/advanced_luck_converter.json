@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NBN",
+    "BDB",
+    "NBN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "B": {
+      "item": "metatech_reborn:luck_converter"
+    },
+    "D": {
+      "item": "minecraft:diamond_block"
+    }
+  },
+  "result": {
+    "item": "metatech_reborn:advanced_luck_converter"
+  }
+}
