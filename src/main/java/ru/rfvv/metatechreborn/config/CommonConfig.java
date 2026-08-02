@@ -36,8 +36,10 @@ public final class CommonConfig {
         ENABLE_AVARITIA_INTEGRATION = builder.define("enableAvaritiaIntegration", true);
         ASSEMBLER_CAPACITY = builder.defineInRange("energyCapacity", 2_000_000, 1_000, Integer.MAX_VALUE);
         ASSEMBLER_MAX_RECEIVE = builder.defineInRange("maxReceive", 20_000, 1, Integer.MAX_VALUE);
-        DEFAULT_CRAFT_TIME = builder.defineInRange("defaultCraftTime", 400, 1, 72_000);
-        DEFAULT_ENERGY_PER_TICK = builder.defineInRange("defaultEnergyPerTick", 500, 0, Integer.MAX_VALUE);
+        DEFAULT_CRAFT_TIME = builder.comment("MetaAdvanced AE2AvaritiaExtremeAssembler OperationLength.")
+                .defineInRange("defaultCraftTime", 24, 1, 72_000);
+        DEFAULT_ENERGY_PER_TICK = builder.comment("MetaAdvanced extreme assembler base energy consumption.")
+                .defineInRange("defaultEnergyPerTick", 100, 0, Integer.MAX_VALUE);
         AUTO_EJECT_OUTPUT = builder.define("autoEjectOutput", true);
         builder.pop();
 
@@ -72,5 +74,6 @@ public final class CommonConfig {
         builder.pop();
         SPEC = builder.build();
     }
+
     private CommonConfig() {}
 }
