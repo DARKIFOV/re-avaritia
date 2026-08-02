@@ -44,6 +44,19 @@ jobs:
           grep -Eq 'bipush[[:space:]]+83' build/assembler-bytecode.txt
           echo "Confirmed molecular assembler inventory contains 83 slots (0-82)."
 
+      - name: Validate unique AE2 event listeners
+        shell: bash
+        run: |
+          JAR=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
+          test -n "$JAR"
+          jar tf "$JAR" > build/jar-entries.txt
+          grep -q 'MolecularAssemblerAe2ConnectionFix\$ConnectionEvents.class' build/jar-entries.txt
+          if grep -q 'MolecularAssemblerAe2ConnectionFix\$Events.class' build/jar-entries.txt; then
+            echo 'Legacy colliding AE2 listener class is still packaged.' >&2
+            exit 1
+          fi
+          echo "Confirmed unique AE2 connection event listener class."
+
       - name: Validate packaged resources
         shell: bash
         run: |
@@ -61,6 +74,7 @@ jobs:
               "META-INF/mods.toml",
               "ru/rfvv/metatechreborn/blockentity/MolecularAssemblerBlockEntity.class",
               "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2Provider.class",
+              "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2ConnectionFix$ConnectionEvents.class",
               "assets/metatech_reborn/textures/gui/molecular_assembler_9x9.png",
               "assets/metatech_reborn/blockstates/luck_converter.json",
               "assets/metatech_reborn/blockstates/advanced_luck_converter.json",
