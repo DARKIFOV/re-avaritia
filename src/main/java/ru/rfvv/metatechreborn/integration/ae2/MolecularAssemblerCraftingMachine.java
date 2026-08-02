@@ -78,7 +78,13 @@ public final class MolecularAssemblerCraftingMachine implements ICraftingMachine
         for (GenericStack output : pattern.getOutputs()) {
             if (output == null || !(output.what() instanceof AEItemKey itemKey)) continue;
             ItemStack requested = itemKey.toStack(1);
-            if (host.acceptExternalPatternBatch(supplied, requested, output.amount())) return true;
+            if (host.acceptExternalPatternBatch(supplied, requested, output.amount())) {
+                // AE2 transfers ownership of these inputs only when pushPattern succeeds.
+                // The host validated and placed the whole batch atomically, so consume the
+                // original counters after acceptance rather than leaving ghost ingredients.
+                for (KeyCounter counter : inputHolder) counter.clear();
+                return true;
+            }
         }
         return false;
     }
