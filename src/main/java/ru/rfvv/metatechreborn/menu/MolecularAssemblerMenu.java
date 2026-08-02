@@ -24,7 +24,9 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public static final int PATTERN_MENU_START = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
     public static final int PATTERN_UPGRADE_MENU_SLOT =
             PATTERN_MENU_START + MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS;
-    public static final int MACHINE_MENU_SLOTS = PATTERN_UPGRADE_MENU_SLOT + 1;
+    public static final int SPEED_CARD_MENU_START = PATTERN_UPGRADE_MENU_SLOT + 1;
+    public static final int MACHINE_MENU_SLOTS =
+            SPEED_CARD_MENU_START + MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS;
 
     private final MolecularAssemblerBlockEntity blockEntity;
     private final ContainerData data;
@@ -33,7 +35,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         this(containerId, playerInventory,
                 (MolecularAssemblerBlockEntity) playerInventory.player.level()
                         .getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(8));
+                new SimpleContainerData(10));
     }
 
     public MolecularAssemblerMenu(int containerId, Inventory playerInventory,
@@ -63,7 +65,10 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
             addSlot(new PatternBankSlot(blockEntity, patternSlot,
                     281 + column * 18, 22 + row * 18));
         }
-        addSlot(new PatternUpgradeSlot(blockEntity, 281, 139));
+        addSlot(new PatternUpgradeSlot(blockEntity, 400, 116));
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS; slot++) {
+            addSlot(new SlotItemHandler(blockEntity.getSpeedItems(), slot, 400, 22 + slot * 18));
+        }
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
@@ -112,6 +117,9 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         } else if (original.getItem() instanceof EncodedExtremePatternItem) {
             if (!moveItemStackTo(original, PATTERN_MENU_START,
                     PATTERN_UPGRADE_MENU_SLOT, false)) return ItemStack.EMPTY;
+        } else if (MolecularAssemblerBlockEntity.isAe2SpeedCard(original)) {
+            if (!moveItemStackTo(original, SPEED_CARD_MENU_START,
+                    MACHINE_MENU_SLOTS, false)) return ItemStack.EMPTY;
         } else if (original.getCapability(ForgeCapabilities.ENERGY).isPresent()) {
             if (!moveItemStackTo(original, MolecularAssemblerBlockEntity.ENERGY_SLOT,
                     MolecularAssemblerBlockEntity.ENERGY_SLOT + 1, false)) return ItemStack.EMPTY;
@@ -141,6 +149,8 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public int getActivePatternSlots() { return data.get(5); }
     public int getInstalledPatternCount() { return data.get(6); }
     public int getStatus() { return data.get(7); }
+    public int getQueuedJobCount() { return data.get(8); }
+    public int getSpeedCardCount() { return data.get(9); }
 
     private static final class PatternBankSlot extends SlotItemHandler {
         private final MolecularAssemblerBlockEntity assembler;
