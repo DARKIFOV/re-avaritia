@@ -18,6 +18,7 @@ import ru.rfvv.metatechreborn.registry.ModMenus;
 public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
     public static final int ENCODE_BUTTON_ID = 0;
     public static final int CLEAR_BUTTON_ID = 1;
+    public static final int PLAYER_INVENTORY_START = ExtremePatternEncoderBlockEntity.TOTAL_SLOTS;
 
     private final ExtremePatternEncoderBlockEntity blockEntity;
     private final ContainerData data;
@@ -38,26 +39,26 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
             for (int column = 0; column < 9; column++) {
                 int slot = column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
-                        8 + column * 18, 15 + row * 18));
+                        10 + column * 18, 26 + row * 18));
             }
         }
 
         addSlot(new SlotItemHandler(blockEntity.getItems(), ExtremePatternEncoderBlockEntity.BLANK_SLOT,
-                190, 54));
+                198, 64));
         addSlot(new SlotItemHandler(blockEntity.getItems(), ExtremePatternEncoderBlockEntity.OUTPUT_SLOT,
-                190, 92) {
+                198, 106) {
             @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
         });
 
-        int inventoryY = 179;
+        int inventoryY = 202;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9,
-                        8 + column * 18, inventoryY + row * 18));
+                        10 + column * 18, inventoryY + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 8 + column * 18, inventoryY + 58));
+            addSlot(new Slot(inventory, column, 10 + column * 18, inventoryY + 58));
         }
         addDataSlots(data);
     }
@@ -82,10 +83,9 @@ public final class ExtremePatternEncoderMenu extends AbstractContainerMenu {
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
-        int machineSlots = ExtremePatternEncoderBlockEntity.TOTAL_SLOTS;
 
-        if (index < machineSlots) {
-            if (!moveItemStackTo(original, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
+        if (index < PLAYER_INVENTORY_START) {
+            if (!moveItemStackTo(original, PLAYER_INVENTORY_START, slots.size(), true)) return ItemStack.EMPTY;
         } else if (original.is(ModItems.BLANK_EXTREME_PATTERN.get())) {
             if (!moveItemStackTo(original, ExtremePatternEncoderBlockEntity.BLANK_SLOT,
                     ExtremePatternEncoderBlockEntity.BLANK_SLOT + 1, false)) return ItemStack.EMPTY;
