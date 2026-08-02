@@ -8,14 +8,25 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
+import ru.rfvv.metatechreborn.item.EncodedExtremePatternItem;
+import ru.rfvv.metatechreborn.item.PatternCapacityUpgradeItem;
 import ru.rfvv.metatechreborn.registry.ModBlocks;
 import ru.rfvv.metatechreborn.registry.ModMenus;
 
 public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public static final int UNLOCK_BUTTON_ID = 0;
+    public static final int PATTERN_COLUMNS = 6;
+    public static final int PATTERN_ROWS = 6;
+    public static final int PATTERN_MENU_START = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
+    public static final int PATTERN_UPGRADE_MENU_SLOT =
+            PATTERN_MENU_START + MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS;
+    public static final int SPEED_CARD_MENU_START = PATTERN_UPGRADE_MENU_SLOT + 1;
+    public static final int MACHINE_MENU_SLOTS =
+            SPEED_CARD_MENU_START + MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS;
 
     private final MolecularAssemblerBlockEntity blockEntity;
     private final ContainerData data;
@@ -24,7 +35,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         this(containerId, playerInventory,
                 (MolecularAssemblerBlockEntity) playerInventory.player.level()
                         .getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(5));
+                new SimpleContainerData(10));
     }
 
     public MolecularAssemblerMenu(int containerId, Inventory playerInventory,
@@ -43,11 +54,21 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
 
         addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.OUTPUT_SLOT,
                 191, 74) {
-            @Override
-            public boolean mayPlace(@NotNull ItemStack stack) {
-                return false;
-            }
+            @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
         });
+        addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.ENERGY_SLOT,
+                218, 74));
+
+        for (int patternSlot = 0; patternSlot < MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS; patternSlot++) {
+            int column = patternSlot % PATTERN_COLUMNS;
+            int row = patternSlot / PATTERN_COLUMNS;
+            addSlot(new PatternBankSlot(blockEntity, patternSlot,
+                    281 + column * 18, 22 + row * 18));
+        }
+        addSlot(new PatternUpgradeSlot(blockEntity, 400, 116));
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.SPEED_CARD_SLOTS; slot++) {
+            addSlot(new SlotItemHandler(blockEntity.getSpeedItems(), slot, 400, 22 + slot * 18));
+        }
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
@@ -57,7 +78,8 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(playerInventory, column, 8 + column * 18, inventoryY + 58));
+            addSlot(new Slot(playerInventory, column,
+                    8 + column * 18, inventoryY + 58));
         }
 
         addDataSlots(data);
@@ -86,14 +108,23 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
 
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
-        int machineSlots = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
 
-        if (index < machineSlots) {
-            if (!moveItemStackTo(original, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
-        } else {
-            if (!moveItemStackTo(original, 0, MolecularAssemblerBlockEntity.GRID_SLOTS, false)) {
-                return ItemStack.EMPTY;
-            }
+        if (index < MACHINE_MENU_SLOTS) {
+            if (!moveItemStackTo(original, MACHINE_MENU_SLOTS, slots.size(), true)) return ItemStack.EMPTY;
+        } else if (original.getItem() instanceof PatternCapacityUpgradeItem) {
+            if (!moveItemStackTo(original, PATTERN_UPGRADE_MENU_SLOT,
+                    PATTERN_UPGRADE_MENU_SLOT + 1, false)) return ItemStack.EMPTY;
+        } else if (original.getItem() instanceof EncodedExtremePatternItem) {
+            if (!moveItemStackTo(original, PATTERN_MENU_START,
+                    PATTERN_UPGRADE_MENU_SLOT, false)) return ItemStack.EMPTY;
+        } else if (MolecularAssemblerBlockEntity.isAe2SpeedCard(original)) {
+            if (!moveItemStackTo(original, SPEED_CARD_MENU_START,
+                    MACHINE_MENU_SLOTS, false)) return ItemStack.EMPTY;
+        } else if (original.getCapability(ForgeCapabilities.ENERGY).isPresent()) {
+            if (!moveItemStackTo(original, MolecularAssemblerBlockEntity.ENERGY_SLOT,
+                    MolecularAssemblerBlockEntity.ENERGY_SLOT + 1, false)) return ItemStack.EMPTY;
+        } else if (!moveItemStackTo(original, 0, MolecularAssemblerBlockEntity.GRID_SLOTS, false)) {
+            return ItemStack.EMPTY;
         }
 
         if (original.isEmpty()) slot.set(ItemStack.EMPTY);
@@ -112,15 +143,52 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         return capacity <= 0 ? 0 : Math.min(height, data.get(2) * height / capacity);
     }
 
-    public int getEnergyStored() {
-        return data.get(2);
+    public int getEnergyStored() { return data.get(2); }
+    public int getEnergyCapacity() { return data.get(3); }
+    public boolean isRecipeLocked() { return data.get(4) != 0; }
+    public int getActivePatternSlots() { return data.get(5); }
+    public int getInstalledPatternCount() { return data.get(6); }
+    public int getStatus() { return data.get(7); }
+    public int getQueuedJobCount() { return data.get(8); }
+    public int getSpeedCardCount() { return data.get(9); }
+
+    private static final class PatternBankSlot extends SlotItemHandler {
+        private final MolecularAssemblerBlockEntity assembler;
+        private final int patternSlot;
+
+        private PatternBankSlot(MolecularAssemblerBlockEntity assembler, int patternSlot, int x, int y) {
+            super(assembler.getPatternItems(), patternSlot, x, y);
+            this.assembler = assembler;
+            this.patternSlot = patternSlot;
+        }
+
+        @Override
+        public boolean isActive() {
+            return patternSlot < assembler.getActivePatternSlots();
+        }
+
+        @Override
+        public boolean mayPlace(@NotNull ItemStack stack) {
+            return isActive() && super.mayPlace(stack);
+        }
+
+        @Override
+        public boolean mayPickup(@NotNull Player player) {
+            return isActive() && super.mayPickup(player);
+        }
     }
 
-    public int getEnergyCapacity() {
-        return data.get(3);
-    }
+    private static final class PatternUpgradeSlot extends SlotItemHandler {
+        private final MolecularAssemblerBlockEntity assembler;
 
-    public boolean isRecipeLocked() {
-        return data.get(4) != 0;
+        private PatternUpgradeSlot(MolecularAssemblerBlockEntity assembler, int x, int y) {
+            super(assembler.getPatternUpgradeItems(), 0, x, y);
+            this.assembler = assembler;
+        }
+
+        @Override
+        public boolean mayPickup(@NotNull Player player) {
+            return assembler.canRemovePatternUpgrade() && super.mayPickup(player);
+        }
     }
 }

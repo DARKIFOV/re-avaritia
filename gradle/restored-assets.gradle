@@ -1,0 +1,292 @@
+import groovy.json.JsonOutput
+import java.awt.Color
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
+
+/*
+ * Generates the restored 0.6.0 resources with Java's built-in ImageIO.
+ * Keeping the pixel-art source procedural makes the repository auditable and
+ * avoids the previously corrupted Base64 asset archive.
+ */
+
+def restoredAssetsDir = layout.buildDirectory.dir('generated/metatech_restored_assets')
+
+def writeJsonFile = { File root, String path, Object value ->
+    File target = new File(root, path)
+    target.parentFile.mkdirs()
+    target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(value)) + '\n', 'UTF-8')
+}
+
+def writePng = { File root, String path, Closure painter ->
+    File target = new File(root, path)
+    target.parentFile.mkdirs()
+    BufferedImage image = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB)
+    def graphics = image.createGraphics()
+    try {
+        painter(graphics, image)
+    } finally {
+        graphics.dispose()
+    }
+    ImageIO.write(image, 'png', target)
+}
+
+def color = { int rgb -> new Color(rgb, true) }
+
+def drawFrame = { g, int outer, int middle, int inner ->
+    g.color = color(outer); g.fillRect(1, 1, 30, 30)
+    g.color = color(middle); g.fillRect(3, 3, 26, 26)
+    g.color = color(inner); g.fillRect(5, 5, 22, 22)
+}
+
+def drawDigit = { g, int digit, int x, int y, int scale, int argb ->
+    String[] font = [
+            '111101101101111', '010110010010111', '111001111100111', '111001111001111',
+            '101101111001001', '111100111001111', '111100111101111', '111001001001001',
+            '111101111101111', '111101111001111'
+    ]
+    String bits = font[Math.max(0, Math.min(9, digit))]
+    g.color = color(argb)
+    for (int py = 0; py < 5; py++) {
+        for (int px = 0; px < 3; px++) {
+            if (bits.charAt(py * 3 + px) == '1') g.fillRect(x + px * scale, y + py * scale, scale, scale)
+        }
+    }
+}
+
+def drawNumber = { g, int number, int x, int y, int scale, int argb ->
+    String text = Integer.toString(number)
+    int cursor = x
+    for (int i = 0; i < text.length(); i++) {
+        drawDigit(g, Character.digit(text.charAt(i), 10), cursor, y, scale, argb)
+        cursor += 4 * scale
+    }
+}
+
+def itemModel = { String texture -> [parent: 'minecraft:item/generated', textures: [layer0: texture]] }
+def blockItemModel = { String name -> [parent: "metatech_reborn:block/${name}"] }
+def blockState = { String name -> [variants: ['': [model: "metatech_reborn:block/${name}"]]] }
+def cubeAll = { String texture -> [parent: 'minecraft:block/cube_all', textures: [all: texture]] }
+def selfLoot = { String name -> [
+        type: 'minecraft:block',
+        pools: [[rolls: 1, bonus_rolls: 0,
+                 entries: [[type: 'minecraft:item', name: "metatech_reborn:${name}"]],
+                 conditions: [[condition: 'minecraft:survives_explosion']]]]
+] }
+
+def shaped = { List<String> pattern, Map<String, String> keys, String result, int count = 1 ->
+    Map keyJson = [:]
+    keys.each { k, v -> keyJson[k] = [item: v] }
+    [type: 'minecraft:crafting_shaped', pattern: pattern, key: keyJson,
+     result: [item: result, count: count]]
+}
+
+def shapeless = { List<String> ingredients, String result, int count = 1 ->
+    [type: 'minecraft:crafting_shapeless',
+     ingredients: ingredients.collect { [item: it] }, result: [item: result, count: count]]
+}
+
+tasks.register('generateRestoredAssets') {
+    outputs.dir(restoredAssetsDir)
+    doLast {
+        File root = restoredAssetsDir.get().asFile
+        delete(root)
+        root.mkdirs()
+
+        // Blocks: dark late-game casings, cyan power traces and violet/gold accents.
+        ['luck_converter', 'advanced_luck_converter'].eachWithIndex { name, index ->
+            writePng(root, "assets/metatech_reborn/textures/block/${name}.png") { g, image ->
+                drawFrame(g, 0xFF111820, index == 0 ? 0xFF31444E : 0xFF4A3A57, 0xFF17232A)
+                g.color = color(index == 0 ? 0xFF38CBE7 : 0xFF9B64E8)
+                g.fillRect(7, 7, 18, 2); g.fillRect(7, 23, 18, 2)
+                g.fillRect(7, 9, 2, 14); g.fillRect(23, 9, 2, 14)
+                g.color = color(0xFFE6AA42); g.fillRect(3, 3, 3, 3); g.fillRect(26, 3, 3, 3)
+                g.fillRect(3, 26, 3, 3); g.fillRect(26, 26, 3, 3)
+                g.color = color(index == 0 ? 0xFF54E69A : 0xFFFF7AD9)
+                g.fillRect(12, 11, 8, 10); g.fillRect(10, 14, 12, 4)
+                g.color = color(0xFFFFFFFF); g.fillRect(14, 13, 4, 6)
+            }
+            writeJsonFile(root, "assets/metatech_reborn/blockstates/${name}.json", blockState(name))
+            writeJsonFile(root, "assets/metatech_reborn/models/block/${name}.json",
+                    cubeAll("metatech_reborn:block/${name}"))
+            writeJsonFile(root, "assets/metatech_reborn/models/item/${name}.json", blockItemModel(name))
+            writeJsonFile(root, "data/metatech_reborn/loot_tables/blocks/${name}.json", selfLoot(name))
+        }
+
+        ['side', 'top', 'front'].each { face ->
+            writePng(root, "assets/metatech_reborn/textures/block/neutronium_combiner_${face}.png") { g, image ->
+                drawFrame(g, 0xFF090B10, 0xFF252A35, 0xFF11151D)
+                g.color = color(0xFF596170); g.fillRect(4, 4, 24, 2); g.fillRect(4, 26, 24, 2)
+                g.fillRect(4, 6, 2, 20); g.fillRect(26, 6, 2, 20)
+                g.color = color(0xFF38D8F2); g.fillRect(7, 15, 18, 2)
+                g.color = color(0xFF7E4DE2); g.fillRect(15, 7, 2, 18)
+                g.color = color(0xFFFFB347); g.fillRect(5, 5, 2, 2); g.fillRect(25, 5, 2, 2)
+                g.fillRect(5, 25, 2, 2); g.fillRect(25, 25, 2, 2)
+                if (face == 'front') {
+                    g.color = color(0xFF10141B); g.fillRect(9, 9, 14, 14)
+                    g.color = color(0xFF9C5CFF); g.fillRect(12, 12, 8, 8)
+                    g.color = color(0xFFFFFFFF); g.fillRect(14, 14, 4, 4)
+                } else if (face == 'top') {
+                    g.color = color(0xFF3DE7D0); g.fillRect(10, 10, 12, 12)
+                    g.color = color(0xFF07151B); g.fillRect(13, 13, 6, 6)
+                }
+            }
+        }
+        writeJsonFile(root, 'assets/metatech_reborn/blockstates/neutronium_combiner.json',
+                blockState('neutronium_combiner'))
+        writeJsonFile(root, 'assets/metatech_reborn/models/block/neutronium_combiner.json', [
+                parent: 'minecraft:block/cube', textures: [
+                down: 'metatech_reborn:block/neutronium_combiner_side',
+                up: 'metatech_reborn:block/neutronium_combiner_top',
+                north: 'metatech_reborn:block/neutronium_combiner_front',
+                south: 'metatech_reborn:block/neutronium_combiner_side',
+                west: 'metatech_reborn:block/neutronium_combiner_side',
+                east: 'metatech_reborn:block/neutronium_combiner_side',
+                particle: 'metatech_reborn:block/neutronium_combiner_side']])
+        writeJsonFile(root, 'assets/metatech_reborn/models/item/neutronium_combiner.json',
+                blockItemModel('neutronium_combiner'))
+        writeJsonFile(root, 'data/metatech_reborn/loot_tables/blocks/neutronium_combiner.json',
+                selfLoot('neutronium_combiner'))
+
+        // Energy Food: four progressively brighter charged rations.
+        int[] foodCore = [0xFF3FD6F2, 0xFF5FE6B2, 0xFF9C67F5, 0xFFFFC857]
+        (1..4).each { tier ->
+            String name = "energy_food_tier_${tier}"
+            writePng(root, "assets/metatech_reborn/textures/item/${name}.png") { g, image ->
+                g.color = color(0x00000000); g.fillRect(0, 0, 32, 32)
+                g.color = color(0xFF0B1119); g.fillRect(5, 9, 22, 15)
+                g.color = color(0xFF596170); g.fillRect(7, 7, 18, 19)
+                g.color = color(0xFF171E29); g.fillRect(8, 9, 16, 15)
+                g.color = color(foodCore[tier - 1]); g.fillRect(10, 12, 12, 9)
+                g.color = color(0xFFFFFFFF); g.fillRect(12, 14, 8, 2)
+                g.color = color(0xFFE4A84A); g.fillRect(5, 11, 3, 10); g.fillRect(24, 11, 3, 10)
+                drawNumber(g, tier, 14, 17, 1, 0xFF071016)
+            }
+            writeJsonFile(root, "assets/metatech_reborn/models/item/${name}.json",
+                    itemModel("metatech_reborn:item/${name}"))
+        }
+
+        // Original luck module levels, all visually distinct and readable in inventory.
+        int[] luckLevels = [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 50]
+        luckLevels.eachWithIndex { level, index ->
+            String name = "luck_module_${index + 1}"
+            int core = index < 4 ? 0xFF42DFA1 : index < 8 ? 0xFF42C9ED : 0xFF9A61ED
+            writePng(root, "assets/metatech_reborn/textures/item/${name}.png") { g, image ->
+                g.color = color(0x00000000); g.fillRect(0, 0, 32, 32)
+                drawFrame(g, 0xFF080E14, 0xFF374751, 0xFF121B23)
+                g.color = color(core); g.fillRect(7, 7, 18, 18)
+                g.color = color(0xFF081017); g.fillRect(9, 9, 14, 14)
+                g.color = color(core); g.fillRect(11, 11, 10, 10)
+                g.color = color(0xFFFFFFFF); g.fillRect(14, 8, 4, 2); g.fillRect(14, 22, 4, 2)
+                int digits = Integer.toString(level).length()
+                drawNumber(g, level, digits == 1 ? 14 : 12, 13, 1, 0xFF071016)
+            }
+            writeJsonFile(root, "assets/metatech_reborn/models/item/${name}.json",
+                    itemModel("metatech_reborn:item/${name}"))
+        }
+
+        Map<String, Integer> luckUpgrades = [
+                luck_speed_upgrade: 0xFF49D8F4,
+                luck_efficiency_upgrade: 0xFF5CE39A,
+                luck_operations_upgrade: 0xFFFFC857,
+                luck_double_upgrade: 0xFFB777F2,
+                luck_smelt_upgrade: 0xFFFF7A52,
+                luck_auto_eject_upgrade: 0xFF65A7FF]
+        luckUpgrades.eachWithIndex { entry, index ->
+            writePng(root, "assets/metatech_reborn/textures/item/${entry.key}.png") { g, image ->
+                g.color = color(0x00000000); g.fillRect(0, 0, 32, 32)
+                drawFrame(g, 0xFF080E14, 0xFF47525E, 0xFF121B23)
+                g.color = color(entry.value); g.fillRect(8, 8, 16, 16)
+                g.color = color(0xFF091018)
+                switch (index) {
+                    case 0: g.fillRect(10, 14, 12, 4); g.fillRect(17, 10, 4, 12); break
+                    case 1: g.fillRect(12, 10, 8, 12); g.fillRect(10, 13, 12, 6); break
+                    case 2: g.fillRect(10, 10, 5, 12); g.fillRect(18, 10, 5, 12); break
+                    case 3: drawNumber(g, 2, 14, 11, 2, 0xFF091018); break
+                    case 4: g.fillRect(14, 9, 4, 14); g.fillRect(10, 16, 12, 4); break
+                    default: g.fillRect(9, 14, 10, 4); g.fillRect(16, 10, 7, 12); break
+                }
+            }
+            writeJsonFile(root, "assets/metatech_reborn/models/item/${entry.key}.json",
+                    itemModel("metatech_reborn:item/${entry.key}"))
+        }
+
+        Map<String, Integer> neutronUpgrades = [
+                neutron_combiner_speed_upgrade: 0xFF43D8F3,
+                neutron_combiner_efficiency_upgrade: 0xFF54E6A2,
+                neutron_combiner_output_upgrade: 0xFFB469F2]
+        neutronUpgrades.eachWithIndex { entry, index ->
+            writePng(root, "assets/metatech_reborn/textures/item/${entry.key}.png") { g, image ->
+                g.color = color(0x00000000); g.fillRect(0, 0, 32, 32)
+                drawFrame(g, 0xFF080A0F, 0xFF343A46, 0xFF11151D)
+                g.color = color(entry.value); g.fillRect(8, 8, 16, 16)
+                g.color = color(0xFF8E59E8); g.fillRect(12, 12, 8, 8)
+                g.color = color(0xFFFFFFFF); g.fillRect(14, 14, 4, 4)
+                g.color = color(0xFFFFB34D); g.fillRect(6 + index * 3, 5, 3, 3)
+            }
+            writeJsonFile(root, "assets/metatech_reborn/models/item/${entry.key}.json",
+                    itemModel("metatech_reborn:item/${entry.key}"))
+        }
+
+        // Crafting recipes intentionally use stable vanilla ingredients and chain the tiered modules.
+        writeJsonFile(root, 'data/metatech_reborn/recipes/luck_converter.json',
+                shaped(['RCR', 'PMP', 'RER'], [R: 'minecraft:redstone_block', C: 'minecraft:chest',
+                        P: 'minecraft:diamond_pickaxe', M: 'minecraft:iron_block', E: 'minecraft:ender_eye'],
+                        'metatech_reborn:luck_converter'))
+        writeJsonFile(root, 'data/metatech_reborn/recipes/advanced_luck_converter.json',
+                shaped(['NSN', 'CLC', 'NEN'], [N: 'minecraft:netherite_ingot', S: 'minecraft:nether_star',
+                        C: 'minecraft:ender_chest', L: 'metatech_reborn:luck_converter', E: 'minecraft:ender_eye'],
+                        'metatech_reborn:advanced_luck_converter'))
+        writeJsonFile(root, 'data/metatech_reborn/recipes/neutronium_combiner.json',
+                shaped(['NSN', 'EME', 'NSN'], [N: 'minecraft:netherite_block', S: 'minecraft:nether_star',
+                        E: 'minecraft:ender_eye', M: 'metatech_reborn:molecular_assembler_9x9'],
+                        'metatech_reborn:neutronium_combiner'))
+
+        writeJsonFile(root, 'data/metatech_reborn/recipes/energy_food_tier_1.json',
+                shaped(['RGR', 'GAG', 'RGR'], [R: 'minecraft:redstone', G: 'minecraft:glowstone_dust',
+                        A: 'minecraft:golden_apple'], 'metatech_reborn:energy_food_tier_1'))
+        (2..4).each { tier ->
+            String previous = "metatech_reborn:energy_food_tier_${tier - 1}"
+            String catalyst = tier == 2 ? 'minecraft:diamond' : tier == 3 ? 'minecraft:nether_star' : 'minecraft:netherite_block'
+            writeJsonFile(root, "data/metatech_reborn/recipes/energy_food_tier_${tier}.json",
+                    shaped(['CCC', 'CPC', 'CCC'], [C: catalyst, P: previous],
+                            "metatech_reborn:energy_food_tier_${tier}"))
+        }
+
+        luckLevels.eachWithIndex { level, index ->
+            String name = "luck_module_${index + 1}"
+            if (index == 0) {
+                writeJsonFile(root, "data/metatech_reborn/recipes/${name}.json",
+                        shaped(['LGL', 'RDR', 'LGL'], [L: 'minecraft:lapis_lazuli', G: 'minecraft:gold_ingot',
+                                R: 'minecraft:redstone', D: 'minecraft:diamond'], "metatech_reborn:${name}"))
+            } else {
+                String previous = "metatech_reborn:luck_module_${index}"
+                String catalyst = index < 4 ? 'minecraft:lapis_block' : index < 8 ? 'minecraft:diamond' : 'minecraft:nether_star'
+                writeJsonFile(root, "data/metatech_reborn/recipes/${name}.json",
+                        shaped(['CCC', 'CPC', 'CCC'], [C: catalyst, P: previous], "metatech_reborn:${name}"))
+            }
+        }
+
+        luckUpgrades.keySet().each { name ->
+            String catalyst = name.contains('speed') ? 'minecraft:sugar' :
+                    name.contains('efficiency') ? 'minecraft:quartz' :
+                    name.contains('operations') ? 'minecraft:piston' :
+                    name.contains('double') ? 'minecraft:amethyst_shard' :
+                    name.contains('smelt') ? 'minecraft:blaze_powder' : 'minecraft:hopper'
+            writeJsonFile(root, "data/metatech_reborn/recipes/${name}.json",
+                    shaped(['RCR', 'CDC', 'RCR'], [R: 'minecraft:redstone', C: catalyst,
+                            D: 'minecraft:diamond'], "metatech_reborn:${name}"))
+        }
+        neutronUpgrades.keySet().each { name ->
+            String catalyst = name.contains('speed') ? 'minecraft:clock' :
+                    name.contains('efficiency') ? 'minecraft:emerald' : 'minecraft:nether_star'
+            writeJsonFile(root, "data/metatech_reborn/recipes/${name}.json",
+                    shaped(['NCN', 'CDC', 'NCN'], [N: 'minecraft:netherite_scrap', C: catalyst,
+                            D: 'minecraft:diamond'], "metatech_reborn:${name}"))
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir(restoredAssetsDir)
+tasks.named('processResources').configure {
+    dependsOn(tasks.named('generateRestoredAssets'))
+}

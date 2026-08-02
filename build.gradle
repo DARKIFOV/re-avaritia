@@ -33,7 +33,6 @@ repositories {
         url = 'https://www.cursemaven.com'
         content { includeGroup 'curse.maven' }
     }
-    flatDir { dirs 'libs' }
 }
 
 dependencies {
@@ -41,6 +40,7 @@ dependencies {
     compileOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     runtimeOnly fg.deobf('curse.maven:re-avaritia-623969:8497793')
     compileOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
+    runtimeOnly fg.deobf('curse.maven:applied-energistics-2-223794:7148487')
     compileOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     runtimeOnly fg.deobf('vazkii.botania:Botania:1.20.1-454-FORGE')
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:15.20.0.112")
@@ -48,18 +48,58 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
+def encodedBaseAssetsDir = file('tools/generated_assets_clean_v057')
+def generatedBaseAssetsZip = layout.buildDirectory.file('generated/metatech_base_assets.zip')
+def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
+def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_assets.zip')
+def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
-// Generated pixel-art block and GUI assets are kept in one archive so GitHub
-// and local Gradle builds reproduce exactly the same resources.
-def generatedAssetsDir = layout.buildDirectory.dir("generated/metatech_assets")
-tasks.register('extractGeneratedAssets', Copy) {
-    from zipTree(file('tools/generated_assets.zip'))
+def decodeChunkedBase64 = { File directory, File target, String label ->
+    def chunks = fileTree(directory) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+    if (chunks.isEmpty()) throw new GradleException("No ${label} chunks found in ${directory}")
+    def encoded = new StringBuilder()
+    chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
+    target.parentFile.mkdirs()
+    target.bytes = encoded.toString().decodeBase64()
+}
+
+tasks.register('decodeBaseAssets') {
+    inputs.dir encodedBaseAssetsDir
+    outputs.file generatedBaseAssetsZip
+    doLast {
+        decodeChunkedBase64(encodedBaseAssetsDir, generatedBaseAssetsZip.get().asFile, 'clean base asset')
+    }
+}
+
+tasks.register('decodeDrillAssets') {
+    inputs.dir encodedDrillAssetsDir
+    outputs.file generatedDrillAssetsZip
+    doLast {
+        decodeChunkedBase64(encodedDrillAssetsDir, generatedDrillAssetsZip.get().asFile, 'mana drill texture')
+    }
+}
+
+tasks.register('extractBaseAssets', Copy) {
+    dependsOn tasks.named('decodeBaseAssets')
+    inputs.file generatedBaseAssetsZip
+    outputs.dir generatedAssetsDir
+    doFirst { delete generatedAssetsDir.get().asFile }
+    from { zipTree(generatedBaseAssetsZip.get().asFile) }
     into generatedAssetsDir
 }
+
+tasks.register('extractDrillReworkAssets', Copy) {
+    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeDrillAssets')
+    from { zipTree(generatedDrillAssetsZip.get().asFile) }
+    into generatedAssetsDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
-    dependsOn tasks.named('extractGeneratedAssets')
+    dependsOn tasks.named('extractDrillReworkAssets')
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
         forge_version: forge_version, forge_version_range: forge_version_range,
@@ -72,4 +112,24 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
-tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
+tasks.named('jar', Jar).configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    finalizedBy 'reobfJar'
+}
+
+// Gradle 8 keeps ARGB literals above Integer.MAX_VALUE as Long. The readable
+// generator uses int-typed closures, so apply a normalized in-memory copy.
+def restoredAssetsSource = file('gradle/restored-assets.gradle').getText('UTF-8')
+        .replace('def color = { int rgb ->', 'def color = { rgb ->')
+        .replace('new Color(rgb, true)', 'new Color(((Number) rgb).intValue(), true)')
+        .replace('def drawFrame = { g, int outer, int middle, int inner ->',
+                 'def drawFrame = { g, outer, middle, inner ->')
+        .replace('def drawDigit = { g, int digit, int x, int y, int scale, int argb ->',
+                 'def drawDigit = { g, digit, x, y, scale, argb ->')
+        .replace('def drawNumber = { g, int number, int x, int y, int scale, int argb ->',
+                 'def drawNumber = { g, number, x, y, scale, argb ->')
+def restoredAssetsPatched = layout.buildDirectory.file('generated/restored-assets-patched.gradle').get().asFile
+restoredAssetsPatched.parentFile.mkdirs()
+restoredAssetsPatched.setText(restoredAssetsSource, 'UTF-8')
+apply from: restoredAssetsPatched
+apply from: 'gradle/assembler-localization.gradle'

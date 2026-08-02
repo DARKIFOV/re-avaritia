@@ -8,44 +8,45 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.block.ExtremePatternEncoderBlock;
+import ru.rfvv.metatechreborn.block.GreenhouseBlock;
+import ru.rfvv.metatechreborn.block.LuckConverterBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
 import ru.rfvv.metatechreborn.block.NeutroniumCombinerBlock;
 
 public final class ModBlocks {
-    public static final DeferredRegister<Block> BLOCKS =
-            DeferredRegister.create(ForgeRegistries.BLOCKS, MetaTechReborn.MOD_ID);
-
-    public static final RegistryObject<Block> MOLECULAR_ASSEMBLER_9X9 = BLOCKS.register(
-            "molecular_assembler_9x9",
+    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MetaTechReborn.MOD_ID);
+    public static final RegistryObject<Block> MOLECULAR_ASSEMBLER_9X9 = BLOCKS.register("molecular_assembler_9x9",
             () -> new MolecularAssemblerBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> NEUTRONIUM_COMBINER = BLOCKS.register(
-            "neutronium_combiner",
-            () -> new NeutroniumCombinerBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+    public static final RegistryObject<Block> EXTREME_PATTERN_ENCODER = BLOCKS.register("extreme_pattern_encoder",
+            () -> new ExtremePatternEncoderBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(5.0F, 12.0F).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> MANA_DRILL = BLOCKS.register(
-            "mana_drill",
+    public static final RegistryObject<Block> NEUTRONIUM_COMBINER = BLOCKS.register("neutronium_combiner",
+            () -> new NeutroniumCombinerBlock(BlockBehaviour.Properties.copy(Blocks.NETHERITE_BLOCK)
+                    .strength(8.0F, 24.0F).requiresCorrectToolForDrops()));
+    public static final RegistryObject<Block> LUCK_CONVERTER = BLOCKS.register("luck_converter",
+            () -> new LuckConverterBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
+                    .strength(5.0F, 12.0F).requiresCorrectToolForDrops(), false));
+    public static final RegistryObject<Block> ADVANCED_LUCK_CONVERTER = BLOCKS.register("advanced_luck_converter",
+            () -> new LuckConverterBlock(BlockBehaviour.Properties.copy(Blocks.NETHERITE_BLOCK)
+                    .strength(7.0F, 18.0F).requiresCorrectToolForDrops(), true));
+    public static final RegistryObject<Block> MANA_DRILL = BLOCKS.register("mana_drill",
             () -> new ManaDrillBlock(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
                     .strength(7.0F, 18.0F).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> MANA_DRILL_CASING = BLOCKS.register(
-            "mana_drill_casing",
+    public static final RegistryObject<Block> MANA_DRILL_CASING = BLOCKS.register("mana_drill_casing",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
                     .strength(6.0F, 15.0F).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> MANA_DRILL_CORE = BLOCKS.register(
-            "mana_drill_core",
+    public static final RegistryObject<Block> MANA_DRILL_CORE = BLOCKS.register("mana_drill_core",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEACON)
                     .strength(6.0F, 15.0F).lightLevel(state -> 10).requiresCorrectToolForDrops()));
-
-    public static final RegistryObject<Block> MANA_DRILL_NOZZLE = BLOCKS.register(
-            "mana_drill_nozzle",
+    public static final RegistryObject<Block> MANA_DRILL_NOZZLE = BLOCKS.register("mana_drill_nozzle",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
                     .strength(6.0F, 15.0F).lightLevel(state -> 7).requiresCorrectToolForDrops()));
-
+    public static final RegistryObject<Block> GREENHOUSE = BLOCKS.register("greenhouse",
+            () -> new GreenhouseBlock(BlockBehaviour.Properties.copy(Blocks.COPPER_BLOCK)
+                    .strength(4.5F, 10.0F).requiresCorrectToolForDrops()));
     public static void register(IEventBus bus) { BLOCKS.register(bus); }
     private ModBlocks() {}
 }
