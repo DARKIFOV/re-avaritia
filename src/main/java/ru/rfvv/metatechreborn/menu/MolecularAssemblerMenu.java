@@ -142,9 +142,12 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         return copy;
     }
 
+    public int getProgress() { return data.get(0); }
+    public int getMaxProgress() { return data.get(1); }
+
     public int getProgressPixels(int width) {
-        int maximum = data.get(1);
-        return maximum <= 0 ? 0 : Math.min(width, data.get(0) * width / maximum);
+        int maximum = getMaxProgress();
+        return maximum <= 0 ? 0 : Math.min(width, getProgress() * width / maximum);
     }
 
     public int getEnergyPixels(int height) {
