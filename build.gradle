@@ -48,129 +48,22 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.112")
 }
 
-def encodedBaseAssetsDir = file('tools/generated_assets_clean_v057')
-def generatedBaseAssetsZip = layout.buildDirectory.file('generated/metatech_base_assets.zip')
-def encodedDrillAssetsDir = file('tools/generated_assets_drill_v055')
-def generatedDrillAssetsZip = layout.buildDirectory.file('generated/metatech_drill_assets.zip')
-def encodedV059AssetsDir = file('tools/generated_assets_v059')
-def generatedV059AssetsZip = layout.buildDirectory.file('generated/metatech_v059_assets.zip')
+def bundledAssetsZip = file('tools/generated_assets.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
-tasks.register('decodeBaseAssets') {
-    inputs.dir encodedBaseAssetsDir
-    outputs.file generatedBaseAssetsZip
-    doLast {
-        def chunks = fileTree(encodedBaseAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No clean base asset chunks found in ${encodedBaseAssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedBaseAssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
-    }
-}
-
-tasks.register('decodeDrillAssets') {
-    inputs.dir encodedDrillAssetsDir
-    outputs.file generatedDrillAssetsZip
-    doLast {
-        def chunks = fileTree(encodedDrillAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No mana drill texture chunks found in ${encodedDrillAssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedDrillAssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
-    }
-}
-
-tasks.register('decodeV059Assets') {
-    inputs.dir encodedV059AssetsDir
-    outputs.file generatedV059AssetsZip
-    doLast {
-        def chunks = fileTree(encodedV059AssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No 0.5.9 asset chunks found in ${encodedV059AssetsDir}")
-
-        // These files are consecutive pieces of one base64 stream. Some revisions
-        // accidentally padded individual pieces with '=', which is illegal in the
-        // middle of the joined stream. Remove boundary padding and restore it once.
-        def encoded = new StringBuilder()
-        chunks.each { chunk ->
-            encoded.append(chunk.getText('UTF-8')
-                    .replaceAll('\\s+', '')
-                    .replace('=', ''))
-        }
-        int padding = (4 - encoded.length() % 4) % 4
-        for (int i = 0; i < padding; i++) encoded.append('=')
-
-        def target = generatedV059AssetsZip.get().asFile
-        target.parentFile.mkdirs()
-        target.bytes = encoded.toString().decodeBase64()
-        if (target.length() < 4) throw new GradleException('Decoded 0.5.9 asset archive is empty')
-    }
-}
-
-tasks.register('extractBaseAssets', Copy) {
-    dependsOn tasks.named('decodeBaseAssets')
-    inputs.file generatedBaseAssetsZip
+tasks.register('extractBundledAssets', Copy) {
+    inputs.file bundledAssetsZip
     outputs.dir generatedAssetsDir
     doFirst { delete generatedAssetsDir.get().asFile }
-    from { zipTree(generatedBaseAssetsZip.get().asFile) }
-    into generatedAssetsDir
-}
-
-tasks.register('extractDrillReworkAssets', Copy) {
-    dependsOn tasks.named('extractBaseAssets'), tasks.named('decodeDrillAssets')
-    from { zipTree(generatedDrillAssetsZip.get().asFile) }
+    from { zipTree(bundledAssetsZip) }
     into generatedAssetsDir
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-
-tasks.register('extractV059Assets') {
-    dependsOn tasks.named('extractDrillReworkAssets'), tasks.named('decodeV059Assets')
-    inputs.file generatedV059AssetsZip
-    outputs.dir generatedAssetsDir
-    doLast {
-        def archive = generatedV059AssetsZip.get().asFile
-        def destination = generatedAssetsDir.get().asFile
-        destination.mkdirs()
-        def canonicalDestination = destination.canonicalFile.toPath()
-        int extracted = 0
-
-        archive.withInputStream { input ->
-            def zip = new java.util.zip.ZipInputStream(new BufferedInputStream(input))
-            try {
-                java.util.zip.ZipEntry entry
-                while ((entry = zip.nextEntry) != null) {
-                    def target = new File(destination, entry.name)
-                    def canonicalTarget = target.canonicalFile.toPath()
-                    if (!canonicalTarget.startsWith(canonicalDestination)) {
-                        throw new GradleException("Unsafe path in 0.5.9 assets: ${entry.name}")
-                    }
-                    if (entry.directory) {
-                        target.mkdirs()
-                    } else {
-                        target.parentFile.mkdirs()
-                        target.withOutputStream { output ->
-                            byte[] buffer = new byte[8192]
-                            int read
-                            while ((read = zip.read(buffer)) > 0) output.write(buffer, 0, read)
-                        }
-                        extracted++
-                    }
-                    zip.closeEntry()
-                }
-            } finally {
-                zip.close()
-            }
-        }
-        if (extracted == 0) throw new GradleException('No files extracted from 0.5.9 asset stream')
-        logger.lifecycle("Extracted ${extracted} files from recovered 0.5.9 asset stream")
-    }
 }
 
 sourceSets.main.resources.srcDir generatedAssetsDir
 
 tasks.named('processResources', ProcessResources).configure {
-    dependsOn tasks.named('extractV059Assets')
+    dependsOn tasks.named('extractBundledAssets')
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     def replaceProperties = [minecraft_version: minecraft_version,
         minecraft_version_range: minecraft_version_range,
