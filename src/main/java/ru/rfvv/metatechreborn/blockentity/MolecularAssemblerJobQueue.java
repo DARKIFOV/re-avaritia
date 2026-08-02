@@ -18,20 +18,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Persistent parallel job storage for the extreme molecular assembler.
- *
- * The supplied 1.7.10 client JAR preserves {@code activeCraftingCount},
- * {@code patterns[][]}, {@code remained[][]}, a cancellation list and an
- * {@code isBusy() == false} machine contract, but its server methods are stubs.
- * This class reconstructs that behaviour without trusting client-side state:
- * every accepted job owns an immutable copy of all 81 inputs, is revalidated
- * against the server RecipeManager, and is either completed or fully refunded.
- */
+/** Persistent, server-validated parallel job storage for the extreme assembler. */
 final class MolecularAssemblerJobQueue {
     static final int MAX_JOBS = 64;
 
-    // AE2 1.20.1 molecular-assembler speed/power progression for 0..5 cards.
+    // Official AE2 1.20.1 molecular-assembler progression for 0..5 speed cards.
     private static final int[] WORK_PER_TICK = {10, 13, 17, 20, 25, 50};
     private static final int[] POWER_PERCENT = {100, 130, 170, 200, 250, 500};
 
@@ -42,21 +33,10 @@ final class MolecularAssemblerJobQueue {
         this.host = host;
     }
 
-    boolean canAccept() {
-        return jobs.size() < MAX_JOBS;
-    }
-
-    boolean isEmpty() {
-        return jobs.isEmpty();
-    }
-
-    boolean isFull() {
-        return jobs.size() >= MAX_JOBS;
-    }
-
-    int size() {
-        return jobs.size();
-    }
+    boolean canAccept() { return jobs.size() < MAX_JOBS; }
+    boolean isEmpty() { return jobs.isEmpty(); }
+    boolean isFull() { return jobs.size() >= MAX_JOBS; }
+    int size() { return jobs.size(); }
 
     boolean enqueue(ExtremePatternData pattern, NonNullList<ItemStack> placement) {
         Level level = host.getLevel();
@@ -70,19 +50,18 @@ final class MolecularAssemblerJobQueue {
             ItemStack expected = pattern.inputs().get(slot);
             ItemStack supplied = placement.get(slot);
             if (expected.isEmpty() != supplied.isEmpty()) return false;
-            if (!expected.isEmpty()) {
-                if (!ItemStack.isSameItemSameTags(expected, supplied) || supplied.getCount() != 1) return false;
+            if (!expected.isEmpty()
+                    && (!ItemStack.isSameItemSameTags(expected, supplied) || supplied.getCount() != 1)) {
+                return false;
             }
         }
 
         GridView grid = new GridView(placement);
         Optional<MachineRecipeMatch> resolved = host.findAnyMatch(level, grid);
-        if (resolved.isEmpty()) return false;
-        MachineRecipeMatch match = resolved.get();
-        if (!sameStackAndCount(match.result(), pattern.output())) return false;
+        if (resolved.isEmpty() || !sameStackAndCount(resolved.get().result(), pattern.output())) return false;
 
-        NonNullList<ItemStack> ownedInputs = copyGrid(placement);
-        jobs.add(new Job(ownedInputs, pattern.output().copy(), match.id(), match.source(), 0));
+        MachineRecipeMatch match = resolved.get();
+        jobs.add(new Job(copyGrid(placement), pattern.output().copy(), match.id(), match.source(), 0));
         host.markChangedAndRunning();
         return true;
     }
@@ -118,30 +97,27 @@ final class MolecularAssemblerJobQueue {
             }
 
             MachineRecipeMatch match = resolved.get();
+            int requiredWork = Math.max(1, match.craftTime()) * 10;
+
+            // A finished job waiting for return-buffer space must not consume FE again.
+            if (job.work >= requiredWork) {
+                if (finishJob(job, match)) iterator.remove();
+                else outputBlocked = true;
+                continue;
+            }
+
             int energyCost = scaledPower(match.energyPerTick(), speedCards);
             if (!host.consumeAssemblerEnergy(energyCost)) {
                 lackedEnergy = true;
                 continue;
             }
 
-            job.work += workPerTick;
+            job.work = Math.min(requiredWork, job.work + workPerTick);
             progressed = true;
-            int requiredWork = Math.max(1, match.craftTime()) * 10;
-            if (job.work < requiredWork) continue;
-
-            List<ItemStack> products = new ArrayList<>();
-            for (ItemStack remainder : match.remainingItems()) {
-                if (!remainder.isEmpty()) products.add(remainder.copy());
+            if (job.work >= requiredWork) {
+                if (finishJob(job, match)) iterator.remove();
+                else outputBlocked = true;
             }
-            products.add(match.result().copy());
-
-            if (!host.queueStacksForNetwork(products)) {
-                // Do not charge repeatedly while the ME return buffer is full.
-                job.work = requiredWork;
-                outputBlocked = true;
-                continue;
-            }
-            iterator.remove();
         }
 
         if (progressed || returnedInvalid) host.setChanged();
@@ -149,6 +125,15 @@ final class MolecularAssemblerJobQueue {
         if (progressed) return TickState.RUNNING;
         if (lackedEnergy) return TickState.NO_ENERGY;
         return TickState.WAITING;
+    }
+
+    private boolean finishJob(Job job, MachineRecipeMatch match) {
+        List<ItemStack> products = new ArrayList<>();
+        for (ItemStack remainder : match.remainingItems()) {
+            if (!remainder.isEmpty()) products.add(remainder.copy());
+        }
+        products.add(match.result().copy());
+        return host.queueStacksForNetwork(products);
     }
 
     private static int scaledPower(int base, int speedCards) {
