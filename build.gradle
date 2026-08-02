@@ -88,23 +88,23 @@ tasks.register('decodeV059Assets') {
     doLast {
         def chunks = fileTree(encodedV059AssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
         if (chunks.isEmpty()) throw new GradleException("No 0.5.9 asset chunks found in ${encodedV059AssetsDir}")
+
+        // These files are consecutive pieces of one base64 stream. Some revisions
+        // accidentally padded individual pieces with '=', which is illegal in the
+        // middle of the joined stream. Remove boundary padding and restore it once.
+        def encoded = new StringBuilder()
+        chunks.each { chunk ->
+            encoded.append(chunk.getText('UTF-8')
+                    .replaceAll('\\s+', '')
+                    .replace('=', ''))
+        }
+        int padding = (4 - encoded.length() % 4) % 4
+        for (int i = 0; i < padding; i++) encoded.append('=')
+
         def target = generatedV059AssetsZip.get().asFile
         target.parentFile.mkdirs()
-
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        try {
-            target.bytes = encoded.toString().decodeBase64()
-        } catch (RuntimeException concatenatedDecodeFailure) {
-            // Some generated revisions contain independently encoded chunks with padding.
-            // Decode those chunks one by one so an internal '=' cannot corrupt the archive.
-            target.withOutputStream { output ->
-                chunks.each { chunk ->
-                    def chunkText = chunk.getText('UTF-8').replaceAll('\\s+', '')
-                    output.write(chunkText.decodeBase64())
-                }
-            }
-        }
+        target.bytes = encoded.toString().decodeBase64()
+        if (target.length() < 4) throw new GradleException('Decoded 0.5.9 asset archive is empty')
     }
 }
 
