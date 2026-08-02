@@ -1,0 +1,30 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+/* Adds the 0.6.0 assembler-only strings after all resource overlays are copied. */
+tasks.named('processResources').configure {
+    doLast {
+        Map<String, Map<String, String>> additions = [
+                ru_ru: [
+                        'gui.metatech_reborn.assembler.status.returning': 'Возврат результата и контейнеров в ME-сеть',
+                        'gui.metatech_reborn.assembler.speed_cards': 'Ускорители',
+                        'gui.metatech_reborn.assembler.queue': 'Параллельные задания: %1$s / %2$s',
+                        'gui.metatech_reborn.assembler.speed_count': 'Карты скорости AE2: %1$s / %2$s'
+                ],
+                en_us: [
+                        'gui.metatech_reborn.assembler.status.returning': 'Returning output and containers to the ME network',
+                        'gui.metatech_reborn.assembler.speed_cards': 'Speed',
+                        'gui.metatech_reborn.assembler.queue': 'Parallel jobs: %1$s / %2$s',
+                        'gui.metatech_reborn.assembler.speed_count': 'AE2 speed cards: %1$s / %2$s'
+                ]
+        ]
+
+        additions.each { locale, values ->
+            File target = file("${destinationDir}/assets/metatech_reborn/lang/${locale}.json")
+            if (!target.isFile()) throw new GradleException("Missing generated language file: ${target}")
+            Map<String, Object> content = (Map<String, Object>) new JsonSlurper().parse(target, 'UTF-8')
+            content.putAll(values)
+            target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(content)) + '\n', 'UTF-8')
+        }
+    }
+}
