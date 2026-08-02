@@ -16,13 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Official AE2 representation of a native MetaTech 9x9 pattern.
- *
- * The definition contains the complete encoded ItemStack, including NBT. This is
- * important because AE2 persists crafting jobs by pattern definition and decodes
- * them again after a world or chunk reload.
- */
+/** Official AE2 representation of a native MetaTech 9x9 pattern. */
 public final class ExtremePatternDetails implements IPatternDetails {
     private final AEItemKey definition;
     private final ExtremePatternData pattern;
@@ -59,33 +53,13 @@ public final class ExtremePatternDetails implements IPatternDetails {
                 .orElse(null);
     }
 
-    public ExtremePatternData pattern() {
-        return pattern;
-    }
+    public ExtremePatternData pattern() { return pattern; }
+    public int getGridSlotForInput(int inputIndex) { return inputGridSlots[inputIndex]; }
 
-    public int getGridSlotForInput(int inputIndex) {
-        return inputGridSlots[inputIndex];
-    }
-
-    @Override
-    public AEItemKey getDefinition() {
-        return definition;
-    }
-
-    @Override
-    public IInput[] getInputs() {
-        return inputs;
-    }
-
-    @Override
-    public GenericStack[] getOutputs() {
-        return outputs;
-    }
-
-    @Override
-    public boolean supportsPushInputsToExternalInventory() {
-        return false;
-    }
+    @Override public AEItemKey getDefinition() { return definition; }
+    @Override public IInput[] getInputs() { return inputs; }
+    @Override public GenericStack[] getOutputs() { return outputs; }
+    @Override public boolean supportsPushInputsToExternalInventory() { return false; }
 
     @Override
     public boolean equals(Object other) {
@@ -93,10 +67,7 @@ public final class ExtremePatternDetails implements IPatternDetails {
                 && definition.equals(details.definition);
     }
 
-    @Override
-    public int hashCode() {
-        return definition.hashCode();
-    }
+    @Override public int hashCode() { return definition.hashCode(); }
 
     @Override
     public String toString() {
@@ -109,19 +80,16 @@ public final class ExtremePatternDetails implements IPatternDetails {
             return new GenericStack[] { new GenericStack(key, 1) };
         }
 
-        @Override
-        public long getMultiplier() {
-            return 1;
-        }
-
-        @Override
-        public boolean isValid(AEKey input, Level level) {
-            return key.equals(input);
-        }
+        @Override public long getMultiplier() { return 1; }
+        @Override public boolean isValid(AEKey input, Level level) { return key.equals(input); }
 
         @Override
         public @Nullable AEKey getRemainingKey(AEKey template) {
-            return null;
+            if (!(template instanceof AEItemKey itemKey)) return null;
+            ItemStack input = itemKey.toStack();
+            if (!input.hasCraftingRemainingItem()) return null;
+            ItemStack remainder = input.getCraftingRemainingItem();
+            return remainder.isEmpty() ? null : AEItemKey.of(remainder);
         }
     }
 
