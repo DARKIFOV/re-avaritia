@@ -98,9 +98,17 @@ public final class NeutroniumCombinerMenu extends AbstractContainerMenu {
         return copy;
     }
 
+    public int getProgress(int inputSlot) {
+        return data.get(inputSlot);
+    }
+
+    public int getMaxProgress(int inputSlot) {
+        return data.get(NeutroniumCombinerBlockEntity.INPUT_SLOTS + inputSlot);
+    }
+
     public int getProgressPixels(int inputSlot, int width) {
-        int maximum = data.get(NeutroniumCombinerBlockEntity.INPUT_SLOTS + inputSlot);
-        return maximum <= 0 ? 0 : Math.min(width, data.get(inputSlot) * width / maximum);
+        int maximum = getMaxProgress(inputSlot);
+        return maximum <= 0 ? 0 : Math.min(width, getProgress(inputSlot) * width / maximum);
     }
 
     public int getStatus(int inputSlot) {
