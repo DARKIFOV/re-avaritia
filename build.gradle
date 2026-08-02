@@ -56,16 +56,29 @@ def encodedV059AssetsDir = file('tools/generated_assets_v059')
 def generatedV059AssetsZip = layout.buildDirectory.file('generated/metatech_v059_assets.zip')
 def generatedAssetsDir = layout.buildDirectory.dir('generated/metatech_assets')
 
+def decodeChunkedBase64 = { File directory, File target, String label ->
+    def chunks = fileTree(directory) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
+    if (chunks.isEmpty()) throw new GradleException("No ${label} chunks found in ${directory}")
+
+    def encoded = new StringBuilder()
+    chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
+
+    // Some historical generated-asset chunks contain premature '=' padding at a
+    // file boundary. Padding is never meaningful in the middle of one Base64
+    // stream, so normalize it and recreate only the final padding.
+    String normalized = encoded.toString().replace("=", "")
+    int remainder = normalized.length() % 4
+    if (remainder != 0) normalized += "=" * (4 - remainder)
+
+    target.parentFile.mkdirs()
+    target.bytes = normalized.decodeBase64()
+}
+
 tasks.register('decodeBaseAssets') {
     inputs.dir encodedBaseAssetsDir
     outputs.file generatedBaseAssetsZip
     doLast {
-        def chunks = fileTree(encodedBaseAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No clean base asset chunks found in ${encodedBaseAssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedBaseAssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
+        decodeChunkedBase64(encodedBaseAssetsDir, generatedBaseAssetsZip.get().asFile, 'clean base asset')
     }
 }
 
@@ -73,12 +86,7 @@ tasks.register('decodeDrillAssets') {
     inputs.dir encodedDrillAssetsDir
     outputs.file generatedDrillAssetsZip
     doLast {
-        def chunks = fileTree(encodedDrillAssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No mana drill texture chunks found in ${encodedDrillAssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedDrillAssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
+        decodeChunkedBase64(encodedDrillAssetsDir, generatedDrillAssetsZip.get().asFile, 'mana drill texture')
     }
 }
 
@@ -86,12 +94,7 @@ tasks.register('decodeV059Assets') {
     inputs.dir encodedV059AssetsDir
     outputs.file generatedV059AssetsZip
     doLast {
-        def chunks = fileTree(encodedV059AssetsDir) { include '*.b64' }.files.sort { a, b -> a.name <=> b.name }
-        if (chunks.isEmpty()) throw new GradleException("No 0.5.9 asset chunks found in ${encodedV059AssetsDir}")
-        def encoded = new StringBuilder()
-        chunks.each { encoded.append(it.getText('UTF-8').replaceAll('\\s+', '')) }
-        def target = generatedV059AssetsZip.get().asFile
-        target.parentFile.mkdirs(); target.bytes = encoded.toString().decodeBase64()
+        decodeChunkedBase64(encodedV059AssetsDir, generatedV059AssetsZip.get().asFile, '0.5.9 asset')
     }
 }
 
@@ -130,7 +133,9 @@ tasks.named('processResources', ProcessResources).configure {
         mod_license: mod_license, mod_version: mod_version, mod_authors: mod_authors,
         mod_description: mod_description]
     inputs.properties replaceProperties
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand replaceProperties + [project: project] }
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
 }
 
 tasks.named('jar', Jar).configure {
