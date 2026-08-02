@@ -64,6 +64,7 @@ jobs:
           python3 - <<'PY'
           import glob
           import json
+          import struct
           import zipfile
 
           jars = [path for path in glob.glob("build/libs/*.jar")
@@ -76,6 +77,11 @@ jobs:
               "ru/rfvv/metatechreborn/blockentity/MolecularAssemblerBlockEntity.class",
               "ru/rfvv/metatechreborn/block/ManaDrillNozzleBlock.class",
               "ru/rfvv/metatechreborn/client/screen/MetaTechGui.class",
+              "ru/rfvv/metatechreborn/client/screen/LuckConverterScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/GreenhouseScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/ManaDrillScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/MolecularAssemblerScreen.class",
+              "ru/rfvv/metatechreborn/client/screen/NeutroniumCombinerScreen.class",
               "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2Provider.class",
               "ru/rfvv/metatechreborn/integration/ae2/MolecularAssemblerAe2ConnectionFix$ConnectionEvents.class",
               "assets/metatech_reborn/models/block/molecular_assembler_9x9.json",
@@ -88,8 +94,14 @@ jobs:
               "assets/metatech_reborn/blockstates/advanced_luck_converter.json",
               "assets/metatech_reborn/models/item/energy_food_tier_4.json",
               "assets/metatech_reborn/models/item/luck_module_12.json",
+              "assets/metatech_reborn/models/item/luck_speed_upgrade_70.json",
+              "assets/metatech_reborn/models/item/luck_speed_upgrade_instant.json",
+              "assets/metatech_reborn/textures/item/luck_speed_upgrade_70.png",
+              "assets/metatech_reborn/textures/item/luck_speed_upgrade_instant.png",
               "data/metatech_reborn/recipes/luck_converter.json",
               "data/metatech_reborn/recipes/advanced_luck_converter.json",
+              "data/metatech_reborn/recipes/luck_speed_upgrade_70.json",
+              "data/metatech_reborn/recipes/luck_speed_upgrade_instant.json",
               "data/minecraft/tags/blocks/mineable/pickaxe.json",
           }
 
@@ -109,13 +121,42 @@ jobs:
                       raise SystemExit(f"Invalid JSON {name}: {error}") from error
                   json_count += 1
 
+              png_count = 0
+              for name in sorted(names):
+                  if not name.endswith(".png"):
+                      continue
+                  data = archive.read(name)
+                  if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+                      raise SystemExit(f"Invalid PNG header {name}")
+                  width, height = struct.unpack(">II", data[16:24])
+                  if width <= 0 or height <= 0:
+                      raise SystemExit(f"Invalid PNG dimensions {name}: {width}x{height}")
+                  png_count += 1
+
               model = json.loads(archive.read(
                   "assets/metatech_reborn/models/block/molecular_assembler_9x9.json"
               ).decode("utf-8"))
               if "elements" not in model or len(model["elements"]) < 15:
                   raise SystemExit("Transparent assembler model does not contain the expected frame/glass/core geometry")
 
-          print(f"Validated {json_count} JSON files and transparent assembler geometry in {jars[0]}")
+              ru = json.loads(archive.read(
+                  "assets/metatech_reborn/lang/ru_ru.json").decode("utf-8"))
+              en = json.loads(archive.read(
+                  "assets/metatech_reborn/lang/en_us.json").decode("utf-8"))
+              gui_keys = {
+                  "gui.metatech_reborn.tooltip.progress_ticks",
+                  "gui.metatech_reborn.luck_converter.tooltip.speed",
+                  "gui.metatech_reborn.greenhouse.tooltip.mana",
+                  "gui.metatech_reborn.mana_drill.tooltip.upgrades",
+                  "gui.metatech_reborn.assembler.tooltip.unlock",
+                  "gui.metatech_reborn.neutron.tooltip.process",
+                  "gui.metatech_reborn.luck_converter.speed.instant",
+              }
+              for key in sorted(gui_keys):
+                  if key not in ru or key not in en:
+                      raise SystemExit(f"Missing GUI translation key: {key}")
+
+          print(f"Validated {json_count} JSON files, {png_count} PNG files, GUI translations and required resources in {jars[0]}")
           PY
 
       - name: Upload unified MetaTech JAR
