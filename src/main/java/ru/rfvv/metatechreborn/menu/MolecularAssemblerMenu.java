@@ -22,7 +22,9 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public static final int PATTERN_MENU_START = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
     public static final int PATTERN_UPGRADE_MENU_SLOT =
             PATTERN_MENU_START + MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS;
-    public static final int MACHINE_MENU_SLOTS = PATTERN_UPGRADE_MENU_SLOT + 1;
+    public static final int SPEED_CARD_MENU_START = PATTERN_UPGRADE_MENU_SLOT + 1;
+    public static final int MACHINE_MENU_SLOTS =
+            SPEED_CARD_MENU_START + MolecularAssemblerBlockEntity.AE2_SPEED_CARD_SLOTS;
 
     private final MolecularAssemblerBlockEntity blockEntity;
     private final ContainerData data;
@@ -31,7 +33,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         this(containerId, playerInventory,
                 (MolecularAssemblerBlockEntity) playerInventory.player.level()
                         .getBlockEntity(buffer.readBlockPos()),
-                new SimpleContainerData(8));
+                new SimpleContainerData(9));
     }
 
     public MolecularAssemblerMenu(int containerId, Inventory playerInventory,
@@ -44,41 +46,41 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
             for (int column = 0; column < 9; column++) {
                 int slot = column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
-                        8 + column * 18, 15 + row * 18));
+                        10 + column * 18, 26 + row * 18));
             }
         }
 
         addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.OUTPUT_SLOT,
-                191, 74) {
+                194, 72) {
             @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
         });
         addSlot(new SlotItemHandler(blockEntity.getItems(), MolecularAssemblerBlockEntity.ENERGY_SLOT,
-                218, 74));
+                226, 72));
 
         for (int row = 0; row < 4; row++) {
             for (int column = 0; column < 9; column++) {
                 int patternSlot = column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getPatternItems(), patternSlot,
-                        274 + column * 18, 22 + row * 18));
+                        304 + column * 18, 28 + row * 18));
             }
         }
-        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 274, 105) {
-            @Override
-            public boolean mayPickup(@NotNull Player player) {
-                return canRemovePatternUpgrade();
-            }
+        addSlot(new SlotItemHandler(blockEntity.getPatternUpgradeItems(), 0, 304, 110) {
+            @Override public boolean mayPickup(@NotNull Player player) { return canRemovePatternUpgrade(); }
         });
+        for (int slot = 0; slot < MolecularAssemblerBlockEntity.AE2_SPEED_CARD_SLOTS; slot++) {
+            addSlot(new SlotItemHandler(blockEntity.getAe2SpeedCards(), slot, 334 + slot * 20, 110));
+        }
 
-        int inventoryY = 179;
+        int inventoryY = 202;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(playerInventory, column + row * 9 + 9,
-                        8 + column * 18, inventoryY + row * 18));
+                        10 + column * 18, inventoryY + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
             addSlot(new Slot(playerInventory, column,
-                    8 + column * 18, inventoryY + 58));
+                    10 + column * 18, inventoryY + 58));
         }
 
         addDataSlots(data);
@@ -121,6 +123,9 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
         } else if (original.getItem() instanceof PatternCapacityUpgradeItem) {
             if (!moveItemStackTo(original, PATTERN_UPGRADE_MENU_SLOT,
                     PATTERN_UPGRADE_MENU_SLOT + 1, false)) return ItemStack.EMPTY;
+        } else if (MolecularAssemblerBlockEntity.isAe2SpeedCard(original)) {
+            if (!moveItemStackTo(original, SPEED_CARD_MENU_START,
+                    MACHINE_MENU_SLOTS, false)) return ItemStack.EMPTY;
         } else if (original.getItem() instanceof EncodedExtremePatternItem) {
             if (!moveItemStackTo(original, PATTERN_MENU_START,
                     PATTERN_UPGRADE_MENU_SLOT, false)) return ItemStack.EMPTY;
@@ -153,4 +158,5 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public int getActivePatternSlots() { return data.get(5); }
     public int getInstalledPatternCount() { return data.get(6); }
     public int getStatus() { return data.get(7); }
+    public int getAe2SpeedCards() { return data.get(8); }
 }
