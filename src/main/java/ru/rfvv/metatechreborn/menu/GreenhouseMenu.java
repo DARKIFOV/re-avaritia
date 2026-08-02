@@ -28,21 +28,21 @@ public final class GreenhouseMenu extends AbstractContainerMenu {
         this.blockEntity = blockEntity;
         this.data = data;
 
-        addSlot(new SlotItemHandler(blockEntity.getItems(), GreenhouseBlockEntity.FLOWER_SLOT, 18, 32));
+        addSlot(new SlotItemHandler(blockEntity.getItems(), GreenhouseBlockEntity.FLOWER_SLOT, 20, 34));
         for (int column = 0; column < GreenhouseBlockEntity.MODULE_SLOTS; column++) {
             addSlot(new SlotItemHandler(blockEntity.getItems(),
-                    GreenhouseBlockEntity.FIRST_MODULE_SLOT + column, 18 + column * 24, 64));
+                    GreenhouseBlockEntity.FIRST_MODULE_SLOT + column, 20 + column * 24, 76));
         }
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 3; column++) {
                 int index = GreenhouseBlockEntity.FIRST_FUEL_SLOT + column + row * 3;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), index,
-                        122 + column * 18, 32 + row * 18));
+                        132 + column * 18, 34 + row * 18));
             }
         }
 
-        int playerX = 70;
-        int playerY = 146;
+        int playerX = 81;
+        int playerY = 194;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9,
