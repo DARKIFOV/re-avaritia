@@ -19,8 +19,8 @@ import ru.rfvv.metatechreborn.registry.ModMenus;
 
 public final class MolecularAssemblerMenu extends AbstractContainerMenu {
     public static final int UNLOCK_BUTTON_ID = 0;
-    public static final int PATTERN_COLUMNS = 7;
-    public static final int PATTERN_ROWS = 4;
+    public static final int PATTERN_COLUMNS = 6;
+    public static final int PATTERN_ROWS = 6;
     public static final int PATTERN_MENU_START = MolecularAssemblerBlockEntity.TOTAL_SLOTS;
     public static final int PATTERN_UPGRADE_MENU_SLOT =
             PATTERN_MENU_START + MolecularAssemblerBlockEntity.MAX_PATTERN_SLOTS;
@@ -63,7 +63,7 @@ public final class MolecularAssemblerMenu extends AbstractContainerMenu {
             addSlot(new PatternBankSlot(blockEntity, patternSlot,
                     281 + column * 18, 22 + row * 18));
         }
-        addSlot(new PatternUpgradeSlot(blockEntity, 281, 105));
+        addSlot(new PatternUpgradeSlot(blockEntity, 281, 139));
 
         int inventoryY = 179;
         for (int row = 0; row < 3; row++) {
