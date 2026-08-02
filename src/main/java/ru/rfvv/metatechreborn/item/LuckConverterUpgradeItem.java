@@ -14,32 +14,29 @@ import java.util.List;
 /** Upgrades accepted by the six upgrade slots of both luck converters. */
 public final class LuckConverterUpgradeItem extends Item {
     public enum Type {
-        SPEED_30("speed_30", 1, 30, 130),
-        SPEED_70("speed_70", 1, 70, 250),
-        SPEED_INSTANT("speed_instant", 1, 100, 500),
-        EFFICIENCY("efficiency", 8, 0, 100),
-        OPERATIONS("operations", 4, 0, 100),
-        DOUBLE("double", 1, 0, 100),
-        SMELT("smelt", 1, 0, 100),
-        AUTO_EJECT("auto_eject", 1, 0, 100);
+        SPEED_30("speed_30", 1, 30),
+        SPEED_70("speed_70", 1, 70),
+        SPEED_INSTANT("speed_instant", 1, 100),
+        EFFICIENCY("efficiency", 8, 0),
+        OPERATIONS("operations", 4, 0),
+        DOUBLE("double", 1, 0),
+        SMELT("smelt", 1, 0),
+        AUTO_EJECT("auto_eject", 1, 0);
 
         private final String key;
         private final int maximum;
-        private final int speedReductionPercent;
-        private final int energyPercent;
+        private final int speedBonusPercent;
 
-        Type(String key, int maximum, int speedReductionPercent, int energyPercent) {
+        Type(String key, int maximum, int speedBonusPercent) {
             this.key = key;
             this.maximum = maximum;
-            this.speedReductionPercent = speedReductionPercent;
-            this.energyPercent = energyPercent;
+            this.speedBonusPercent = speedBonusPercent;
         }
 
         public String key() { return key; }
         public int maximum() { return maximum; }
-        public int speedReductionPercent() { return speedReductionPercent; }
-        public int energyPercent() { return energyPercent; }
-        public boolean isSpeedUpgrade() { return speedReductionPercent > 0; }
+        public int speedBonusPercent() { return speedBonusPercent; }
+        public boolean isSpeedUpgrade() { return speedBonusPercent > 0; }
         public boolean isInstant() { return this == SPEED_INSTANT; }
     }
 
@@ -59,13 +56,11 @@ public final class LuckConverterUpgradeItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
+                                List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade." + type.key())
                 .withStyle(type.isInstant() ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.AQUA));
         if (type.isSpeedUpgrade()) {
-            tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.speed_energy",
-                            type.energyPercent())
-                    .withStyle(ChatFormatting.GOLD));
             tooltip.add(Component.translatable("tooltip.metatech_reborn.luck_upgrade.speed_priority")
                     .withStyle(ChatFormatting.DARK_GRAY));
         } else {
