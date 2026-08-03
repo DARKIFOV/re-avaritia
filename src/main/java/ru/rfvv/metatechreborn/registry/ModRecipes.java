@@ -8,6 +8,8 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.recipe.GreenhouseRecipe;
+import ru.rfvv.metatechreborn.recipe.GreenhouseRecipeSerializer;
 import ru.rfvv.metatechreborn.recipe.ManaDrillRecipe;
 import ru.rfvv.metatechreborn.recipe.ManaDrillRecipeSerializer;
 import ru.rfvv.metatechreborn.recipe.MolecularAssemblerRecipe;
@@ -38,6 +40,12 @@ public final class ModRecipes {
                     new ResourceLocation(MetaTechReborn.MOD_ID, "mana_drill_generating")));
     public static final RegistryObject<RecipeSerializer<ManaDrillRecipe>> MANA_DRILL_GENERATING_SERIALIZER =
             SERIALIZERS.register("mana_drill_generating", ManaDrillRecipeSerializer::new);
+
+    public static final RegistryObject<RecipeType<GreenhouseRecipe>> GREENHOUSE_TYPE =
+            TYPES.register("greenhouse", () -> RecipeType.simple(
+                    new ResourceLocation(MetaTechReborn.MOD_ID, "greenhouse")));
+    public static final RegistryObject<RecipeSerializer<GreenhouseRecipe>> GREENHOUSE_SERIALIZER =
+            SERIALIZERS.register("greenhouse", GreenhouseRecipeSerializer::new);
 
     public static void register(IEventBus bus) {
         TYPES.register(bus);

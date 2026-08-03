@@ -6,6 +6,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import ru.rfvv.metatechreborn.MetaTechReborn;
+import ru.rfvv.metatechreborn.blockentity.GreenhouseBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;
 import ru.rfvv.metatechreborn.blockentity.NeutroniumCombinerBlockEntity;
@@ -23,6 +24,9 @@ public final class ModBlockEntities {
     public static final RegistryObject<BlockEntityType<ManaDrillBlockEntity>> MANA_DRILL =
             BLOCK_ENTITIES.register("mana_drill", () -> BlockEntityType.Builder.of(
                     ManaDrillBlockEntity::new, ModBlocks.MANA_DRILL.get()).build(null));
+    public static final RegistryObject<BlockEntityType<GreenhouseBlockEntity>> GREENHOUSE =
+            BLOCK_ENTITIES.register("greenhouse", () -> BlockEntityType.Builder.of(
+                    GreenhouseBlockEntity::new, ModBlocks.GREENHOUSE.get()).build(null));
 
     public static void register(IEventBus bus) { BLOCK_ENTITIES.register(bus); }
     private ModBlockEntities() {}

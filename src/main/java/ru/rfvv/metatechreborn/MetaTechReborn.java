@@ -41,8 +41,22 @@ public final class MetaTechReborn {
             event.accept(ModItems.MANA_DRILL_CORE.get());
             event.accept(ModItems.MANA_DRILL_NOZZLE.get());
             event.accept(ModItems.MANA_DRILL_MODULE.get());
+            event.accept(ModItems.GREENHOUSE.get());
             ModItems.manaDrillUpgradeItems().forEach(item -> event.accept(item.get()));
             ModItems.neutronCombinerUpgradeItems().forEach(item -> event.accept(item.get()));
+            ModItems.greenhouseModuleItems().forEach(item -> event.accept(item.get()));
+        }
+        if (event.getTabKey() == CreativeModeTabs.COMBAT) {
+            ModItems.electricSwordItems().forEach(item -> event.accept(item.get()));
+            event.accept(ModItems.SNOW_GUN.get());
+            event.accept(ModItems.SKULL_AXE.get());
+        }
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.META_VAJRA.get());
+            ModItems.windRotorItems().forEach(item -> event.accept(item.get()));
+        }
+        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
+            ModItems.energyFoodItems().forEach(item -> event.accept(item.get()));
         }
     }
 }
