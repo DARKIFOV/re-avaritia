@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:kekimurus" },
+  "fuel": { "item": "minecraft:cake" },
+  "mana": 1800,
+  "time": 80,
+  "consume_fuel": true
+}

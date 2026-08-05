@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "metatech_reborn:block/greenhouse" },
+    "facing=east": { "model": "metatech_reborn:block/greenhouse", "y": 90 },
+    "facing=south": { "model": "metatech_reborn:block/greenhouse", "y": 180 },
+    "facing=west": { "model": "metatech_reborn:block/greenhouse", "y": 270 }
+  }
+}

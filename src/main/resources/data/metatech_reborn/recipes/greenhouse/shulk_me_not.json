@@ -1,0 +1,8 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:shulk_me_not" },
+  "fuel": { "item": "minecraft:shulker_shell" },
+  "mana": 75000,
+  "time": 1200,
+  "consume_fuel": true
+}

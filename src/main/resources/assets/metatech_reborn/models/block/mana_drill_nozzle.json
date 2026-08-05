@@ -1,6 +1,12 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube",
   "textures": {
-    "all": "metatech_reborn:block/mana_drill_nozzle"
+    "particle": "metatech_reborn:block/mana_drill_nozzle_side",
+    "down": "metatech_reborn:block/mana_drill_nozzle_side",
+    "up": "metatech_reborn:block/mana_drill_nozzle_top",
+    "north": "metatech_reborn:block/mana_drill_nozzle_front",
+    "south": "metatech_reborn:block/mana_drill_nozzle_side",
+    "west": "metatech_reborn:block/mana_drill_nozzle_side",
+    "east": "metatech_reborn:block/mana_drill_nozzle_side"
   }
 }

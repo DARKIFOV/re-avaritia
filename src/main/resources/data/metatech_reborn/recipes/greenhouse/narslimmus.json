@@ -1,0 +1,11 @@
+{
+  "type": "metatech_reborn:greenhouse",
+  "flower": { "item": "botania:narslimmus" },
+  "fuel": [
+    { "item": "minecraft:slime_ball" },
+    { "item": "minecraft:slime_block" }
+  ],
+  "mana": 1200,
+  "time": 100,
+  "consume_fuel": true
+}

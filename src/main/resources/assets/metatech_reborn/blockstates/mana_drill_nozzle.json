@@ -1,7 +1,8 @@
 {
   "variants": {
-    "": {
-      "model": "metatech_reborn:block/mana_drill_nozzle"
-    }
+    "facing=north": { "model": "metatech_reborn:block/mana_drill_nozzle" },
+    "facing=east":  { "model": "metatech_reborn:block/mana_drill_nozzle", "y": 90 },
+    "facing=south": { "model": "metatech_reborn:block/mana_drill_nozzle", "y": 180 },
+    "facing=west":  { "model": "metatech_reborn:block/mana_drill_nozzle", "y": 270 }
   }
 }

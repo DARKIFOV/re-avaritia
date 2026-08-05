@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:lapis_block" },
+    { "item": "minecraft:quartz" },
+    { "item": "minecraft:iron_ingot" }
+  ],
+  "result": { "item": "metatech_reborn:greenhouse_efficiency_module_1" }
+}
