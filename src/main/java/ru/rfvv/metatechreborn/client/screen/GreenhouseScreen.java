@@ -11,6 +11,9 @@ import ru.rfvv.metatechreborn.blockentity.GreenhouseBlockEntity;
 import ru.rfvv.metatechreborn.menu.GreenhouseMenu;
 
 public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMenu> {
+    private static final int TEXT = 0x404040;
+    private static final int MUTED = 0x606060;
+
     public GreenhouseScreen(GreenhouseMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 324;
@@ -33,56 +36,56 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
         MetaTechGui.panel(g, leftPos + 6, topPos + 20, 306, 148);
         MetaTechGui.panel(g, leftPos + 77, topPos + 188, 170, 88);
 
-        MetaTechGui.slot(g, leftPos + 20, topPos + 34, 0xFF63E6BE);
-        for (int column = 0; column < 3; column++) {
-            MetaTechGui.slot(g, leftPos + 20 + column * 24, topPos + 76, 0xFF7A5DE8);
+        MetaTechGui.slot(g, leftPos + 20, topPos + 34, 0xFF3A86B8);
+        for (int column = 0; column < GreenhouseBlockEntity.MODULE_SLOTS; column++) {
+            MetaTechGui.slot(g, leftPos + 20 + column * 24, topPos + 76, 0xFF7653A6);
         }
-        MetaTechGui.grid(g, leftPos + 132, topPos + 34, 3, 2, 0xFFFFA43A);
-        MetaTechGui.grid(g, leftPos + 81, topPos + 194, 9, 3, 0xFF73879A);
-        MetaTechGui.grid(g, leftPos + 81, topPos + 252, 9, 1, 0xFF73879A);
+        MetaTechGui.grid(g, leftPos + 132, topPos + 34, 3, 2, 0xFFD89B2B);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 194, 9, 3, 0xFF777777);
+        MetaTechGui.grid(g, leftPos + 81, topPos + 252, 9, 1, 0xFF777777);
 
-        g.fill(leftPos + 112, topPos + 92, leftPos + 244, topPos + 102, 0xFF03090D);
+        g.fill(leftPos + 112, topPos + 92, leftPos + 244, topPos + 102, 0xFF555555);
         int progress = menu.getProgressPixels(130);
-        g.fill(leftPos + 113, topPos + 93, leftPos + 113 + progress, topPos + 101, 0xFF63E6BE);
+        g.fill(leftPos + 113, topPos + 93, leftPos + 113 + progress, topPos + 101, 0xFF3A9D72);
 
-        drawVerticalBar(g, 286, 34, 10, 80, menu.getManaPixels(78), 0xFF49C6FF);
-        drawVerticalBar(g, 303, 34, 10, 80, menu.getFluidPixels(78), 0xFF3A8DFF);
+        drawVerticalBar(g, 286, 34, 10, 80, menu.getManaPixels(78), 0xFF3A86B8);
+        drawVerticalBar(g, 303, 34, 10, 80, menu.getFluidPixels(78), 0xFF2674C9);
     }
 
     private void drawVerticalBar(GuiGraphics g, int x, int y, int width, int height,
                                  int filled, int color) {
-        g.fill(leftPos + x, topPos + y, leftPos + x + width, topPos + y + height, 0xFF03090D);
+        g.fill(leftPos + x, topPos + y, leftPos + x + width, topPos + y + height, 0xFF555555);
         g.fill(leftPos + x + 1, topPos + y + height - 1 - filled,
                 leftPos + x + width - 1, topPos + y + height - 1, color);
     }
 
     @Override
     protected void renderLabels(@NotNull GuiGraphics g, int mouseX, int mouseY) {
-        g.drawString(font, title, 10, 8, 0xE8FFF8, false);
+        g.drawString(font, title, 10, 8, TEXT, false);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.flower"),
-                12, 22, 0xB7DAD4, false);
+                12, 22, TEXT, false);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.flower_stack"),
-                12, 56, 0x67D9FF, false);
+                12, 56, 0x255C88, false);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.modules"),
-                12, 66, 0xB7DAD4, false);
+                12, 66, TEXT, false);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fuel"),
-                126, 22, 0xB7DAD4, false);
-        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xB7DAD4, false);
+                126, 22, TEXT, false);
+        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED, false);
 
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.mana_short",
                         menu.getMana(), menu.getManaCapacity()),
-                112, 54, 0x67D9FF, false);
+                112, 54, 0x255C88, false);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.fluid_short",
                         menu.getFluidAmount(), menu.getFluidCapacity()),
-                112, 66, 0x79AFFF, false);
-        g.drawString(font, modeComponent(), 112, 108, 0xFFD56A, false);
+                112, 66, 0x245A9A, false);
+        g.drawString(font, modeComponent(), 112, 108, 0x8A6200, false);
         MetaTechGui.drawWrapped(g, font, Component.translatable(statusTranslationKey(menu.getStatus())),
                 112, 120, 164, statusColor(menu.getStatus()), 2);
         g.drawString(font, Component.translatable("gui.metatech_reborn.greenhouse.levels_short",
                         menu.getSpeedLevel(), menu.getEfficiencyLevel(), menu.getEconomyLevel()),
-                12, 150, 0xD9F4ED, false);
-        g.drawString(font, Component.literal("M"), 287, 22, 0x67D9FF, false);
-        g.drawString(font, Component.literal("F"), 304, 22, 0x79AFFF, false);
+                12, 150, TEXT, false);
+        g.drawString(font, Component.literal("M"), 287, 22, 0x255C88, false);
+        g.drawString(font, Component.literal("F"), 304, 22, 0x245A9A, false);
     }
 
     private void renderMachineTooltip(GuiGraphics g, int mouseX, int mouseY) {
@@ -98,7 +101,8 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
             g.renderTooltip(font, Component.translatable(
                     "gui.metatech_reborn.greenhouse.tooltip.fluid",
                     menu.getFluidAmount(), menu.getFluidCapacity()), mouseX, mouseY);
-        } else if (isInside(mouseX, mouseY, 20, 76, 66, 18)) {
+        } else if (isInside(mouseX, mouseY, 20, 76,
+                GreenhouseBlockEntity.MODULE_SLOTS * 24 - 6, 18)) {
             g.renderTooltip(font, Component.translatable(
                     "gui.metatech_reborn.greenhouse.tooltip.modules",
                     menu.getSpeedLevel(), menu.getEfficiencyLevel(), menu.getEconomyLevel()),
@@ -141,14 +145,14 @@ public final class GreenhouseScreen extends AbstractContainerScreen<GreenhouseMe
 
     private static int statusColor(int status) {
         return switch (status) {
-            case GreenhouseBlockEntity.STATUS_RUNNING -> 0xFF63E6BE;
-            case GreenhouseBlockEntity.STATUS_MANA_FULL -> 0xFFFFD56A;
+            case GreenhouseBlockEntity.STATUS_RUNNING -> 0x176B45;
+            case GreenhouseBlockEntity.STATUS_MANA_FULL -> 0x8A6200;
             case GreenhouseBlockEntity.STATUS_NO_FLOWER,
                  GreenhouseBlockEntity.STATUS_UNSUPPORTED_FLOWER,
                  GreenhouseBlockEntity.STATUS_NO_FUEL,
                  GreenhouseBlockEntity.STATUS_NO_FLUID,
-                 GreenhouseBlockEntity.STATUS_WRONG_TIME -> 0xFFFF8A8A;
-            default -> 0xFFB7DAD4;
+                 GreenhouseBlockEntity.STATUS_WRONG_TIME -> 0xA02020;
+            default -> MUTED;
         };
     }
 }
