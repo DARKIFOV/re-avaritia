@@ -11,21 +11,17 @@ import ru.rfvv.metatechreborn.config.CommonConfig;
 import ru.rfvv.metatechreborn.recipe.MachineRecipeMatch;
 
 import java.util.Optional;
+import java.util.function.IntUnaryOperator;
 
-/**
- * This class is loaded only after Forge confirms that mod id "avaritia" exists.
- * Keeping all Re-Avaritia references here prevents optional-dependency classloading crashes.
- */
+/** Optional Re-Avaritia recipe integration. */
 public final class AvaritiaIntegration {
     private static final int MAX_TIER = 4;
 
     public static Optional<MachineRecipeMatch> findMatch(Level level, IItemHandler inventory) {
         for (ITierCraftingRecipe recipe : level.getRecipeManager()
                 .getAllRecipesFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get())) {
-            Optional<TierGridView> view = createTierView(recipe, inventory);
-            if (view.isPresent() && recipe.matches(view.get())) {
-                return Optional.of(createMatch(recipe, view.get()));
-            }
+            Optional<MachineRecipeMatch> match = matchRecipe(recipe, inventory);
+            if (match.isPresent()) return match;
         }
         return Optional.empty();
     }
@@ -35,15 +31,32 @@ public final class AvaritiaIntegration {
         return level.getRecipeManager().byKey(id)
                 .filter(ITierCraftingRecipe.class::isInstance)
                 .map(ITierCraftingRecipe.class::cast)
-                .flatMap(recipe -> createTierView(recipe, inventory)
-                        .filter(recipe::matches)
-                        .map(view -> createMatch(recipe, view)));
+                .flatMap(recipe -> matchRecipe(recipe, inventory));
     }
 
-    private static Optional<TierGridView> createTierView(ITierCraftingRecipe recipe,
-                                                          IItemHandler inventory) {
+    private static Optional<MachineRecipeMatch> matchRecipe(ITierCraftingRecipe recipe,
+                                                             IItemHandler inventory) {
+        /*
+         * Preserve Re-Avaritia's native behaviour first. This is essential for tier-4
+         * 9x9 recipes: they must see the real 81-slot handler, exactly as they did
+         * before support for smaller tables was added.
+         */
+        if (recipe.matches(inventory)) {
+            return Optional.of(createMatch(recipe, inventory, inventory.getSlots(), slot -> slot));
+        }
+
+        Optional<TierGridView> view = createSmallerTierView(recipe, inventory);
+        if (view.isPresent() && recipe.matches(view.get())) {
+            TierGridView grid = view.get();
+            return Optional.of(createMatch(recipe, grid, grid.sourceSlots(), grid::sourceSlot));
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<TierGridView> createSmallerTierView(ITierCraftingRecipe recipe,
+                                                                 IItemHandler inventory) {
         int tier = recipe.getTier();
-        if (tier < 1 || tier > MAX_TIER) return Optional.empty();
+        if (tier < 1 || tier >= MAX_TIER) return Optional.empty();
 
         int gridSize = tier * 2 + 1;
         int sourceSlots = inventory.getSlots();
@@ -72,18 +85,17 @@ public final class AvaritiaIntegration {
     }
 
     private static MachineRecipeMatch createMatch(ITierCraftingRecipe recipe,
-                                                    TierGridView inventory) {
-        ItemStack result = recipe.assemble(inventory).copy();
-        NonNullList<ItemStack> tierRemaining = recipe.getRemainingItems(inventory);
-        NonNullList<ItemStack> remaining = NonNullList.withSize(
-                inventory.sourceSlots(), ItemStack.EMPTY);
+                                                   IItemHandler recipeInventory,
+                                                   int sourceSlots,
+                                                   IntUnaryOperator sourceSlot) {
+        ItemStack result = recipe.assemble(recipeInventory).copy();
+        NonNullList<ItemStack> recipeRemaining = recipe.getRemainingItems(recipeInventory);
+        NonNullList<ItemStack> remaining = NonNullList.withSize(sourceSlots, ItemStack.EMPTY);
 
-        int limit = Math.min(tierRemaining.size(), inventory.getSlots());
+        int limit = Math.min(recipeRemaining.size(), recipeInventory.getSlots());
         for (int slot = 0; slot < limit; slot++) {
-            ItemStack stack = tierRemaining.get(slot);
-            if (!stack.isEmpty()) {
-                remaining.set(inventory.sourceSlot(slot), stack.copy());
-            }
+            ItemStack stack = recipeRemaining.get(slot);
+            if (!stack.isEmpty()) remaining.set(sourceSlot.applyAsInt(slot), stack.copy());
         }
 
         return new MachineRecipeMatch(
@@ -96,10 +108,7 @@ public final class AvaritiaIntegration {
         );
     }
 
-    /**
-     * Presents the centered 3x3, 5x5, 7x7 or 9x9 section of MetaTech's 9x9 grid
-     * as the exact inventory size expected by Re-Avaritia's tiered recipes.
-     */
+    /** Centered 3x3, 5x5 or 7x7 view over MetaTech's 9x9 grid. */
     private static final class TierGridView implements IItemHandler {
         private final IItemHandler source;
         private final int sourceWidth;
@@ -126,37 +135,19 @@ public final class AvaritiaIntegration {
             return offset + x + (offset + y) * sourceWidth;
         }
 
-        @Override
-        public int getSlots() {
-            return gridSize * gridSize;
-        }
-
-        @Override
-        public ItemStack getStackInSlot(int slot) {
-            return source.getStackInSlot(sourceSlot(slot));
-        }
-
-        @Override
-        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+        @Override public int getSlots() { return gridSize * gridSize; }
+        @Override public ItemStack getStackInSlot(int slot) { return source.getStackInSlot(sourceSlot(slot)); }
+        @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
             return source.insertItem(sourceSlot(slot), stack, simulate);
         }
-
-        @Override
-        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+        @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
             return source.extractItem(sourceSlot(slot), amount, simulate);
         }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return source.getSlotLimit(sourceSlot(slot));
-        }
-
-        @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
+        @Override public int getSlotLimit(int slot) { return source.getSlotLimit(sourceSlot(slot)); }
+        @Override public boolean isItemValid(int slot, ItemStack stack) {
             return source.isItemValid(sourceSlot(slot), stack);
         }
     }
 
-    private AvaritiaIntegration() {
-    }
+    private AvaritiaIntegration() {}
 }
