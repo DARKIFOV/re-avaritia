@@ -33,16 +33,17 @@ public final class ManaDrillMenu extends AbstractContainerMenu {
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.LOOTING_SLOT, 44, 64));
         addSlot(new SlotItemHandler(blockEntity.getItems(), ManaDrillBlockEntity.GENERATION_SLOT, 68, 64));
 
-        for (int row = 0; row < 3; row++) {
+        for (int row = 0; row < 9; row++) {
             for (int column = 0; column < 9; column++) {
                 int slot = ManaDrillBlockEntity.FIRST_OUTPUT_SLOT + column + row * 9;
-                addSlot(new SlotItemHandler(blockEntity.getItems(), slot, 132 + column * 18, 30 + row * 18) {
+                addSlot(new SlotItemHandler(blockEntity.getItems(), slot,
+                        132 + column * 18, 30 + row * 18) {
                     @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
                 });
             }
         }
 
-        int playerY = 182;
+        int playerY = 240;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9,
