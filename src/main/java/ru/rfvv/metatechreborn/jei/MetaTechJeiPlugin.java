@@ -1,8 +1,13 @@
 package ru.rfvv.metatechreborn.jei;
 
+import committee.nova.mods.avaritia.common.crafting.recipe.ITierCraftingRecipe;
+import committee.nova.mods.avaritia.init.compat.jei.category.tables.EndCraftingTableCategory;
 import committee.nova.mods.avaritia.init.compat.jei.category.tables.ExtremeCraftingTableCategory;
+import committee.nova.mods.avaritia.init.compat.jei.category.tables.NetherCraftingTableCategory;
+import committee.nova.mods.avaritia.init.compat.jei.category.tables.SculkCraftingTableCategory;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -54,6 +59,21 @@ public final class MetaTechJeiPlugin implements IModPlugin {
         registration.addRecipeCatalyst(
                 ModItems.MANA_DRILL.get(),
                 ManaDrillRecipeCategory.TYPE);
+
+        if (!ModList.get().isLoaded("avaritia")) return;
+        try {
+            registration.addRecipeCatalyst(ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
+                    SculkCraftingTableCategory.RECIPE_TYPE);
+            registration.addRecipeCatalyst(ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
+                    NetherCraftingTableCategory.RECIPE_TYPE);
+            registration.addRecipeCatalyst(ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
+                    EndCraftingTableCategory.RECIPE_TYPE);
+            registration.addRecipeCatalyst(ModItems.MOLECULAR_ASSEMBLER_9X9.get(),
+                    ExtremeCraftingTableCategory.RECIPE_TYPE);
+        } catch (LinkageError | RuntimeException error) {
+            MetaTechReborn.LOGGER.error(
+                    "Unable to register the molecular assembler as a catalyst for Re-Avaritia tables", error);
+        }
     }
 
     @Override
@@ -68,15 +88,24 @@ public final class MetaTechJeiPlugin implements IModPlugin {
 
         if (!ModList.get().isLoaded("avaritia")) return;
         try {
-            registration.addRecipeTransferHandler(
-                    new ExtremePatternEncoderTransferHandler<>(
-                            ModMenus.EXTREME_PATTERN_ENCODER.get(),
-                            ExtremeCraftingTableCategory.RECIPE_TYPE,
-                            registration.getTransferHelper(),
-                            ExtremePatternEncoderRecipeGrids::fromAvaritia),
-                    ExtremeCraftingTableCategory.RECIPE_TYPE);
+            registerAvaritiaTransfer(registration, SculkCraftingTableCategory.RECIPE_TYPE);
+            registerAvaritiaTransfer(registration, NetherCraftingTableCategory.RECIPE_TYPE);
+            registerAvaritiaTransfer(registration, EndCraftingTableCategory.RECIPE_TYPE);
+            registerAvaritiaTransfer(registration, ExtremeCraftingTableCategory.RECIPE_TYPE);
         } catch (LinkageError | RuntimeException error) {
-            MetaTechReborn.LOGGER.error("Unable to register Re-Avaritia ghost transfer for the 9x9 encoder", error);
+            MetaTechReborn.LOGGER.error(
+                    "Unable to register Re-Avaritia ghost transfer for the 3x3/5x5/7x7/9x9 encoder", error);
         }
+    }
+
+    private static void registerAvaritiaTransfer(IRecipeTransferRegistration registration,
+                                                  RecipeType<ITierCraftingRecipe> recipeType) {
+        registration.addRecipeTransferHandler(
+                new ExtremePatternEncoderTransferHandler<>(
+                        ModMenus.EXTREME_PATTERN_ENCODER.get(),
+                        recipeType,
+                        registration.getTransferHelper(),
+                        ExtremePatternEncoderRecipeGrids::fromAvaritia),
+                recipeType);
     }
 }
