@@ -1,49 +1,32 @@
 # Approved texture port
 
-Approved sets ported into the test JAR `metatech_reborn-0.6.70-approved-textures.jar`.
+## Alignment correction
 
-## Neutronium Combiner
+The first 0.6.70 test port used crop bounds that were too wide for several item icons. Parts of neighbouring reference tiles entered the crops, which made some textures look clipped and shifted toward the lower-right corner.
 
-Active resources:
+The corrected 0.6.71 test JAR uses:
 
-- `textures/block/neutronium_combiner_front.png`
-- `textures/block/neutronium_combiner_side.png`
-- `textures/block/neutronium_combiner_top.png`
-- `textures/block/neutronium_combiner.png` (16x16 fallback)
-- `textures/gui/neutronium_combiner.png`
-- `textures/item/neutron_combiner_speed_upgrade.png`
-- `textures/item/neutron_combiner_efficiency_upgrade.png`
-- `textures/item/neutron_combiner_output_upgrade.png`
+- exact frame bounds for every approved texture;
+- edge-background removal only where it is safe;
+- proportional centered fitting for item icons;
+- direct full-frame fitting for the pattern encoder block and blank/encoded pattern icons;
+- equal margins around all inventory icons;
+- 128x128 active block/item textures and 16x16 fallback textures.
 
-## Greenhouse
+Corrected sets:
 
-Active block resources:
+- Neutronium Combiner block faces and three upgrades;
+- Greenhouse block faces and all modules, including Infinite Water;
+- Extreme Pattern Encoder block faces, blank pattern and encoded pattern.
 
-- `textures/block/greenhouse_front.png`
-- `textures/block/greenhouse_side.png`
-- `textures/block/greenhouse_top.png`
-- `textures/block/greenhouse_bottom.png`
-- `textures/block/greenhouse_glass.png`
-- `textures/block/greenhouse_mana_port.png`
+Validation:
 
-Active module resources include speed, efficiency, economy, infinite day, infinite night, infinite water and infinite lava. Tier II/III speed, efficiency and economy textures are derived from the approved base icons with progressively stronger highlights.
+- 24 primary resources re-cropped and centered;
+- six greenhouse tier variants regenerated from the corrected base icons;
+- two fallback textures regenerated;
+- all Java classes left unchanged;
+- ZIP, PNG and JSON validation passed.
 
-## Extreme Pattern Encoder
+Corrected test JAR SHA-256: `6248fe7c7a48fc2ef741f326fbdaba95ef6b963fbe4724cea2eea163cfcf9dc6`.
 
-Active resources:
-
-- `textures/block/extreme_pattern_encoder_front.png`
-- `textures/block/extreme_pattern_encoder_side.png`
-- `textures/block/extreme_pattern_encoder_top.png`
-- `textures/block/extreme_pattern_encoder.png` (16x16 fallback)
-- `textures/item/blank_extreme_pattern.png`
-- `textures/item/encoded_extreme_pattern.png`
-
-The approved GUI concept is stored as `textures/gui/extreme_pattern_encoder_reference.png`. The live encoder GUI remains code-drawn so the existing 9x9 slots and menu coordinates stay aligned.
-
-## Validation
-
-- 34 resources ported or derived.
-- 116 Java class files unchanged.
-- ZIP integrity and all PNG/JSON resources validated.
-- Test JAR SHA-256: `153ce313333a4cbeb7ff5d5e9890854dc5d7aef4b59c6ff69124e99ebe73184d`.
+The previous 0.6.70 JAR is superseded and should not be used.
