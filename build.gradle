@@ -61,7 +61,9 @@ tasks.register('extractBundledAssets', Copy) {
 }
 
 tasks.register('applySourceHotfixes') {
-    inputs.files file('tools/apply_068_hotfixes.py'), file('tools/apply_068_greenhouse_capacity.py')
+    inputs.files file('tools/apply_068_hotfixes.py'),
+            file('tools/apply_068_greenhouse_capacity.py'),
+            file('tools/apply_068_full_sync.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -70,16 +72,22 @@ tasks.register('applySourceHotfixes') {
         exec {
             commandLine 'python3', 'tools/apply_068_greenhouse_capacity.py'
         }
+        exec {
+            commandLine 'python3', 'tools/apply_068_full_sync.py'
+        }
     }
 }
 
 tasks.register('installRefreshedTextures') {
     dependsOn tasks.named('extractBundledAssets')
-    inputs.file file('tools/install_068_textures.py')
+    inputs.files file('tools/install_068_textures.py'), file('tools/install_068_full_sync_assets.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
             commandLine 'python3', 'tools/install_068_textures.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_068_full_sync_assets.py'
         }
     }
 }
