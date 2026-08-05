@@ -1,7 +1,1 @@
-.gradle/
-build/
-out/
-run/
-run-data/
-.idea/
-*.iml
+Nothing should be ignored in this case, as the changes only include source/resource files (textures) without any build artifacts, dependencies, or temporary files that need to be ignored.
