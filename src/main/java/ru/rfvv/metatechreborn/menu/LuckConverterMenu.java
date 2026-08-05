@@ -34,28 +34,24 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         this.data = data;
         this.advanced = blockEntity.isAdvanced();
 
-        int columns = advanced ? 12 : 10;
+        int inputColumns = advanced ? 12 : 10;
         int inputRows = advanced ? 6 : 3;
-        int outputRows = advanced ? 5 : 3;
         int inputY = 30;
-        int outputY = advanced ? 150 : 96;
         for (int row = 0; row < inputRows; row++) {
-            for (int column = 0; column < columns; column++) {
-                int handlerSlot = column + row * columns;
+            for (int column = 0; column < inputColumns; column++) {
+                int handlerSlot = column + row * inputColumns;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot,
                         10 + column * 18, inputY + row * 18));
             }
         }
-        for (int row = 0; row < outputRows; row++) {
-            for (int column = 0; column < columns; column++) {
-                int handlerSlot = LuckConverterBlockEntity.FIRST_OUTPUT
-                        + column + row * columns;
+
+        int outputY = advanced ? 150 : 96;
+        for (int row = 0; row < 9; row++) {
+            for (int column = 0; column < 9; column++) {
+                int handlerSlot = LuckConverterBlockEntity.FIRST_OUTPUT + column + row * 9;
                 addSlot(new SlotItemHandler(blockEntity.getItems(), handlerSlot,
                         10 + column * 18, outputY + row * 18) {
-                    @Override
-                    public boolean mayPlace(@NotNull ItemStack stack) {
-                        return false;
-                    }
+                    @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
                 });
             }
         }
@@ -76,7 +72,7 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         this.machineMenuSlots = slots.size();
 
         int playerX = advanced ? 101 : 83;
-        int playerY = advanced ? 322 : 222;
+        int playerY = advanced ? 342 : 282;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9,
@@ -106,9 +102,7 @@ public final class LuckConverterMenu extends AbstractContainerMenu {
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
         if (index < machineMenuSlots) {
-            if (!moveItemStackTo(original, machineMenuSlots, slots.size(), true)) {
-                return ItemStack.EMPTY;
-            }
+            if (!moveItemStackTo(original, machineMenuSlots, slots.size(), true)) return ItemStack.EMPTY;
         } else if (!moveItemStackTo(original, 0, machineMenuSlots, false)) {
             return ItemStack.EMPTY;
         }
