@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-/** Functional module installed into one of the three greenhouse module slots. */
+/** Functional module installed into one of the four greenhouse module slots. */
 public final class GreenhouseModuleItem extends Item {
     public enum Type {
         ECONOMY("economy", 3),
@@ -19,6 +19,7 @@ public final class GreenhouseModuleItem extends Item {
         SPEED("speed", 3),
         INFINITE_DAY("infinite_day", 1),
         INFINITE_NIGHT("infinite_night", 1),
+        INFINITE_WATER("infinite_water", 1),
         INFINITE_LAVA("infinite_lava", 1);
 
         private final String translationKey;
