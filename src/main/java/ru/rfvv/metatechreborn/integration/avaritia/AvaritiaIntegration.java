@@ -53,7 +53,22 @@ public final class AvaritiaIntegration {
         }
 
         int offset = (sourceWidth - gridSize) / 2;
+        if (hasItemsOutsideActiveGrid(inventory, sourceWidth, gridSize, offset)) {
+            return Optional.empty();
+        }
         return Optional.of(new TierGridView(inventory, sourceWidth, gridSize, offset));
+    }
+
+    private static boolean hasItemsOutsideActiveGrid(IItemHandler inventory, int sourceWidth,
+                                                      int gridSize, int offset) {
+        int max = offset + gridSize;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            int x = slot % sourceWidth;
+            int y = slot / sourceWidth;
+            boolean active = x >= offset && x < max && y >= offset && y < max;
+            if (!active && !inventory.getStackInSlot(slot).isEmpty()) return true;
+        }
+        return false;
     }
 
     private static MachineRecipeMatch createMatch(ITierCraftingRecipe recipe,
