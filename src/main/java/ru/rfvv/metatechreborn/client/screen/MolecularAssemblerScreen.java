@@ -116,8 +116,12 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                         : "gui.metatech_reborn.recipe_unlocked"),
                 186, 51, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
 
-        MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(menu.getStatus())),
-                186, 137, 98, statusColor(menu.getStatus()), 3);
+        int status = menu.getStatus();
+        if (status != MolecularAssemblerBlockEntity.STATUS_IDLE
+                && status != MolecularAssemblerBlockEntity.STATUS_AE2_READY) {
+            MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(status)),
+                    186, 137, 98, statusColor(status), 3);
+        }
         g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.speed_cards",
                         menu.getAe2SpeedCards()),
                 186, 166, 0x6ED7FF, false);
