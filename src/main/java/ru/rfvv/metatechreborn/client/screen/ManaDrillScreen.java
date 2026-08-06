@@ -46,9 +46,6 @@ public final class ManaDrillScreen extends AbstractContainerScreen<ManaDrillMenu
 
         drawHorizontalBar(g, 12, 108, 98, 12, menu.getManaPixels(94), MANA);
         drawHorizontalBar(g, 12, 140, 98, 12, menu.getProgressPixels(94), PROGRESS);
-
-        int structureColor = menu.isStructureFormed() ? 0xFF2E9D68 : 0xFFC24444;
-        g.fill(leftPos + 12, topPos + 174, leftPos + 110, topPos + 178, structureColor);
     }
 
     private void drawHorizontalBar(GuiGraphics g, int x, int y, int width, int height,
