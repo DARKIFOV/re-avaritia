@@ -1,31 +1,32 @@
 # Approved texture port
 
-## Native 12-pixel left shift
+## Luck Converter port (0.6.75)
 
-The approved texture sets are stored as native 128x128 game PNGs. The previous correction still left visible empty space on the left and caused the artwork to appear clipped on the right.
+The approved Standard and Advanced Luck Converter reference sheets were ported into a test JAR.
 
-The corrected 0.6.73 test JAR applies a native horizontal shift of 12 pixels to every approved 128x128 texture:
+### Included
 
-- the left strip is moved to the right side instead of being discarded;
-- no pixels are removed;
-- no image is enlarged or resampled;
-- all 128x128 dimensions remain unchanged;
-- the two 16x16 fallback textures receive an equivalent two-pixel shift.
+- Standard Luck Converter: front, side, top, back and bottom textures.
+- Advanced Luck Converter: front, side, top, back and bottom textures.
+- 16x16 fallback textures generated from the new front faces.
+- Standard and Advanced GUI reference PNGs packaged under `assets/metatech_reborn/textures/gui/`.
+- Block models updated so south and down faces use the dedicated back and bottom textures.
 
-Corrected sets:
+### Explicitly unchanged
 
-- Neutronium Combiner block faces and three upgrades;
-- Greenhouse block faces and every module, including Infinite Water;
-- Extreme Pattern Encoder block faces, blank pattern and encoded pattern.
+- `luck_module_*`
+- `luck_speed_upgrade_*`
+- `energy_food_*`
 
-Validation:
+Fourteen existing module/upgrade/energy texture files were verified byte-for-byte unchanged.
 
-- 30 primary 128x128 resources shifted left by 12 pixels;
-- two 16x16 fallback resources shifted left by two pixels;
-- 103 PNG files and 199 JSON files validated;
-- all Java classes and gameplay logic left unchanged;
-- ZIP validation passed.
+### Runtime note
 
-Corrected test JAR SHA-256: `3f697c879a2f54187df9a4b150c344397d0b6164732dfabc42ab60c2da001d6f`.
+`LuckConverterScreen` is currently drawn in Java through `MetaTechGui`, so the approved GUI PNGs are packaged as reference resources but are not yet used as the live screen background. Wiring the approved GUI style to the real container slot layout remains a separate implementation step.
 
-The 0.6.70, 0.6.71 and intermediate 0.6.72 texture test JARs are superseded and should not be used.
+### Validation
+
+- ZIP integrity passed.
+- 110 PNG files validated.
+- 200 JSON files parsed successfully.
+- Test JAR SHA-256: `70ff9db6a04ee2db3a700376e986b833637162d8440da9f979183f1691d4ac86`.
