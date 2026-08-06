@@ -1,7 +1,6 @@
 {
   "variants": {
-    "": {
-      "model": "metatech_reborn:block/mana_drill_casing"
-    }
+    "formed=false": { "model": "metatech_reborn:block/mana_drill_casing" },
+    "formed=true": { "model": "metatech_reborn:block/empty" }
   }
 }
