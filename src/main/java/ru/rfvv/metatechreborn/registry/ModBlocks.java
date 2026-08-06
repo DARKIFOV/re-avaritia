@@ -13,6 +13,7 @@ import ru.rfvv.metatechreborn.block.GreenhouseBlock;
 import ru.rfvv.metatechreborn.block.LuckConverterBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.block.ManaDrillNozzleBlock;
+import ru.rfvv.metatechreborn.block.ManaDrillPartBlock;
 import ru.rfvv.metatechreborn.block.MolecularAssemblerBlock;
 import ru.rfvv.metatechreborn.block.NeutroniumCombinerBlock;
 
@@ -37,10 +38,10 @@ public final class ModBlocks {
             () -> new ManaDrillBlock(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
                     .strength(7.0F, 18.0F).requiresCorrectToolForDrops()));
     public static final RegistryObject<Block> MANA_DRILL_CASING = BLOCKS.register("mana_drill_casing",
-            () -> new Block(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
+            () -> new ManaDrillPartBlock(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE)
                     .strength(6.0F, 15.0F).requiresCorrectToolForDrops()));
     public static final RegistryObject<Block> MANA_DRILL_CORE = BLOCKS.register("mana_drill_core",
-            () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEACON)
+            () -> new ManaDrillPartBlock(BlockBehaviour.Properties.copy(Blocks.BEACON)
                     .strength(6.0F, 15.0F).lightLevel(state -> 10).requiresCorrectToolForDrops()));
     public static final RegistryObject<Block> MANA_DRILL_NOZZLE = BLOCKS.register("mana_drill_nozzle",
             () -> new ManaDrillNozzleBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)
