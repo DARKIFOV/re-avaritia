@@ -24,13 +24,15 @@ def horizontal_variants(model: str) -> dict:
     }
 
 
-def cube_model(prefix: str, has_back: bool = False) -> dict:
+def cube_model(prefix: str, has_bottom: bool = False,
+               front_on_back: bool = False) -> dict:
     side = f"metatech_reborn:block/{prefix}_side"
+    front = f"metatech_reborn:block/{prefix}_front"
     textures = {
-        "down": f"metatech_reborn:block/{prefix}_bottom" if has_back else side,
+        "down": f"metatech_reborn:block/{prefix}_bottom" if has_bottom else side,
         "up": f"metatech_reborn:block/{prefix}_top",
-        "north": f"metatech_reborn:block/{prefix}_front",
-        "south": f"metatech_reborn:block/{prefix}_back" if has_back else side,
+        "north": front,
+        "south": front if front_on_back else side,
         "west": side,
         "east": side,
         "particle": side,
@@ -40,13 +42,13 @@ def cube_model(prefix: str, has_back: bool = False) -> dict:
 
 def main() -> None:
     blocks = {
-        "extreme_pattern_encoder": (False, "metatech_reborn:block/extreme_pattern_encoder"),
-        "neutronium_combiner": (False, "metatech_reborn:block/neutronium_combiner"),
-        "luck_converter": (True, "metatech_reborn:block/luck_converter"),
-        "advanced_luck_converter": (True, "metatech_reborn:block/advanced_luck_converter"),
+        "extreme_pattern_encoder": "metatech_reborn:block/extreme_pattern_encoder",
+        "neutronium_combiner": "metatech_reborn:block/neutronium_combiner",
+        "luck_converter": "metatech_reborn:block/luck_converter",
+        "advanced_luck_converter": "metatech_reborn:block/advanced_luck_converter",
     }
 
-    for name, (_, model) in blocks.items():
+    for name, model in blocks.items():
         write_json(f"blockstates/{name}.json", horizontal_variants(model))
 
     write_json("models/block/extreme_pattern_encoder.json",
@@ -54,11 +56,13 @@ def main() -> None:
     write_json("models/block/neutronium_combiner.json",
                cube_model("neutronium_combiner"))
     write_json("models/block/luck_converter.json",
-               cube_model("luck_converter", has_back=True))
+               cube_model("luck_converter", has_bottom=True,
+                          front_on_back=True))
     write_json("models/block/advanced_luck_converter.json",
-               cube_model("advanced_luck_converter", has_back=True))
+               cube_model("advanced_luck_converter", has_bottom=True,
+                          front_on_back=True))
 
-    print("Installed 0.6.82 directional machine blockstates and approved texture models")
+    print("Installed 0.6.83 directional models; converter front texture is used on front and back")
 
 
 if __name__ == "__main__":
