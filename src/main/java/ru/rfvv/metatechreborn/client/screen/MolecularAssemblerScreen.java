@@ -93,12 +93,13 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
 
         int progress = menu.getProgressPixels(92);
         g.fill(leftPos + 188, topPos + 103, leftPos + 282, topPos + 113, 0xFF03090D);
-        g.fill(leftPos + 189, topPos + 104, leftPos + 189 + progress, topPos + 112, MetaTechGui.CYAN);
+        g.fill(leftPos + 189, topPos + 104,
+                leftPos + 189 + progress, topPos + 112, MetaTechGui.CYAN);
 
-        int energyPixels = menu.getEnergyPixels(56);
-        g.fill(leftPos + 266, topPos + 62, leftPos + 274, topPos + 120, 0xFF03090D);
-        g.fill(leftPos + 267, topPos + 119 - energyPixels,
-                leftPos + 273, topPos + 119, MetaTechGui.GOLD);
+        int energy = menu.getEnergyPixels(92);
+        g.fill(leftPos + 188, topPos + 119, leftPos + 282, topPos + 129, 0xFF03090D);
+        g.fill(leftPos + 189, topPos + 120,
+                leftPos + 189 + energy, topPos + 128, MetaTechGui.GOLD);
     }
 
     @Override
@@ -116,10 +117,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
                 186, 51, menu.isRecipeLocked() ? 0x78F0A2 : 0xFF8A8A, false);
 
         MetaTechGui.drawWrapped(g, font, Component.translatable(statusKey(menu.getStatus())),
-                186, 122, 98, statusColor(menu.getStatus()), 3);
-        g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.energy",
-                        menu.getEnergyStored(), menu.getEnergyCapacity()),
-                186, 154, 0xF4D27A, false);
+                186, 137, 98, statusColor(menu.getStatus()), 3);
         g.drawString(font, Component.translatable("gui.metatech_reborn.assembler.speed_cards",
                         menu.getAe2SpeedCards()),
                 186, 166, 0x6ED7FF, false);
@@ -143,7 +141,7 @@ public final class MolecularAssemblerScreen extends AbstractContainerScreen<Mole
             g.renderTooltip(font, Component.translatable(
                     "gui.metatech_reborn.tooltip.progress_ticks",
                     menu.getProgress(), menu.getMaxProgress()), mouseX, mouseY);
-        } else if (isInside(mouseX, mouseY, 266, 62, 8, 58)) {
+        } else if (isInside(mouseX, mouseY, 188, 119, 94, 10)) {
             g.renderTooltip(font, Component.translatable(
                     "gui.metatech_reborn.tooltip.energy",
                     menu.getEnergyStored(), menu.getEnergyCapacity()), mouseX, mouseY);
