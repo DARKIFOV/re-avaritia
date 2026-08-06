@@ -80,7 +80,9 @@ tasks.register('applySourceHotfixes') {
 
 tasks.register('installRefreshedTextures') {
     dependsOn tasks.named('extractBundledAssets')
-    inputs.files file('tools/install_068_textures.py'), file('tools/install_068_full_sync_assets.py')
+    inputs.files file('tools/install_068_textures.py'),
+            file('tools/install_068_full_sync_assets.py'),
+            file('tools/install_gui_text_cleanup.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -88,6 +90,9 @@ tasks.register('installRefreshedTextures') {
         }
         exec {
             commandLine 'python3', 'tools/install_068_full_sync_assets.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_gui_text_cleanup.py'
         }
     }
 }
