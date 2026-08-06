@@ -21,20 +21,27 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
+import ru.rfvv.metatechreborn.multiblock.ManaDrillStructure;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 
 public final class ManaDrillBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+    public static final BooleanProperty FORMED = BooleanProperty.create("formed");
+    public static final BooleanProperty REVERSED = BooleanProperty.create("reversed");
 
     public ManaDrillBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(stateDefinition.any()
+                .setValue(FACING, Direction.NORTH)
+                .setValue(FORMED, false)
+                .setValue(REVERSED, false));
     }
 
     @Override public @NotNull RenderShape getRenderShape(@NotNull BlockState state) {
@@ -43,7 +50,10 @@ public final class ManaDrillBlock extends BaseEntityBlock {
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return defaultBlockState()
+                .setValue(FACING, context.getHorizontalDirection().getOpposite())
+                .setValue(FORMED, false)
+                .setValue(REVERSED, false);
     }
 
     @Override
@@ -58,7 +68,7 @@ public final class ManaDrillBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, FORMED, REVERSED);
     }
 
     @Override
@@ -79,13 +89,20 @@ public final class ManaDrillBlock extends BaseEntityBlock {
                             @Nullable LivingEntity placer, @NotNull ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity instanceof ManaDrillBlockEntity drill) drill.forceStructureCheck();
+        if (blockEntity instanceof ManaDrillBlockEntity drill) {
+            drill.forceStructureCheck();
+            ManaDrillStructure.syncVisualState(level, pos, state.getValue(FACING), drill.isStructureFormed());
+        }
     }
 
     @Override
     public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
                          @NotNull BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
+            if (!level.isClientSide && state.getValue(FORMED)) {
+                ManaDrillStructure.clearVisualState(
+                        level, pos, state.getValue(FACING), state.getValue(REVERSED));
+            }
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ManaDrillBlockEntity drill) {
                 drill.getDrops().forEach(stack -> Containers.dropItemStack(level,
@@ -103,6 +120,17 @@ public final class ManaDrillBlock extends BaseEntityBlock {
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(@NotNull Level level,
             @NotNull BlockState state, @NotNull BlockEntityType<T> type) {
         if (level.isClientSide) return null;
-        return createTickerHelper(type, ModBlockEntities.MANA_DRILL.get(), ManaDrillBlockEntity::serverTick);
+        return createTickerHelper(type, ModBlockEntities.MANA_DRILL.get(), ManaDrillBlock::serverTick);
+    }
+
+    private static void serverTick(Level level, BlockPos pos, BlockState state,
+                                   ManaDrillBlockEntity blockEntity) {
+        ManaDrillBlockEntity.serverTick(level, pos, state, blockEntity);
+        BlockState current = level.getBlockState(pos);
+        Direction facing = current.hasProperty(FACING)
+                ? current.getValue(FACING)
+                : Direction.NORTH;
+        ManaDrillStructure.syncVisualState(
+                level, pos, facing, blockEntity.isStructureFormed());
     }
 }
