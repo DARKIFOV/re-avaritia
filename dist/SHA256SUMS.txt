@@ -1,1 +1,1 @@
-d8d2ebe3e7f54e07e17bf7804e5008ed04b437809899462e2ef750a3308048f3  dist/metatech_reborn-0.6.77.jar
+1d6b71ebdcc0cec7a20984f3ec55203735bfe054ab1f5f1eef0a32ca36e20714  dist/metatech_reborn-0.6.77.jar
