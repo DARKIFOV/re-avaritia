@@ -1,0 +1,1 @@
+This directory stores the encoded approved 0.6.79 texture and GUI resource archive. The installer reconstructs it during Gradle resource generation.
