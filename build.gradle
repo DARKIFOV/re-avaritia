@@ -83,7 +83,8 @@ tasks.register('installRefreshedTextures') {
     inputs.files file('tools/install_068_textures.py'),
             file('tools/install_068_full_sync_assets.py'),
             file('tools/install_gui_text_cleanup.py'),
-            file('tools/install_mbtool_support.py')
+            file('tools/install_mbtool_support.py'),
+            file('tools/install_082_visual_assets.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -97,6 +98,9 @@ tasks.register('installRefreshedTextures') {
         }
         exec {
             commandLine 'python3', 'tools/install_mbtool_support.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_082_visual_assets.py'
         }
     }
 }
