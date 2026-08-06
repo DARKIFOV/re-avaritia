@@ -41,18 +41,23 @@ jobs:
           JAR=$(find build-artifact -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
           test -n "$JAR"
 
+          VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | head -n 1)
+          test -n "$VERSION"
+          TARGET="dist/metatech_reborn-${VERSION}.jar"
+
           mkdir -p dist
-          cp "$JAR" dist/metatech_reborn-0.6.77.jar
-          sha256sum dist/metatech_reborn-0.6.77.jar > dist/SHA256SUMS.txt
+          rm -f dist/metatech_reborn-*.jar
+          cp "$JAR" "$TARGET"
+          sha256sum "$TARGET" > dist/SHA256SUMS.txt
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/metatech_reborn-0.6.77.jar dist/SHA256SUMS.txt
+          git add -A dist
 
           if git diff --cached --quiet; then
-            echo "The verified 0.6.77 JAR is already published."
+            echo "The verified MetaTech Reborn ${VERSION} JAR is already published."
             exit 0
           fi
 
-          git commit -m "Publish verified MetaTech Reborn 0.6.77 JAR [skip ci]"
+          git commit -m "Publish verified MetaTech Reborn ${VERSION} JAR [skip ci]"
           git push origin HEAD:main
