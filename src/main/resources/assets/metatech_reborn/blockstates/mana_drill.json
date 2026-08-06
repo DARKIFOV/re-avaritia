@@ -1,19 +1,21 @@
 {
   "variants": {
-    "facing=north": {
-      "model": "metatech_reborn:block/mana_drill"
-    },
-    "facing=east": {
-      "model": "metatech_reborn:block/mana_drill",
-      "y": 90
-    },
-    "facing=south": {
-      "model": "metatech_reborn:block/mana_drill",
-      "y": 180
-    },
-    "facing=west": {
-      "model": "metatech_reborn:block/mana_drill",
-      "y": 270
-    }
+    "facing=north,formed=false,reversed=false": { "model": "metatech_reborn:block/mana_drill" },
+    "facing=north,formed=false,reversed=true": { "model": "metatech_reborn:block/mana_drill" },
+    "facing=east,formed=false,reversed=false": { "model": "metatech_reborn:block/mana_drill", "y": 90 },
+    "facing=east,formed=false,reversed=true": { "model": "metatech_reborn:block/mana_drill", "y": 90 },
+    "facing=south,formed=false,reversed=false": { "model": "metatech_reborn:block/mana_drill", "y": 180 },
+    "facing=south,formed=false,reversed=true": { "model": "metatech_reborn:block/mana_drill", "y": 180 },
+    "facing=west,formed=false,reversed=false": { "model": "metatech_reborn:block/mana_drill", "y": 270 },
+    "facing=west,formed=false,reversed=true": { "model": "metatech_reborn:block/mana_drill", "y": 270 },
+
+    "facing=north,formed=true,reversed=false": { "model": "metatech_reborn:block/empty" },
+    "facing=north,formed=true,reversed=true": { "model": "metatech_reborn:block/empty" },
+    "facing=east,formed=true,reversed=false": { "model": "metatech_reborn:block/empty" },
+    "facing=east,formed=true,reversed=true": { "model": "metatech_reborn:block/empty" },
+    "facing=south,formed=true,reversed=false": { "model": "metatech_reborn:block/empty" },
+    "facing=south,formed=true,reversed=true": { "model": "metatech_reborn:block/empty" },
+    "facing=west,formed=true,reversed=false": { "model": "metatech_reborn:block/empty" },
+    "facing=west,formed=true,reversed=true": { "model": "metatech_reborn:block/empty" }
   }
 }
