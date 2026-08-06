@@ -82,7 +82,9 @@ tasks.register('installRefreshedTextures') {
     dependsOn tasks.named('extractBundledAssets')
     inputs.files file('tools/install_068_textures.py'),
             file('tools/install_068_full_sync_assets.py'),
-            file('tools/install_gui_text_cleanup.py')
+            file('tools/install_gui_text_cleanup.py'),
+            file('tools/install_final_077_assets.py')
+    inputs.dir file('tools/final_077_palette')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -93,6 +95,9 @@ tasks.register('installRefreshedTextures') {
         }
         exec {
             commandLine 'python3', 'tools/install_gui_text_cleanup.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_final_077_assets.py'
         }
     }
 }
