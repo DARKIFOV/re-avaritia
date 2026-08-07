@@ -69,7 +69,8 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_094_extreme_dragon_crafting.py'),
             file('tools/apply_094b_dragon_compile_fix.py'),
             file('tools/apply_094c_dragon_energy_reload_fix.py'),
-            file('tools/apply_095_dragon_gui_ae2_jei_fix.py')
+            file('tools/apply_095_dragon_gui_ae2_jei_fix.py'),
+            file('tools/apply_095b_dragon_screen_compile_fix.py')
     outputs.upToDateWhen { false }
     doLast {
         exec { commandLine 'python3', 'tools/apply_068_hotfixes.py' }
@@ -81,6 +82,7 @@ tasks.register('applySourceHotfixes') {
         exec { commandLine 'python3', 'tools/apply_094b_dragon_compile_fix.py' }
         exec { commandLine 'python3', 'tools/apply_094c_dragon_energy_reload_fix.py' }
         exec { commandLine 'python3', 'tools/apply_095_dragon_gui_ae2_jei_fix.py' }
+        exec { commandLine 'python3', 'tools/apply_095b_dragon_screen_compile_fix.py' }
     }
 }
 
