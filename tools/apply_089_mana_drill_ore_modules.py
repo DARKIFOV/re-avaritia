@@ -41,6 +41,8 @@ def patch_mod_items() -> None:
             "mana_drill_module_mythicbotany");
     public static final RegistryObject<Item> MANA_DRILL_MYSTICAL_AGRICULTURE_MODULE = oreModule(
             "mana_drill_module_mystical_agriculture");
+    public static final RegistryObject<Item> MANA_DRILL_OMNI_MODULE = oreModule(
+            "mana_drill_module_omni");
 '''
     text = replace_once(text, marker, additions, "mana drill ore module registrations")
 
@@ -61,7 +63,7 @@ def patch_mod_items() -> None:
         return List.of(MANA_DRILL_MODULE, MANA_DRILL_AD_ASTRA_MODULE, MANA_DRILL_THERMAL_MODULE,
                 MANA_DRILL_EVOLVED_MEKANISM_MODULE, MANA_DRILL_MEKANISM_EXTRAS_MODULE,
                 MANA_DRILL_POWAH_MODULE, MANA_DRILL_MYTHICBOTANY_MODULE,
-                MANA_DRILL_MYSTICAL_AGRICULTURE_MODULE);
+                MANA_DRILL_MYSTICAL_AGRICULTURE_MODULE, MANA_DRILL_OMNI_MODULE);
     }
 
 ''' + list_marker
@@ -102,6 +104,15 @@ def patch_creative_tab() -> None:
             if (ModList.get().isLoaded("powah")) event.accept(ModItems.MANA_DRILL_POWAH_MODULE.get());
             if (ModList.get().isLoaded("mythicbotany")) event.accept(ModItems.MANA_DRILL_MYTHICBOTANY_MODULE.get());
             if (ModList.get().isLoaded("mysticalagriculture")) event.accept(ModItems.MANA_DRILL_MYSTICAL_AGRICULTURE_MODULE.get());
+            if (ModList.get().isLoaded("ad_astra")
+                    && ModList.get().isLoaded("thermal_foundation")
+                    && ModList.get().isLoaded("evolvedmekanism")
+                    && ModList.get().isLoaded("mekanism_extras")
+                    && ModList.get().isLoaded("powah")
+                    && ModList.get().isLoaded("mythicbotany")
+                    && ModList.get().isLoaded("mysticalagriculture")) {
+                event.accept(ModItems.MANA_DRILL_OMNI_MODULE.get());
+            }
             ModItems.manaDrillUpgradeItems().forEach(item -> event.accept(item.get()));
 '''
     text = replace_once(text, marker, replacement, "conditional mana drill modules in creative tab")
@@ -112,4 +123,4 @@ if __name__ == "__main__":
     patch_mod_items()
     patch_mana_drill()
     patch_creative_tab()
-    print("Applied 0.6.89 mana drill ore-module source patches")
+    print("Applied 0.6.90 mana drill ore-module and omni-module source patches")
