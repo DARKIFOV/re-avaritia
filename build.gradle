@@ -64,7 +64,8 @@ tasks.register('applySourceHotfixes') {
     inputs.files file('tools/apply_068_hotfixes.py'),
             file('tools/apply_068_greenhouse_capacity.py'),
             file('tools/apply_068_full_sync.py'),
-            file('tools/apply_089_mana_drill_ore_modules.py')
+            file('tools/apply_089_mana_drill_ore_modules.py'),
+            file('tools/apply_092_draconic_mekanism_modules.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -79,6 +80,9 @@ tasks.register('applySourceHotfixes') {
         exec {
             commandLine 'python3', 'tools/apply_089_mana_drill_ore_modules.py'
         }
+        exec {
+            commandLine 'python3', 'tools/apply_092_draconic_mekanism_modules.py'
+        }
     }
 }
 
@@ -90,7 +94,8 @@ tasks.register('installRefreshedTextures') {
             file('tools/install_mbtool_support.py'),
             file('tools/install_082_visual_assets.py'),
             file('tools/install_089_mana_drill_ore_modules.py'),
-            file('tools/install_090_mana_drill_omni_module.py')
+            file('tools/install_090_mana_drill_omni_module.py'),
+            file('tools/install_092_draconic_mekanism_modules.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -113,6 +118,9 @@ tasks.register('installRefreshedTextures') {
         }
         exec {
             commandLine 'python3', 'tools/install_090_mana_drill_omni_module.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_092_draconic_mekanism_modules.py'
         }
     }
 }
