@@ -63,7 +63,8 @@ tasks.register('extractBundledAssets', Copy) {
 tasks.register('applySourceHotfixes') {
     inputs.files file('tools/apply_068_hotfixes.py'),
             file('tools/apply_068_greenhouse_capacity.py'),
-            file('tools/apply_068_full_sync.py')
+            file('tools/apply_068_full_sync.py'),
+            file('tools/apply_089_mana_drill_ore_modules.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -75,6 +76,9 @@ tasks.register('applySourceHotfixes') {
         exec {
             commandLine 'python3', 'tools/apply_068_full_sync.py'
         }
+        exec {
+            commandLine 'python3', 'tools/apply_089_mana_drill_ore_modules.py'
+        }
     }
 }
 
@@ -84,7 +88,8 @@ tasks.register('installRefreshedTextures') {
             file('tools/install_068_full_sync_assets.py'),
             file('tools/install_gui_text_cleanup.py'),
             file('tools/install_mbtool_support.py'),
-            file('tools/install_082_visual_assets.py')
+            file('tools/install_082_visual_assets.py'),
+            file('tools/install_089_mana_drill_ore_modules.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -101,6 +106,9 @@ tasks.register('installRefreshedTextures') {
         }
         exec {
             commandLine 'python3', 'tools/install_082_visual_assets.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/install_089_mana_drill_ore_modules.py'
         }
     }
 }
