@@ -66,7 +66,8 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_068_full_sync.py'),
             file('tools/apply_089_mana_drill_ore_modules.py'),
             file('tools/apply_092_draconic_mekanism_modules.py'),
-            file('tools/apply_094_extreme_dragon_crafting.py')
+            file('tools/apply_094_extreme_dragon_crafting.py'),
+            file('tools/apply_094b_dragon_compile_fix.py')
     outputs.upToDateWhen { false }
     doLast {
         exec {
@@ -86,6 +87,9 @@ tasks.register('applySourceHotfixes') {
         }
         exec {
             commandLine 'python3', 'tools/apply_094_extreme_dragon_crafting.py'
+        }
+        exec {
+            commandLine 'python3', 'tools/apply_094b_dragon_compile_fix.py'
         }
     }
 }
