@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -46,6 +47,13 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
                 ? facing.getOpposite()
                 : facing;
 
+        // The controller is inside the formed multiblock and can receive almost no
+        // light, which made the custom 3x3 renderer look nearly black. Use the
+        // environmental light from the air immediately in front of the machine.
+        // This keeps the original white textures white without making the drill
+        // full-bright or self-illuminated at night.
+        int renderLight = exteriorLight(drill, visualFront, packedLight);
+
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.0D, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(rotationFor(visualFront)));
@@ -66,44 +74,52 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
                 sprites.nozzleTop(), sprites.nozzleSide());
 
         // Deep side housings and rear body. The gaps and different depths keep the
-        // assembled drill from looking like a single flat black wall.
+        // assembled drill from looking like a single flat wall.
         emitBox(poseStack, consumer, -1.00F, -1.00F, 0.12F,
-                -0.12F, 2.00F, 3.00F, casing, packedLight, packedOverlay);
+                -0.12F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, 1.12F, -1.00F, 0.12F,
-                2.00F, 2.00F, 3.00F, casing, packedLight, packedOverlay);
+                2.00F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, -0.12F, -1.00F, 0.12F,
-                1.12F, -0.12F, 3.00F, casing, packedLight, packedOverlay);
+                1.12F, -0.12F, 3.00F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, -0.12F, 1.12F, 0.55F,
-                1.12F, 2.00F, 3.00F, casing, packedLight, packedOverlay);
+                1.12F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, -0.12F, -0.12F, 0.72F,
-                1.12F, 1.12F, 3.00F, casing, packedLight, packedOverlay);
+                1.12F, 1.12F, 3.00F, casing, renderLight, packedOverlay);
 
         // Raised front frame.
         emitBox(poseStack, consumer, -1.00F, -1.00F, -0.08F,
-                -0.68F, 2.00F, 0.28F, casing, packedLight, packedOverlay);
+                -0.68F, 2.00F, 0.28F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, 1.68F, -1.00F, -0.08F,
-                2.00F, 2.00F, 0.28F, casing, packedLight, packedOverlay);
+                2.00F, 2.00F, 0.28F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, -0.68F, -1.00F, -0.08F,
-                1.68F, -0.68F, 0.28F, casing, packedLight, packedOverlay);
+                1.68F, -0.68F, 0.28F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, -0.68F, 1.68F, 0.18F,
-                -0.08F, 2.00F, 0.55F, casing, packedLight, packedOverlay);
+                -0.08F, 2.00F, 0.55F, casing, renderLight, packedOverlay);
         emitBox(poseStack, consumer, 1.08F, 1.68F, 0.18F,
-                1.68F, 2.00F, 0.55F, casing, packedLight, packedOverlay);
+                1.68F, 2.00F, 0.55F, casing, renderLight, packedOverlay);
 
         // Recessed controller and visible mana core.
         emitBox(poseStack, consumer, 0.04F, 0.04F, -0.28F,
-                0.96F, 0.96F, 0.48F, controller, packedLight, packedOverlay);
+                0.96F, 0.96F, 0.48F, controller, renderLight, packedOverlay);
         emitBox(poseStack, consumer, 0.16F, 1.08F, 0.18F,
-                0.84F, 1.76F, 0.72F, core, packedLight, packedOverlay);
+                0.84F, 1.76F, 0.72F, core, renderLight, packedOverlay);
 
         // The nozzle protrudes through the upper opening and gives the machine a
         // recognisable drill silhouette from the front and sides.
         emitBox(poseStack, consumer, 0.25F, 1.20F, -1.10F,
-                0.75F, 1.64F, 0.28F, nozzle, packedLight, packedOverlay);
+                0.75F, 1.64F, 0.28F, nozzle, renderLight, packedOverlay);
         emitBox(poseStack, consumer, 0.15F, 1.12F, -0.10F,
-                0.85F, 1.72F, 0.30F, casing, packedLight, packedOverlay);
+                0.85F, 1.72F, 0.30F, casing, renderLight, packedOverlay);
 
         poseStack.popPose();
+    }
+
+    private static int exteriorLight(ManaDrillBlockEntity drill, Direction visualFront, int fallback) {
+        if (drill.getLevel() == null) {
+            return fallback;
+        }
+        return LevelRenderer.getLightColor(
+                drill.getLevel(), drill.getBlockPos().relative(visualFront));
     }
 
     @Override
