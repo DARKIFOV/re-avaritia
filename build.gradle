@@ -71,7 +71,8 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_094c_dragon_energy_reload_fix.py'),
             file('tools/apply_095_dragon_gui_ae2_jei_fix.py'),
             file('tools/apply_095b_dragon_screen_compile_fix.py'),
-            file('tools/apply_106_dragon_facing.py')
+            file('tools/apply_106_dragon_facing.py'),
+            file('tools/apply_107_visual_functional_fixes.py')
     outputs.upToDateWhen { false }
     doLast {
         exec { commandLine 'python3', 'tools/apply_068_hotfixes.py' }
@@ -85,6 +86,7 @@ tasks.register('applySourceHotfixes') {
         exec { commandLine 'python3', 'tools/apply_095_dragon_gui_ae2_jei_fix.py' }
         exec { commandLine 'python3', 'tools/apply_095b_dragon_screen_compile_fix.py' }
         exec { commandLine 'python3', 'tools/apply_106_dragon_facing.py' }
+        exec { commandLine 'python3', 'tools/apply_107_visual_functional_fixes.py' }
     }
 }
 
@@ -98,7 +100,8 @@ tasks.register('installRefreshedTextures') {
             file('tools/install_089_mana_drill_ore_modules.py'),
             file('tools/install_090_mana_drill_omni_module.py'),
             file('tools/install_092_draconic_mekanism_modules.py'),
-            file('tools/install_094_extreme_dragon_assets.py')
+            file('tools/install_094_extreme_dragon_assets.py'),
+            file('tools/install_107_visual_fixes.py')
     outputs.upToDateWhen { false }
     doLast {
         exec { commandLine 'python3', 'tools/install_068_textures.py' }
@@ -110,6 +113,7 @@ tasks.register('installRefreshedTextures') {
         exec { commandLine 'python3', 'tools/install_090_mana_drill_omni_module.py' }
         exec { commandLine 'python3', 'tools/install_092_draconic_mekanism_modules.py' }
         exec { commandLine 'python3', 'tools/install_094_extreme_dragon_assets.py' }
+        exec { commandLine 'python3', 'tools/install_107_visual_fixes.py' }
     }
 }
 
