@@ -16,6 +16,7 @@ import ru.rfvv.metatechreborn.integration.ae2.MolecularAssemblerAe2Provider;
 import ru.rfvv.metatechreborn.network.ModNetwork;
 import ru.rfvv.metatechreborn.registry.ModBlockEntities;
 import ru.rfvv.metatechreborn.registry.ModBlocks;
+import ru.rfvv.metatechreborn.registry.ModCreativeTabs;
 import ru.rfvv.metatechreborn.registry.ModItems;
 import ru.rfvv.metatechreborn.registry.ModMenus;
 import ru.rfvv.metatechreborn.registry.ModPatternItems;
@@ -31,6 +32,7 @@ public final class MetaTechReborn {
         ModBlocks.register(modBus);
         ModItems.register(modBus);
         ModPatternItems.register(modBus);
+        ModCreativeTabs.register(modBus);
         ModBlockEntities.register(modBus);
         ModMenus.register(modBus);
         ModRecipes.register(modBus);
