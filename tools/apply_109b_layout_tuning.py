@@ -36,3 +36,17 @@ text = assembler.read_text(encoding="utf-8")
 text = text.replace("                66, 94, 140, tier < 0 ? 0xFFFF6868 : 0xFFFFB0A6, 2);",
                     "                66, 100, 140, tier < 0 ? 0xFFFF6868 : 0xFFFFB0A6, 2);")
 assembler.write_text(text, encoding="utf-8")
+
+# 0.6.110: the Dragon Assembler buffer accepted FE but was created with
+# maxExtract=0. The crafting tick then called extractEnergy(...) and always got
+# zero, so a completely full energy bar still reported STATUS_NO_ENERGY.
+be = ROOT / "src/main/java/ru/rfvv/metatechreborn/blockentity/ExtremeDragonAssemblerBlockEntity.java"
+text = be.read_text(encoding="utf-8")
+old = "new EnergyStorage(ENERGY_CAPACITY, 100_000_000, 0)"
+new = "new EnergyStorage(ENERGY_CAPACITY, 100_000_000, 100_000_000)"
+if new not in text:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"Dragon assembler energy constructor: expected one match, found {count}")
+    text = text.replace(old, new, 1)
+be.write_text(text, encoding="utf-8")
