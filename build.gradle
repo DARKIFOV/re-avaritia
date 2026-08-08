@@ -77,7 +77,8 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_109_dragon_gui_fixes.py'),
             file('tools/apply_109b_layout_tuning.py'),
             file('tools/apply_111a_dragon_energy_compat.py'),
-            file('tools/apply_111_final_gui_structure_fixes.py')
+            file('tools/apply_111_final_gui_structure_fixes.py'),
+            file('tools/apply_112_ae2_live_crafting_refresh.py')
     outputs.upToDateWhen { false }
     doLast {
         exec { commandLine 'python3', 'tools/apply_068_hotfixes.py' }
@@ -97,6 +98,7 @@ tasks.register('applySourceHotfixes') {
         exec { commandLine 'python3', 'tools/apply_109b_layout_tuning.py' }
         exec { commandLine 'python3', 'tools/apply_111a_dragon_energy_compat.py' }
         exec { commandLine 'python3', 'tools/apply_111_final_gui_structure_fixes.py' }
+        exec { commandLine 'python3', 'tools/apply_112_ae2_live_crafting_refresh.py' }
     }
 }
 
