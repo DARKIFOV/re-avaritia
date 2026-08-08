@@ -76,6 +76,7 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_109_luck_mana_fixes.py'),
             file('tools/apply_109_dragon_gui_fixes.py'),
             file('tools/apply_109b_layout_tuning.py'),
+            file('tools/apply_111a_dragon_energy_compat.py'),
             file('tools/apply_111_final_gui_structure_fixes.py')
     outputs.upToDateWhen { false }
     doLast {
@@ -94,6 +95,7 @@ tasks.register('applySourceHotfixes') {
         exec { commandLine 'python3', 'tools/apply_109_luck_mana_fixes.py' }
         exec { commandLine 'python3', 'tools/apply_109_dragon_gui_fixes.py' }
         exec { commandLine 'python3', 'tools/apply_109b_layout_tuning.py' }
+        exec { commandLine 'python3', 'tools/apply_111a_dragon_energy_compat.py' }
         exec { commandLine 'python3', 'tools/apply_111_final_gui_structure_fixes.py' }
     }
 }
