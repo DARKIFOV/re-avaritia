@@ -145,7 +145,6 @@ patch(
     "dragon assembler speed-card drops",
 )
 
-# Menu: append four speed-card slots after the 62 historical machine slots.
 menu_path = "src/main/java/ru/rfvv/metatechreborn/menu/ExtremeDragonAssemblerMenu.java"
 patch(
     menu_path,
@@ -154,8 +153,6 @@ patch(
     "            + ExtremeDragonAssemblerBlockEntity.SPEED_CARD_SLOTS;\n",
     "dragon assembler player start after speed cards",
 )
-
-# Final 0.6.111 menu uses coordinates centered one pixel inside the painted slots.
 patch(
     menu_path,
     "        for (int i = 0; i < ExtremeDragonAssemblerBlockEntity.PATTERN_COUNT; i++) {\n"
@@ -175,8 +172,6 @@ patch(
     "        }\n\n",
     "dragon assembler menu speed-card slots",
 )
-
-# Add import for the public 9x9 speed-card validator.
 patch(
     menu_path,
     "import ru.rfvv.metatechreborn.blockentity.ExtremeDragonAssemblerBlockEntity;\n",
@@ -184,7 +179,6 @@ patch(
     "import ru.rfvv.metatechreborn.blockentity.MolecularAssemblerBlockEntity;\n",
     "dragon assembler menu molecular import",
 )
-
 patch(
     menu_path,
     "        } else if (DragonFusionSupport.isInjector(stack)) {\n",
@@ -195,7 +189,6 @@ patch(
     "dragon assembler shift-click speed cards",
 )
 
-# Screen: extend the pattern-bank panel and draw four accelerator slots.
 screen_path = "src/main/java/ru/rfvv/metatechreborn/client/screen/ExtremeDragonAssemblerScreen.java"
 patch(
     screen_path,
@@ -219,27 +212,19 @@ patch(
     "dragon assembler accelerator label",
 )
 
-# ---------------------------------------------------------------------------
-# Mana Drill: the shaped renderer extends several blocks beyond the controller.
-# Give the block entity an explicit large render bounding box so Minecraft never
-# culls the entire renderer at oblique camera angles while visible geometry is
-# still on screen.
-# ---------------------------------------------------------------------------
+# Mana Drill: shaped renderer extends well beyond the controller cube.
 mana_path = "src/main/java/ru/rfvv/metatechreborn/blockentity/ManaDrillBlockEntity.java"
-patch(
-    mana_path,
-    "import net.minecraft.world.level.block.state.BlockState;\n",
-    "import net.minecraft.world.level.block.state.BlockState;\n"
-    "import net.minecraft.world.phys.AABB;\n",
-    "mana drill render bounds import",
-)
-patch(
-    mana_path,
-    "    @Override\n    public Component getDisplayName() {\n",
-    "    @Override\n"
-    "    public AABB getRenderBoundingBox() {\n"
-    "        return new AABB(worldPosition).inflate(4.0D);\n"
-    "    }\n\n"
-    "    @Override\n    public Component getDisplayName() {\n",
-    "mana drill enlarged render bounding box",
-)
+mana = ROOT / mana_path
+text = mana.read_text(encoding="utf-8")
+if "public AABB getRenderBoundingBox()" not in text:
+    marker = "    public ItemStackHandler getItems() { return items; }\n"
+    if marker not in text:
+        raise RuntimeError("mana drill render bounds: getItems anchor not found")
+    method = (
+        "    @Override\n"
+        "    public AABB getRenderBoundingBox() {\n"
+        "        return new AABB(worldPosition).inflate(4.0D);\n"
+        "    }\n\n"
+    )
+    text = text.replace(marker, method + marker, 1)
+mana.write_text(text, encoding="utf-8")
