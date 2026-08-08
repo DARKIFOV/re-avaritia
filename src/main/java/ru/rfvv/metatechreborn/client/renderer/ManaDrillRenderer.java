@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -19,7 +20,7 @@ import ru.rfvv.metatechreborn.MetaTechReborn;
 import ru.rfvv.metatechreborn.block.ManaDrillBlock;
 import ru.rfvv.metatechreborn.blockentity.ManaDrillBlockEntity;
 
-/** Draws the assembled 3x3x3 drill as one visual object from the controller. */
+/** Draws the assembled drill as one shaped machine instead of a flat 3x3 wall. */
 public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlockEntity> {
     private static final ResourceLocation CASING = texture("mana_drill_casing");
     private static final ResourceLocation CORE = texture("mana_drill_core");
@@ -46,6 +47,13 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
                 ? facing.getOpposite()
                 : facing;
 
+        // The controller is inside the formed multiblock and can receive almost no
+        // light, which made the custom 3x3 renderer look nearly black. Use the
+        // environmental light from the air immediately in front of the machine.
+        // This keeps the original white textures white without making the drill
+        // full-bright or self-illuminated at night.
+        int renderLight = exteriorLight(drill, visualFront, packedLight);
+
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.0D, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(rotationFor(visualFront)));
@@ -54,25 +62,64 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
         VertexConsumer consumer = buffer.getBuffer(
                 RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS));
         Sprites sprites = loadSprites();
+        FaceSprites casing = FaceSprites.all(sprites.casing());
+        FaceSprites core = FaceSprites.all(sprites.core());
+        FaceSprites controller = new FaceSprites(
+                sprites.controllerFront(), sprites.controllerSide(),
+                sprites.controllerSide(), sprites.controllerSide(),
+                sprites.controllerTop(), sprites.casing());
+        FaceSprites nozzle = new FaceSprites(
+                sprites.nozzleFront(), sprites.nozzleSide(),
+                sprites.nozzleSide(), sprites.nozzleSide(),
+                sprites.nozzleTop(), sprites.nozzleSide());
 
-        for (int y = -1; y <= 1; y++) {
-            for (int z = 0; z <= 2; z++) {
-                for (int x = -1; x <= 1; x++) {
-                    Part part = partAt(x, y, z);
-                    if (part == Part.AIR) continue;
-                    for (Direction face : Direction.values()) {
-                        if (partAt(x + face.getStepX(), y + face.getStepY(),
-                                z + face.getStepZ()) != Part.AIR) {
-                            continue;
-                        }
-                        emitFace(poseStack, consumer, x, y, z, face,
-                                spriteFor(sprites, part, face), packedLight, packedOverlay);
-                    }
-                }
-            }
-        }
+        // Deep side housings and rear body. The gaps and different depths keep the
+        // assembled drill from looking like a single flat wall.
+        emitBox(poseStack, consumer, -1.00F, -1.00F, 0.12F,
+                -0.12F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, 1.12F, -1.00F, 0.12F,
+                2.00F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, -0.12F, -1.00F, 0.12F,
+                1.12F, -0.12F, 3.00F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, -0.12F, 1.12F, 0.55F,
+                1.12F, 2.00F, 3.00F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, -0.12F, -0.12F, 0.72F,
+                1.12F, 1.12F, 3.00F, casing, renderLight, packedOverlay);
+
+        // Raised front frame.
+        emitBox(poseStack, consumer, -1.00F, -1.00F, -0.08F,
+                -0.68F, 2.00F, 0.28F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, 1.68F, -1.00F, -0.08F,
+                2.00F, 2.00F, 0.28F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, -0.68F, -1.00F, -0.08F,
+                1.68F, -0.68F, 0.28F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, -0.68F, 1.68F, 0.18F,
+                -0.08F, 2.00F, 0.55F, casing, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, 1.08F, 1.68F, 0.18F,
+                1.68F, 2.00F, 0.55F, casing, renderLight, packedOverlay);
+
+        // Recessed controller and visible mana core.
+        emitBox(poseStack, consumer, 0.04F, 0.04F, -0.28F,
+                0.96F, 0.96F, 0.48F, controller, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, 0.16F, 1.08F, 0.18F,
+                0.84F, 1.76F, 0.72F, core, renderLight, packedOverlay);
+
+        // The nozzle protrudes through the upper opening and gives the machine a
+        // recognisable drill silhouette from the front and sides.
+        emitBox(poseStack, consumer, 0.25F, 1.20F, -1.10F,
+                0.75F, 1.64F, 0.28F, nozzle, renderLight, packedOverlay);
+        emitBox(poseStack, consumer, 0.15F, 1.12F, -0.10F,
+                0.85F, 1.72F, 0.30F, casing, renderLight, packedOverlay);
 
         poseStack.popPose();
+    }
+
+    private static int exteriorLight(ManaDrillBlockEntity drill, Direction visualFront, int fallback) {
+        if (drill.getLevel() == null) {
+            return fallback;
+        }
+        return LevelRenderer.getLightColor(
+                drill.getLevel(), drill.getBlockPos().relative(visualFront));
     }
 
     @Override
@@ -85,46 +132,61 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
         return 96;
     }
 
-    private static Part partAt(int x, int y, int z) {
-        if (x < -1 || x > 1 || y < -1 || y > 1 || z < 0 || z > 2) {
-            return Part.AIR;
-        }
-        if (x == 0 && y == 1 && z == 0) return Part.AIR;
-        if (x == 0 && y == 0 && z == 0) return Part.CONTROLLER;
-        if (x == 0 && y == 0 && z == 1) return Part.CORE;
-        if (x == 0 && y == 1 && z == 1) return Part.NOZZLE;
-        return Part.CASING;
+    private static void emitBox(PoseStack poseStack, VertexConsumer consumer,
+                                float x0, float y0, float z0,
+                                float x1, float y1, float z1,
+                                FaceSprites sprites, int packedLight, int packedOverlay) {
+        emitFace(poseStack, consumer, Direction.NORTH, x0, y0, z0, x1, y1, z1,
+                sprites.north(), packedLight, packedOverlay);
+        emitFace(poseStack, consumer, Direction.SOUTH, x0, y0, z0, x1, y1, z1,
+                sprites.south(), packedLight, packedOverlay);
+        emitFace(poseStack, consumer, Direction.WEST, x0, y0, z0, x1, y1, z1,
+                sprites.west(), packedLight, packedOverlay);
+        emitFace(poseStack, consumer, Direction.EAST, x0, y0, z0, x1, y1, z1,
+                sprites.east(), packedLight, packedOverlay);
+        emitFace(poseStack, consumer, Direction.UP, x0, y0, z0, x1, y1, z1,
+                sprites.up(), packedLight, packedOverlay);
+        emitFace(poseStack, consumer, Direction.DOWN, x0, y0, z0, x1, y1, z1,
+                sprites.down(), packedLight, packedOverlay);
     }
 
-    private static TextureAtlasSprite spriteFor(Sprites sprites, Part part, Direction face) {
-        return switch (part) {
-            case CONTROLLER -> switch (face) {
-                case NORTH -> sprites.controllerFront();
-                case UP -> sprites.controllerTop();
-                case DOWN -> sprites.casing();
-                default -> sprites.controllerSide();
-            };
-            case CORE -> sprites.core();
-            case NOZZLE -> switch (face) {
-                case NORTH -> sprites.nozzleFront();
-                case UP -> sprites.nozzleTop();
-                default -> sprites.nozzleSide();
-            };
-            case CASING, AIR -> sprites.casing();
-        };
+    private static void emitFace(PoseStack poseStack, VertexConsumer consumer,
+                                 Direction face, float x0, float y0, float z0,
+                                 float x1, float y1, float z1, TextureAtlasSprite sprite,
+                                 int packedLight, int packedOverlay) {
+        float u0 = sprite.getU0();
+        float u1 = sprite.getU1();
+        float v0 = sprite.getV0();
+        float v1 = sprite.getV1();
+        switch (face) {
+            case NORTH -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 0, -1,
+                    x1, y0, z0, u0, v1, x0, y0, z0, u1, v1,
+                    x0, y1, z0, u1, v0, x1, y1, z0, u0, v0);
+            case SOUTH -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 0, 1,
+                    x0, y0, z1, u0, v1, x1, y0, z1, u1, v1,
+                    x1, y1, z1, u1, v0, x0, y1, z1, u0, v0);
+            case WEST -> quad(poseStack, consumer, packedLight, packedOverlay, -1, 0, 0,
+                    x0, y0, z0, u0, v1, x0, y0, z1, u1, v1,
+                    x0, y1, z1, u1, v0, x0, y1, z0, u0, v0);
+            case EAST -> quad(poseStack, consumer, packedLight, packedOverlay, 1, 0, 0,
+                    x1, y0, z1, u0, v1, x1, y0, z0, u1, v1,
+                    x1, y1, z0, u1, v0, x1, y1, z1, u0, v0);
+            case UP -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 1, 0,
+                    x0, y1, z1, u0, v1, x1, y1, z1, u1, v1,
+                    x1, y1, z0, u1, v0, x0, y1, z0, u0, v0);
+            case DOWN -> quad(poseStack, consumer, packedLight, packedOverlay, 0, -1, 0,
+                    x0, y0, z0, u0, v1, x1, y0, z0, u1, v1,
+                    x1, y0, z1, u1, v0, x0, y0, z1, u0, v0);
+        }
     }
 
     private static Sprites loadSprites() {
         var atlas = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
         return new Sprites(
-                atlas.apply(CASING),
-                atlas.apply(CORE),
-                atlas.apply(CONTROLLER_FRONT),
-                atlas.apply(CONTROLLER_SIDE),
-                atlas.apply(CONTROLLER_TOP),
-                atlas.apply(NOZZLE_FRONT),
-                atlas.apply(NOZZLE_SIDE),
-                atlas.apply(NOZZLE_TOP));
+                atlas.apply(CASING), atlas.apply(CORE),
+                atlas.apply(CONTROLLER_FRONT), atlas.apply(CONTROLLER_SIDE),
+                atlas.apply(CONTROLLER_TOP), atlas.apply(NOZZLE_FRONT),
+                atlas.apply(NOZZLE_SIDE), atlas.apply(NOZZLE_TOP));
     }
 
     private static float rotationFor(Direction front) {
@@ -135,54 +197,6 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
             case WEST -> 90.0F;
             default -> 0.0F;
         };
-    }
-
-    private static void emitFace(PoseStack poseStack, VertexConsumer consumer,
-                                 int blockX, int blockY, int blockZ, Direction face,
-                                 TextureAtlasSprite sprite, int packedLight, int packedOverlay) {
-        float x0 = blockX;
-        float x1 = blockX + 1.0F;
-        float y0 = blockY;
-        float y1 = blockY + 1.0F;
-        float z0 = blockZ;
-        float z1 = blockZ + 1.0F;
-        float u0 = sprite.getU0();
-        float u1 = sprite.getU1();
-        float v0 = sprite.getV0();
-        float v1 = sprite.getV1();
-
-        switch (face) {
-            case NORTH -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 0, -1,
-                    x1, y0, z0, u0, v1,
-                    x0, y0, z0, u1, v1,
-                    x0, y1, z0, u1, v0,
-                    x1, y1, z0, u0, v0);
-            case SOUTH -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 0, 1,
-                    x0, y0, z1, u0, v1,
-                    x1, y0, z1, u1, v1,
-                    x1, y1, z1, u1, v0,
-                    x0, y1, z1, u0, v0);
-            case WEST -> quad(poseStack, consumer, packedLight, packedOverlay, -1, 0, 0,
-                    x0, y0, z0, u0, v1,
-                    x0, y0, z1, u1, v1,
-                    x0, y1, z1, u1, v0,
-                    x0, y1, z0, u0, v0);
-            case EAST -> quad(poseStack, consumer, packedLight, packedOverlay, 1, 0, 0,
-                    x1, y0, z1, u0, v1,
-                    x1, y0, z0, u1, v1,
-                    x1, y1, z0, u1, v0,
-                    x1, y1, z1, u0, v0);
-            case UP -> quad(poseStack, consumer, packedLight, packedOverlay, 0, 1, 0,
-                    x0, y1, z1, u0, v1,
-                    x1, y1, z1, u1, v1,
-                    x1, y1, z0, u1, v0,
-                    x0, y1, z0, u0, v0);
-            case DOWN -> quad(poseStack, consumer, packedLight, packedOverlay, 0, -1, 0,
-                    x0, y0, z0, u0, v1,
-                    x1, y0, z0, u1, v1,
-                    x1, y0, z1, u1, v0,
-                    x0, y0, z1, u0, v0);
-        }
     }
 
     private static void quad(PoseStack poseStack, VertexConsumer consumer,
@@ -222,16 +236,15 @@ public final class ManaDrillRenderer implements BlockEntityRenderer<ManaDrillBlo
         return new ResourceLocation(MetaTechReborn.MOD_ID, "block/" + name);
     }
 
-    private enum Part {
-        AIR,
-        CASING,
-        CONTROLLER,
-        CORE,
-        NOZZLE
+    private record FaceSprites(TextureAtlasSprite north, TextureAtlasSprite south,
+                               TextureAtlasSprite west, TextureAtlasSprite east,
+                               TextureAtlasSprite up, TextureAtlasSprite down) {
+        private static FaceSprites all(TextureAtlasSprite sprite) {
+            return new FaceSprites(sprite, sprite, sprite, sprite, sprite, sprite);
+        }
     }
 
-    private record Sprites(TextureAtlasSprite casing,
-                           TextureAtlasSprite core,
+    private record Sprites(TextureAtlasSprite casing, TextureAtlasSprite core,
                            TextureAtlasSprite controllerFront,
                            TextureAtlasSprite controllerSide,
                            TextureAtlasSprite controllerTop,
