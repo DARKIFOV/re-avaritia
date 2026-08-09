@@ -81,7 +81,8 @@ tasks.register('applySourceHotfixes') {
             file('tools/apply_112_ae2_live_crafting_refresh.py'),
             file('tools/apply_113_mana_drill_close_render_fix.py'),
             file('tools/apply_114_dragon_accelerators_mana_render_bounds.py'),
-            file('tools/apply_116_mystical_registration.py')
+            file('tools/apply_116_mystical_registration.py'),
+            file('tools/apply_116b_mystical_ae2_safety.py')
     outputs.upToDateWhen { false }
     doLast {
         exec { commandLine 'python3', 'tools/apply_068_hotfixes.py' }
@@ -105,6 +106,7 @@ tasks.register('applySourceHotfixes') {
         exec { commandLine 'python3', 'tools/apply_113_mana_drill_close_render_fix.py' }
         exec { commandLine 'python3', 'tools/apply_114_dragon_accelerators_mana_render_bounds.py' }
         exec { commandLine 'python3', 'tools/apply_116_mystical_registration.py' }
+        exec { commandLine 'python3', 'tools/apply_116b_mystical_ae2_safety.py' }
     }
 }
 
