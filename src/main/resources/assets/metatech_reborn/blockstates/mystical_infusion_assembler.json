@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "metatech_reborn:block/mystical_infusion_assembler" },
+    "facing=east":  { "model": "metatech_reborn:block/mystical_infusion_assembler", "y": 90 },
+    "facing=south": { "model": "metatech_reborn:block/mystical_infusion_assembler", "y": 180 },
+    "facing=west":  { "model": "metatech_reborn:block/mystical_infusion_assembler", "y": 270 }
+  }
+}

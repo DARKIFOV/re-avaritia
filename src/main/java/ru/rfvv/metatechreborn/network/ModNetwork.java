@@ -27,5 +27,11 @@ public final class ModNetwork {
                 EncoderGhostRecipePacket::encode,
                 EncoderGhostRecipePacket::decode,
                 EncoderGhostRecipePacket::handle);
+        CHANNEL.registerMessage(
+                1,
+                MysticalInfusionRecipePacket.class,
+                MysticalInfusionRecipePacket::encode,
+                MysticalInfusionRecipePacket::decode,
+                MysticalInfusionRecipePacket::handle);
     }
 }

@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.RenderShape;
@@ -24,71 +25,55 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import ru.rfvv.metatechreborn.blockentity.NeutroniumCombinerBlockEntity;
-import ru.rfvv.metatechreborn.registry.ModBlockEntities;
+import ru.rfvv.metatechreborn.blockentity.MysticalInfusionAssemblerBlockEntity;
+import ru.rfvv.metatechreborn.registry.ModMysticalInfusion;
 
-public final class NeutroniumCombinerBlock extends BaseEntityBlock {
+public final class MysticalInfusionAssemblerBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
 
-    public NeutroniumCombinerBlock(Properties properties) {
+    public MysticalInfusionAssemblerBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
-    @Override
-    public @NotNull RenderShape getRenderShape(@NotNull BlockState state) {
-        return RenderShape.MODEL;
-    }
-
-    @Override
-    public @Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
+    @Override public @NotNull RenderShape getRenderShape(@NotNull BlockState state) { return RenderShape.MODEL; }
+    @Override public @Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
     }
-
-    @Override
-    public @NotNull BlockState rotate(@NotNull BlockState state, @NotNull Rotation rotation) {
+    @Override public @NotNull BlockState rotate(@NotNull BlockState state, @NotNull Rotation rotation) {
         return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
     }
-
-    @Override
-    public @NotNull BlockState mirror(@NotNull BlockState state, @NotNull Mirror mirror) {
+    @Override public @NotNull BlockState mirror(@NotNull BlockState state, @NotNull Mirror mirror) {
         return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
-
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
+    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
 
     @Override
-    public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level,
-                                          @NotNull BlockPos pos, @NotNull Player player,
-                                          @NotNull InteractionHand hand, @NotNull BlockHitResult hit) {
-        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity instanceof NeutroniumCombinerBlockEntity combiner) {
-                NetworkHooks.openScreen(serverPlayer, combiner, pos);
-            }
+    public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
+                                          @NotNull Player player, @NotNull InteractionHand hand,
+                                          @NotNull BlockHitResult hit) {
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer
+                && level.getBlockEntity(pos) instanceof MysticalInfusionAssemblerBlockEntity assembler) {
+            NetworkHooks.openScreen(serverPlayer, assembler, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
     public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
-                         @NotNull BlockState newState, boolean isMoving) {
-        if (!state.is(newState.getBlock())) {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity instanceof NeutroniumCombinerBlockEntity combiner) {
-                combiner.getDrops().forEach(stack -> Containers.dropItemStack(level,
-                        pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, stack));
-            }
+                         @NotNull BlockState newState, boolean moving) {
+        if (!state.is(newState.getBlock())
+                && level.getBlockEntity(pos) instanceof MysticalInfusionAssemblerBlockEntity assembler) {
+            for (var stack : assembler.getDrops()) Containers.dropItemStack(level,
+                    pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5, stack);
         }
-        super.onRemove(state, level, pos, newState, isMoving);
+        super.onRemove(state, level, pos, newState, moving);
     }
 
-    @Override
-    public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
-        return new NeutroniumCombinerBlockEntity(pos, state);
+    @Override public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
+        return new MysticalInfusionAssemblerBlockEntity(pos, state);
     }
 
     @Override
@@ -96,7 +81,7 @@ public final class NeutroniumCombinerBlock extends BaseEntityBlock {
                                                                             @NotNull BlockState state,
                                                                             @NotNull BlockEntityType<T> type) {
         if (level.isClientSide) return null;
-        return createTickerHelper(type, ModBlockEntities.NEUTRONIUM_COMBINER.get(),
-                NeutroniumCombinerBlockEntity::serverTick);
+        return createTickerHelper(type, ModMysticalInfusion.ASSEMBLER_BE.get(),
+                MysticalInfusionAssemblerBlockEntity::serverTick);
     }
 }
